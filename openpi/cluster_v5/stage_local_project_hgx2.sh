@@ -34,7 +34,7 @@ S "mkdir -p $dst && rm -f $dst/.staged && mkdir -p $dst/v35/{assets,checkpoints,
   stream venv-skeleton "$src/openpi/.venv" openpi/.venv --exclude='./lib/python3.11/site-packages'
   t0=$(date +%s); sp=$src/openpi/.venv/lib/python3.11/site-packages; export sp
   S "mkdir -p $dst/openpi/.venv/lib/python3.11/site-packages"
-  ( cd "$sp" && ls -A ) | xargs -d '\n' -P 24 -n 8 bash -c 'tar -C "$sp" -cf - "$@" | S "tar -C $dst/openpi/.venv/lib/python3.11/site-packages -xf -"' _
+  ( cd "$sp" && ls -A ) | xargs -d '\n' -P 6 -n 40 bash -c 'tar -C "$sp" -cf - "$@" | S "tar -C $dst/openpi/.venv/lib/python3.11/site-packages -xf -"' _
   stamp "venv-site-packages: exit=$? in $(( $(date +%s) - t0 ))s"
   stream v5-assets "$src/v5/assets" v5/assets
   stream hf-hub "$src/v35/cache/huggingface/hub" v35/cache/huggingface/hub
