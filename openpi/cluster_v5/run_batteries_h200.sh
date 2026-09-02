@@ -11,7 +11,18 @@ root=/iris/u/kewalk/memory_project_v5
 cd "$root/openpi" || exit 2
 source cluster_v5/env.sh >/dev/null 2>&1
 export HOME=/iris/u/kewalk PYTHONPATH=scripts XLA_PYTHON_CLIENT_PREALLOCATE=false
-export OPENPI_JAX_CACHE_DIR="$root/v35/cache/jax_hgx2"; mkdir -p "$OPENPI_JAX_CACHE_DIR"
+# Local mirror on the node (cluster_v5/mirror_to_hgx2_scr.sh): the node's NFS client is too
+# slow for a cold venv import or per-batch video reads, so prefer the /scr copies when present.
+scr=/scr/kewalk_v5
+if [ -x "$scr/venv/bin/python" ]; then
+  export V5_PYTHON="$scr/venv/bin/python"
+  [ -d "$scr/openpi_cache/openpi-assets" ] && export OPENPI_DATA_HOME="$scr/openpi_cache"
+  [ -d "$scr/lerobot/yam" ] && export OPENPI_V5_LEROBOT_ROOT="$scr/lerobot"
+  export OPENPI_JAX_CACHE_DIR="$scr/jax_cache"
+else
+  export OPENPI_JAX_CACHE_DIR="$root/v35/cache/jax_hgx2"
+fi
+mkdir -p "$OPENPI_JAX_CACHE_DIR"
 ck="$root/v5/checkpoints/$config/$exp"
 diag="$root/v5/diagnostics"
 status="$diag/batteries_${exp}_status.log"
@@ -22,7 +33,8 @@ run() {  # script tag step bank
   [ -e "$out/${5}" ] && return
   srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:1 \
     env CUDA_VISIBLE_DEVICES=0 OPENPI_JAX_CACHE_DIR="$OPENPI_JAX_CACHE_DIR" \
-    .venv/bin/python "scripts/$1" --config-name "$config" --params "$ck/$3/params" --batches 12 --batch-size 4 \
+      OPENPI_DATA_HOME="${OPENPI_DATA_HOME:-}" OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-}" \
+    "${V5_PYTHON:-.venv/bin/python}" "scripts/$1" --config-name "$config" --params "$ck/$3/params" --batches 12 --batch-size 4 \
       --bank "$4" --output-dir "$out" > "${out}_run.log" 2>&1
   echo "$2 ckpt-$3 bank=$4 exit=$? at $(date +%H:%M)" >> "$status"
 }

@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import dataclasses
 import difflib
 import logging
+import os
 import pathlib
 from typing import Any, Literal, Protocol, TypeAlias
 
@@ -2700,6 +2701,13 @@ _CONFIGS = [
                         ),
                         memory_v5_subtask_labels_sha256=(
                             "9976d467e11a6eaf1d540f673727de353331bac6590eb2d4c5acf0a5b0c3043d"
+                        ),
+                        # Node-local mirror of the SAME frozen dataset (cluster_v5/README.md §1,
+                        # mirror_to_hgx2_scr.sh): iris-hgx-2 reads /iris too slowly for per-batch
+                        # video decoding. The manifest, label files and sidecars stay on NFS and
+                        # are still authenticated by hash; only the LeRobot root moves.
+                        lerobot_dataset_root=(
+                            os.environ.get("OPENPI_V5_LEROBOT_ROOT") or v4_data.base_config.lerobot_dataset_root
                         ),
                     ),
                     assets=AssetsConfig(assets_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_DIR))),
