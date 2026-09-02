@@ -17,6 +17,7 @@ openpi/writer_contribution_results/
 # Run artifacts and scratch (never commit: v3.5/v36 diagnostics runs are 300G+)
 v35/
 v4/
+v5/
 .tools/
 openpi_test_mem/
 

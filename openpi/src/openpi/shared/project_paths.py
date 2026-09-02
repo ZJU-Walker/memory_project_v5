@@ -55,6 +55,15 @@ V4_ASSETS_DIR = V4_ASSETS_ROOT / "pi05_yam_0830_0831_v36"
 V4_CHECKPOINTS_DIR = V4_ROOT / "checkpoints"
 V4_DIAGNOSTICS_DIR = V4_ROOT / "diagnostics"
 
+# v5 (cluster_v5/README.md): the sentence-fed dual fast-weight line. Own artifact namespace; the
+# detailed-subtask sidecar lives next to the v4 fact sidecar it is derived from.
+V5_ROOT = pathlib.PurePosixPath("v5")
+V5_SUBTASK_LABELS = DATA_DIR / "v5_subtask_labels_0830_0831.json"
+V5_ASSETS_ROOT = V5_ROOT / "assets"
+V5_ASSETS_DIR = V5_ASSETS_ROOT / "pi05_yam_0830_0831_v36"
+V5_CHECKPOINTS_DIR = V5_ROOT / "checkpoints"
+V5_DIAGNOSTICS_DIR = V5_ROOT / "diagnostics"
+
 
 class ProjectRootError(ValueError):
     """Raised when a project-root override or project-relative path is invalid."""
