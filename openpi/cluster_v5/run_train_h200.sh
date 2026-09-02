@@ -19,16 +19,14 @@ source cluster_v5/env.sh >/dev/null 2>&1
 export HOME=/iris/u/kewalk
 # Local mirror on the node (cluster_v5/mirror_to_hgx2_scr.sh): the node's NFS client is too
 # slow for a cold venv import or per-batch video reads, so prefer the /scr copies when present.
+# Only the interpreter/libraries and the LeRobot root can move: train.py's v3.5 runtime-path
+# contract (project_paths.configure_v35_runtime_environment) pins OPENPI_DATA_HOME and the JAX
+# cache to this worktree's v35/cache and rejects any preset override.
 scr=/scr/kewalk_v5
 if [ -x "$scr/venv/bin/python" ]; then
-  export V5_PYTHON="$scr/venv/bin/python"
-  [ -d "$scr/openpi_cache/openpi-assets" ] && export OPENPI_DATA_HOME="$scr/openpi_cache"
-  [ -d "$scr/lerobot/yam" ] && export OPENPI_V5_LEROBOT_ROOT="$scr/lerobot"
-  export OPENPI_JAX_CACHE_DIR="$scr/jax_cache"
-else
-  export OPENPI_JAX_CACHE_DIR="$root/v35/cache/jax_hgx2"
+  export V5_PYTHON="${V5_PYTHON:-$scr/venv/bin/python}"
+  [ -d "$scr/lerobot/yam" ] && export OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-$scr/lerobot}"
 fi
-mkdir -p "$OPENPI_JAX_CACHE_DIR"
 diag="$root/v5/diagnostics"
 ckdir="$root/v5/checkpoints/$config/$exp"
 mode=fresh; extra=()
@@ -40,8 +38,8 @@ ph=$(pgrep -f "gpu_placeholder_marke[r]" || true)
 job=$(grep -oE 'job_[0-9]+' /proc/self/cgroup | sort -u | tr '\n' ' ')
 echo "launch $(date +%m/%d\ %H:%M) host=$(hostname) job=$job step-of=$JOB config=$config exp=$exp batch=$batch accum=$accum mode=$mode python=${V5_PYTHON:-venv} lerobot=${OPENPI_V5_LEROBOT_ROOT:-nfs} extra=$*" >> "$diag/train_${exp}_status.log"
 srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:1 \
-  env CUDA_VISIBLE_DEVICES=0 OPENPI_JAX_CACHE_DIR="$OPENPI_JAX_CACHE_DIR" V5_PYTHON="${V5_PYTHON:-}" \
-    OPENPI_DATA_HOME="${OPENPI_DATA_HOME:-}" OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-}" \
+  env CUDA_VISIBLE_DEVICES=0 V5_PYTHON="${V5_PYTHON:-}" OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-}" \
+    PYTHONPATH="${PYTHONPATH:-}" \
   cluster_v5/train.sh "$config" --exp-name "$exp" --batch-size "$batch" --gradient-accumulation-steps "$accum" --fsdp-devices 1 \
   --no-wandb-enabled "${extra[@]}" "$@" >> "$diag/train_${exp}.log" 2>&1
 echo "exit=$? $(date +%m/%d\ %H:%M)" >> "$diag/train_${exp}_status.log"

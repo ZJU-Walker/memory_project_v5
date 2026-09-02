@@ -6,14 +6,8 @@
 set -euo pipefail
 
 v5_launcher_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-# Node-local overrides (cluster_v5/mirror_to_hgx2_scr.sh) must survive env.sh, which exports
-# the project-local cache paths unconditionally.
-v5_keep_data_home="${OPENPI_DATA_HOME:-}"
-v5_keep_jax_cache="${OPENPI_JAX_CACHE_DIR:-}"
 # shellcheck source=env.sh
 source "${v5_launcher_dir}/env.sh"
-[[ -n "${v5_keep_data_home}" ]] && export OPENPI_DATA_HOME="${v5_keep_data_home}"
-[[ -n "${v5_keep_jax_cache}" ]] && export OPENPI_JAX_CACHE_DIR="${v5_keep_jax_cache}"
 if [[ -n "${OPENPI_V5_LEROBOT_ROOT:-}" ]]; then
   echo "v5: LeRobot dataset root override -> ${OPENPI_V5_LEROBOT_ROOT}" >&2
 fi
