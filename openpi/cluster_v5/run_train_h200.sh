@@ -13,21 +13,16 @@
 set -u
 config="$1"; exp="$2"; shift 2
 batch="${BATCH:-2}"; accum="${ACCUM:-1}"; JOB="${JOB:-17207774}"
-root=/iris/u/kewalk/memory_project_v5
+nfs_root=/iris/u/kewalk/memory_project_v5
+local_root=/scr/kewalk_v5/memory_project_v5
+# Run from the node-local project copy when it is staged (cluster_v5/stage_local_project_hgx2.sh):
+# every project-relative path (caches, data, checkpoints) then resolves on the local disk.
+# Status/log files stay on NFS so they can be read from any host.
+if [ -e "$local_root/.staged" ] && [ -x "$local_root/openpi/.venv/bin/python" ]; then root="$local_root"; else root="$nfs_root"; fi
 cd "$root/openpi" || exit 2
 source cluster_v5/env.sh >/dev/null 2>&1
 export HOME=/iris/u/kewalk
-# Local mirror on the node (cluster_v5/mirror_to_hgx2_scr.sh): the node's NFS client is too
-# slow for a cold venv import or per-batch video reads, so prefer the /scr copies when present.
-# Only the interpreter/libraries and the LeRobot root can move: train.py's v3.5 runtime-path
-# contract (project_paths.configure_v35_runtime_environment) pins OPENPI_DATA_HOME and the JAX
-# cache to this worktree's v35/cache and rejects any preset override.
-scr=/scr/kewalk_v5
-if [ -x "$scr/venv/bin/python" ]; then
-  export V5_PYTHON="${V5_PYTHON:-$scr/venv/bin/python}"
-  [ -d "$scr/lerobot/yam" ] && export OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-$scr/lerobot}"
-fi
-diag="$root/v5/diagnostics"
+diag="$nfs_root/v5/diagnostics"
 ckdir="$root/v5/checkpoints/$config/$exp"
 mode=fresh; extra=()
 if [ -d "$ckdir" ]; then
@@ -36,10 +31,9 @@ fi
 ph=$(pgrep -f "gpu_placeholder_marke[r]" || true)
 [ -n "$ph" ] && { kill $ph 2>/dev/null; sleep 5; echo "killed placeholder pids: $ph"; }
 job=$(grep -oE 'job_[0-9]+' /proc/self/cgroup | sort -u | tr '\n' ' ')
-echo "launch $(date +%m/%d\ %H:%M) host=$(hostname) job=$job step-of=$JOB config=$config exp=$exp batch=$batch accum=$accum mode=$mode python=${V5_PYTHON:-venv} lerobot=${OPENPI_V5_LEROBOT_ROOT:-nfs} extra=$*" >> "$diag/train_${exp}_status.log"
+echo "launch $(date +%m/%d\ %H:%M) host=$(hostname) job=$job step-of=$JOB config=$config exp=$exp batch=$batch accum=$accum mode=$mode root=$root extra=$*" >> "$diag/train_${exp}_status.log"
 srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:1 \
-  env CUDA_VISIBLE_DEVICES=0 V5_PYTHON="${V5_PYTHON:-}" OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-}" \
-    PYTHONPATH="${PYTHONPATH:-}" \
+  env CUDA_VISIBLE_DEVICES=0 \
   cluster_v5/train.sh "$config" --exp-name "$exp" --batch-size "$batch" --gradient-accumulation-steps "$accum" --fsdp-devices 1 \
   --no-wandb-enabled "${extra[@]}" "$@" >> "$diag/train_${exp}.log" 2>&1
 echo "exit=$? $(date +%m/%d\ %H:%M)" >> "$diag/train_${exp}_status.log"

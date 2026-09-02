@@ -7,24 +7,14 @@
 # Run ON the node. Kills the busy placeholder first; restores it when done.
 set -u
 config="$1"; exp="$2"; JOB="${JOB:-17207774}"; steps="${STEPS:-999 500}"
-root=/iris/u/kewalk/memory_project_v5
+nfs_root=/iris/u/kewalk/memory_project_v5
+local_root=/scr/kewalk_v5/memory_project_v5
+if [ -e "$local_root/.staged" ] && [ -x "$local_root/openpi/.venv/bin/python" ]; then root="$local_root"; else root="$nfs_root"; fi
 cd "$root/openpi" || exit 2
 source cluster_v5/env.sh >/dev/null 2>&1
 export HOME=/iris/u/kewalk PYTHONPATH=scripts XLA_PYTHON_CLIENT_PREALLOCATE=false
-# Local mirror on the node (cluster_v5/mirror_to_hgx2_scr.sh): the node's NFS client is too
-# slow for a cold venv import or per-batch video reads, so prefer the /scr copies when present.
-scr=/scr/kewalk_v5
-if [ -x "$scr/venv/bin/python" ]; then
-  export V5_PYTHON="$scr/venv/bin/python"
-  [ -d "$scr/openpi_cache/openpi-assets" ] && export OPENPI_DATA_HOME="$scr/openpi_cache"
-  [ -d "$scr/lerobot/yam" ] && export OPENPI_V5_LEROBOT_ROOT="$scr/lerobot"
-  export OPENPI_JAX_CACHE_DIR="$scr/jax_cache"
-else
-  export OPENPI_JAX_CACHE_DIR="$root/v35/cache/jax_hgx2"
-fi
-mkdir -p "$OPENPI_JAX_CACHE_DIR"
 ck="$root/v5/checkpoints/$config/$exp"
-diag="$root/v5/diagnostics"
+diag="$nfs_root/v5/diagnostics"
 status="$diag/batteries_${exp}_status.log"
 ph=$(pgrep -f "gpu_placeholder_marke[r]" || true); [ -n "$ph" ] && { kill $ph 2>/dev/null; sleep 5; }
 echo "batteries $exp started on $(hostname) at $(date +%H:%M) job=$(grep -oE 'job_[0-9]+' /proc/self/cgroup | sort -u | tr '\n' ' ')" >> "$status"
@@ -32,9 +22,8 @@ run() {  # script tag step bank
   local out="$diag/${2}_${exp}_${3}_${4}"
   [ -e "$out/${5}" ] && return
   srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:1 \
-    env CUDA_VISIBLE_DEVICES=0 OPENPI_JAX_CACHE_DIR="$OPENPI_JAX_CACHE_DIR" \
-      OPENPI_DATA_HOME="${OPENPI_DATA_HOME:-}" OPENPI_V5_LEROBOT_ROOT="${OPENPI_V5_LEROBOT_ROOT:-}" \
-    "${V5_PYTHON:-.venv/bin/python}" "scripts/$1" --config-name "$config" --params "$ck/$3/params" --batches 12 --batch-size 4 \
+    env CUDA_VISIBLE_DEVICES=0 \
+    .venv/bin/python "scripts/$1" --config-name "$config" --params "$ck/$3/params" --batches 12 --batch-size 4 \
       --bank "$4" --output-dir "$out" > "${out}_run.log" 2>&1
   echo "$2 ckpt-$3 bank=$4 exit=$? at $(date +%H:%M)" >> "$status"
 }
