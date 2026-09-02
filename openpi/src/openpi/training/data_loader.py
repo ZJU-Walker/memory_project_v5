@@ -249,6 +249,13 @@ def create_torch_dataset(
             model_config, "memory_probe_diagnostic", False
         )
         seq_transforms: list[_transforms.DataTransformFn] = []
+        episode_sentences: tuple = ()
+        if data_config.memory_v5_subtask_labels_path is not None:
+            if "stable_id" not in info:
+                raise ValueError("v5 subtask sentences require the v3.5 frozen episode manifest (stable identities).")
+            episode_sentences = _load_v5_subtask_labels(
+                data_config, stable_ids=info["stable_id"], episode_lengths=info["length"]
+            )
         if data_config.subtask_from_task:
             seq_transforms.append(
                 _transforms.MemorySequenceSubtasks(
@@ -258,6 +265,7 @@ def create_torch_dataset(
                     episode_tasks=info["episode_tasks"],
                     tasks=dataset_meta.tasks,
                     episode_waiting_valid=info.get("episode_waiting_valid", ()),
+                    episode_sentences=episode_sentences,
                 )
             )
         fact_targets_table = None
@@ -1016,6 +1024,74 @@ def _load_v35_episode_manifest(
 
 
 _V4_FACT_LABELS_SCHEMA_VERSION = "openpi.v4.fact-labels.v1"
+
+
+_V5_SUBTASK_LABELS_SCHEMA_VERSION = "openpi.v5.subtask-labels.v1"
+
+
+def _load_v5_subtask_labels(
+    data_config: "_config.DataConfig",
+    *,
+    stable_ids: tuple[str, ...],
+    episode_lengths: np.ndarray,
+) -> tuple[np.ndarray, ...]:
+    """Load and fail-closed validate the v5 detailed-subtask sentence sidecar
+    (scripts/v5_build_subtask_labels.py; cluster_v5/README.md §4).
+
+    Returns one per-frame string array per LeRobot episode (aligned through the manifest
+    ``stable_id`` order). Authentication mirrors the v4 fact sidecar: pinned file SHA256, content
+    self-hash, and the recorded source-manifest SHA256 against the configured frozen manifest.
+    Every episode's segments must tile [0, length) exactly.
+    """
+    path_value = data_config.memory_v5_subtask_labels_path
+    if path_value is None:
+        raise ValueError("v5 subtask-sentence sidecar path is not configured.")
+    path = pathlib.Path(path_value)
+    if not path.is_file():
+        raise ValueError(f"v5 subtask-sentence sidecar does not exist: {path}")
+    raw = path.read_bytes()
+    expected_sha256 = data_config.memory_v5_subtask_labels_sha256
+    if expected_sha256 is None:
+        raise ValueError("the v5 subtask-sentence sidecar requires an exact pinned SHA256.")
+    actual_sha256 = hashlib.sha256(raw).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise ValueError(
+            f"v5 subtask-sentence sidecar SHA256 mismatch: expected {expected_sha256}, got {actual_sha256}."
+        )
+    payload = json.loads(raw)
+    if payload.get("schema_version") != _V5_SUBTASK_LABELS_SCHEMA_VERSION:
+        raise ValueError(f"unsupported v5 subtask-sentence schema: {payload.get('schema_version')!r}.")
+    body = {key: value for key, value in payload.items() if key != "content_sha256"}
+    canonical = json.dumps(body, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != payload.get("content_sha256"):
+        raise ValueError("v5 subtask-sentence sidecar failed its content self-hash.")
+    if payload.get("source_manifest_sha256") != data_config.memory_episode_manifest_sha256:
+        raise ValueError(
+            "v5 subtask-sentence sidecar was derived from a different manifest than the configured frozen population."
+        )
+    records = payload["episodes"]
+    tables = []
+    for episode_index, stable_id in enumerate(stable_ids):
+        record = records.get(stable_id)
+        if record is None:
+            raise ValueError(f"v5 subtask-sentence sidecar is missing episode {stable_id!r}.")
+        length = int(episode_lengths[episode_index])
+        table = np.empty((length,), dtype=object)
+        covered = np.zeros((length,), dtype=bool)
+        for segment in record["segments"]:
+            start, end = int(segment["start"]), int(segment["end"])
+            sentence = segment["sentence"]
+            if not isinstance(sentence, str) or not sentence.strip():
+                raise ValueError(f"episode {stable_id!r} has an empty sentence segment.")
+            if start < 0 or end < start or end >= length or np.any(covered[start : end + 1]):
+                raise ValueError(f"episode {stable_id!r} segment [{start}, {end}] is out of range or overlaps.")
+            table[start : end + 1] = sentence
+            covered[start : end + 1] = True
+        if not np.all(covered):
+            raise ValueError(f"episode {stable_id!r} sentence segments do not tile all {length} frames.")
+        tables.append(table)
+    logging.info("v5 subtask sentences: %d episodes from %s", len(tables), path.name)
+    return tuple(tables)
 
 
 def _load_v4_fact_labels(

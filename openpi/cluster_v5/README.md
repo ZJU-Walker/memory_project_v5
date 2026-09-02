@@ -49,7 +49,7 @@ user on 2026-09-02 (12:30–13:05 PDT, chat "v5"); every later modification is l
  blocks 0–8, frozen (same as v4) ──▶ layer-8 features h8: image tokens + prompt tokens
         │
         ├──▶ VISUAL WRITE (unchanged from Stage 4c)
-        │      compress image tokens → key/value → delta-rule commit every step
+        │      compress image tokens → key/value → delta-rule commit at evidence steps (v3.5 schedule)
         │      ┌────────────────────────┐
         │      │ VISUAL BANK  M_vis     │  fast weights, analytic decay over time gaps
         │      └───────────┬────────────┘
@@ -82,7 +82,7 @@ The two banks side by side:
 | | visual bank | semantic bank |
 |---|---|---|
 | mechanism | delta-rule fast weights, analytic decay | identical code |
-| write input | compressed layer-8 image features, every step | the model's own predicted sentence, when it changes |
+| write input | compressed layer-8 image features, at the data-marked evidence steps (as 4c) | the model's own predicted sentence, whenever it changes |
 | write key / value | from image features | `Wk·e` / `Wv·e`, `e` = encoded sentence |
 | read query | conditioner over current images | 8 heads on the current layer-8 context (prompt + images) |
 | output | `n_v` memory tokens | 8 memory tokens |
@@ -112,25 +112,65 @@ read head, v3.5 side heads.
 injection, zero-token masking, visual bank, memory state carry across TBPTT windows, the
 batteries, the data split, the light protocol (`v4_protocol`, graft sources, run manifest).
 
-## 3. Mapping to code
+## 3. Mapping to code (implemented 2026-09-02 13:10–13:45; every item is on branch `v5`)
 
-Filled in §3a below after the code mapping of 2026-09-02 13:10 (see §8).
+Two facts from the code map changed the wording of §2/§4 but not the design:
+(a) the Gemma blocks are one scanned parameter stack, so "frozen blocks 0–8" is implemented
+as a `stop_gradient` on the sentence-encoder pass, not as a freeze regex (all 18 blocks train
+through the task losses exactly as in v4); (b) the visual bank commits at the data-marked
+evidence steps (`seq_write_mask`, the v3.5 schedule), not literally every step — unchanged
+from 4c. The semantic bank's write schedule is model-driven (D7) and ignores `seq_write_mask`.
+
+| piece | file / symbol | what |
+|---|---|---|
+| config flags | `models/pi0_config.py`: `memory_v5_sentence_bank`, `memory_v5_oracle_writes`, `memory_v5_write_conf=0.9`, `memory_v5_sentence_len=48`, `memory_v5_read_queries=8` + validation (requires `memory_v4_dual_bank`; fact losses must be 0; `sentence_len <= causal_token_len`) | the flag reuses ALL dual-bank plumbing; with it on, the fact head/value table/read head are never constructed |
+| module members | `models/pi0.py` `__init__` (v4 block): `memory_sem_key_proj` (2048→512, no bias), `memory_sem_value_proj` (2048→2048, identity init), `memory_sem_read_query_bank` [8, 2048], `memory_sem_read_conditioner` (`MemoryQueryConditioner`, zero-init residual), `memory_sem_query_proj` (2048→512); `memory_sem_slot_embedding` sized by the query count | names contain `memory` so the audited loader fresh-inits them and the memory-group grad clip covers them |
+| token budget | `Pi0._memory_token_total` | 16 visual + `memory_v5_read_queries` semantic tokens (24 total, as v4) |
+| sentence encoder | `Pi0.v5_encode_sentence(tokens, mask)` | embed → blocks 0..`memory_layer` text-only (bidirectional over the span, empty cache, no images/memory/suffix) → masked mean → L2; `stop_gradient` (D5) |
+| write intent | `Pi0.v5_sentence_intent(e)` → `key = L2(Wk e)`, `value = L2(Wv e)` shaped `[b,1,·]` | content key/value |
+| read | `Pi0.v5_semantic_queries/v5_semantic_read`: conditioner over the instruction rows of `h8_all` (state digits excluded) → `Wq` → L2 → `memory_semantic.read_key` | 8 tokens, content-addressed; wired in `_v32_prepare_memory_interface` (also returns `sem_queries`) |
+| write | `Pi0.v5_semantic_write` = `memory_semantic.delta_write_kv_multi(state, key, value, commit[:,None])` | delta rule, rate 1.0; False commit = one decay step (v4 transition contract) |
+| write rule | `_compute_sequence_loss_v32`, semantic transition block (`v5_on`) | span = `causal_mask & ~causal_fast` over the first `sentence_len` causal positions; predicted mode: `argmax` of the teacher-forced logits, `conf = mean_span p(argmax)`; oracle mode: label tokens, conf = 1; `changed = any(cur != prev)`; commit iff `changed & confident & transition_valid`; carry gains `prev_sentence [b,L]` (sentinel −1), a diagnostic ring of the last 8 committed keys and its count |
+| outputs | same function, `v5_*` telemetry: `v5_sentence_changed_count`, `v5_sentence_confident_count`, `v5_write_requested_count`, `v5_token_acc_evidence_sum/v5_exact_evidence_sum/v5_evidence_count`, `…_decision…`, `v5_qk_cos_sum/v5_qk_count` (max cosine between decision-step queries and any committed key), per-step `v5_exact_{decision,evidence}_steps` | no loss uses them; `v4_decision_ce_*`, `v4_sem_*` keep their v4 names so the batteries run unchanged |
+| interventions | unchanged (`_V4_INTERVENTIONS`, read-side only, decision steps only) | `reset/donor` × `semantic/visual/both` |
+| decode length | `sample_subtask`/`sample_with_memory` default `max_decode_steps` 10 → 24 | the inspect sentence is 12 tokens |
+| labels | `scripts/v5_build_subtask_labels.py` (+ `_test.py`) → `data/v5_subtask_labels_0830_0831.json` (file sha `9976d467…3043d`, content sha `c1d821a1…9efa`, manifest sha `9085fe50…8442`, cross-checked against the v4 fact sidecar) | run-length segments per episode; token lengths checked with the real PaliGemma tokenizer (max 12 ≤ 48) |
+| data | `training/config.py` `DataConfig.memory_v5_subtask_labels_{path,sha256}`; `training/data_loader.py` `_load_v5_subtask_labels` (pinned sha, self-hash, manifest sha, segments must tile every episode) → `transforms.MemorySequenceSubtasks.episode_sentences` | replaces `subtask` (the lookahead-shifted CE target) only; `subtask_now` keeps the canonical vocabulary (phase masks, sparse-skip checks, manifest vocabulary pin untouched); no new model fields |
+| train protocol | `scripts/train.py`: `_validate_v4_run` also requires the v5 sidecar pin for v5 models; run manifest gains `subtask_labels_sha256`; `_v5_info` logs the telemetry | fact-loss assembly is skipped automatically (its keys are absent) |
+| configs | `pi05_yam_mem_v5_stage{A,B,C}` (`training/config.py`, right after `pi05_yam_mem_v4_stage4c`) | A: oracle writes, visual injection off, freeze = Stage-2b set minus `fact_*`; B: predicted writes; C: + visual injection, freeze = Stage-4c set minus `fact_*`; no graft sources; assets copied from v4 (`v5/assets/…/norm_stats.json`) |
+| launchers | `cluster_v5/train.sh`, `cluster_v5/run_train_h200.sh` (job-scoped `srun --overlap`, kills the placeholder, private JAX cache `v35/cache/jax_hgx2`, resume policy), `cluster_v5/gpu_placeholder_hgx2.sh` | |
+| tests | `models/pi0_v5_test.py` (config gating; order-aware, padding-invariant, gradient-free encoder; write-then-read; oracle sequence writes on every sentence change; predicted writes gated by confidence; interventions read-side only), `scripts/v5_build_subtask_labels_test.py` | |
+
+Left as in v4 and deliberately untouched: the v4 fact-head code paths (still used by the v4
+configs in this tree), `sample_with_memory` (dual-bank inference remains unimplemented; the
+batteries do not need it), `v4_stage2_eval.py` (its read-accuracy gate reads a head v5 does not
+have; the CE-ratio gates and `v4_side_flip_eval.py` work unchanged).
+
+**Approximation to know about (predicted mode, training only):** the written sentence is the
+argmax at the LABEL's span positions under teacher forcing, so its length is the label's length
+and each token is conditioned on the gold prefix. At inference the decoded sentence is used.
 
 ## 4. Labels (the detailed subtask sidecar)
 
-`data/v5_subtask_labels_0830_0831.json`, generated by `scripts/v5_build_subtask_labels.py` from the
-frozen v36 manifest and the v4 fact sidecar (object sides per episode). One sentence per
-(episode, step), three templates:
+`data/v5_subtask_labels_0830_0831.json`, generated by `scripts/v5_build_subtask_labels.py` from
+the frozen v36 manifest (object, target side) and each episode's hashed raw phase segments. One
+sentence per (episode, frame) as run-length segments. The dataset's own labels already carry the
+decision: the waiting phase is `wait; target bin is {side}` and that is the step where the memory
+read has to pay off (the side-flip battery swaps exactly that side token). So only the inspection
+phase gains content:
 
-| phase (from the manifest) | sentence |
+| phase (canonical, kept in `subtask_now`) | sentence (the CE target `subtask`) |
 |---|---|
-| inspect / evidence | `inspect both bins: banana left, grey box right` (sides from the episode facts; object order fixed banana, grey box) |
-| waiting | `wait for the instruction` |
-| decision and motion | `pick up the banana from the left bin` (prompted object, its side) |
+| `open both lids` | unchanged |
+| `inspect both bins` | `inspect both bins: banana {side}, grey pepper box {side}` (12 tokens) |
+| `close both lids and reset arms` | unchanged |
+| `wait; target bin is {side}` | unchanged (7 tokens) — the decision |
+| `open {side} bin` | unchanged |
 
-Per step the sidecar also stores `changed` = sentence differs from the previous step (True at the
-first step), which is the oracle write flag. The split and the held-out episodes are unchanged;
-the sidecar is derived only from the manifest, never from images.
+The object is named as in the prompts (`find the grey pepper box`). Five sentence changes per
+episode → at most five semantic commits (fewer in sparse windows), well inside the diagnostic
+ring of 8. The split and the held-out episodes are unchanged; the sidecar derives only from the
+manifest and the label files, never from images.
 
 ## 5. Write rule, modes, inference
 
@@ -182,3 +222,4 @@ build no fallback.
 
 * 2026-09-02 12:26 — H200 placeholder up (132.7 GB, 100 %).
 * 2026-09-02 13:06 — design frozen (D1–D9); scaffold committed (`9c37201`); code mapping started.
+* 2026-09-02 13:45 — implementation landed (§3): model, data, configs, launchers, tests; sidecar built; §2/§4 wording corrected (visual commits at evidence steps; only the inspect sentence is detailed, the waiting label already carries the side).

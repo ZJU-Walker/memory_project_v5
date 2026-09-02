@@ -403,6 +403,12 @@ class MemorySequenceSubtasks(DataTransformFn):
     # v3.4.1 leak fix 1: per-episode per-frame booleans, False on waiting-labeled frames whose
     # arm is not actually stationary (data_loader._trim_waiting_to_static). Empty = no trim.
     episode_waiting_valid: tuple = ()
+    # v5 (cluster_v5/README.md §4): per-episode per-frame DETAILED subtask sentences from the
+    # authenticated sidecar (data_loader._load_v5_subtask_labels). When present they replace the
+    # canonical task strings as the lookahead-shifted CE target `subtask` ONLY; `subtask_now`
+    # keeps the canonical vocabulary because the phase masks and the sparse-skip legality
+    # checks key on it. Empty = canonical labels (every v3.x/v4 config).
+    episode_sentences: tuple = ()
 
     def __call__(self, data: DataDict) -> DataDict:
         episode = int(np.asarray(data["episode_index"]).item())
@@ -412,9 +418,19 @@ class MemorySequenceSubtasks(DataTransformFn):
         # v3.4 also carries the UNSHIFTED per-step labels ("what phase is the observation in"),
         # consumed by MemoryV34Labels for the probe-ladder evidence/waiting frame masks.
         idx_now = np.minimum(frame + np.arange(self.steps) * self.stride, len(ep_tasks) - 1)
+        if self.episode_sentences:
+            ep_sentences = self.episode_sentences[episode]
+            if len(ep_sentences) != len(ep_tasks):
+                raise ValueError(
+                    f"v5 sentence table for episode {episode} has {len(ep_sentences)} frames, "
+                    f"the task table {len(ep_tasks)}."
+                )
+            subtask = [str(ep_sentences[i]) for i in idx]
+        else:
+            subtask = [self.tasks[int(ep_tasks[i])] for i in idx]
         out = {
             **data,
-            "subtask": [self.tasks[int(ep_tasks[i])] for i in idx],
+            "subtask": subtask,
             "subtask_now": [self.tasks[int(ep_tasks[i])] for i in idx_now],
         }
         if self.episode_waiting_valid:

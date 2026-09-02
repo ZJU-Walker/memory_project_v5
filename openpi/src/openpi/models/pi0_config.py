@@ -271,6 +271,29 @@ class Pi0Config(_model.BaseModelConfig):
     # semantic core bitwise unchanged for 600 steps). Required for v4 dual-bank models.
     memory_mask_zero_tokens: bool = False
 
+    # --------------------------------------------------------------------------------------
+    # v5 (cluster_v5/README.md): the semantic bank is fed by the model's OWN subtask sentence
+    # instead of the task-specific fact head. Requires memory_v4_dual_bank (all the dual-bank
+    # plumbing -- second TitansMemory, injection, interventions, zero-token masking -- is
+    # reused verbatim); with the flag on, the fact head / fact value table / read head are
+    # never constructed and the fact losses must be zero.
+    # --------------------------------------------------------------------------------------
+    memory_v5_sentence_bank: bool = False
+    # v5-A: write the LABEL sentence (teacher-forced causal tokens) instead of the model's
+    # argmax sentence, isolating the read side (content-addressed retrieval) from sentence
+    # prediction error. The A->B gap measures that error.
+    memory_v5_oracle_writes: bool = False
+    # Predicted mode commits only when the sentence changed vs the previous step AND the mean
+    # probability of the argmax tokens over the sentence span is at least this value.
+    memory_v5_write_conf: float = 0.9
+    # Number of leading causal positions fed to the sentence encoder (the subtask sentence is
+    # the left-aligned prefix of the causal buffer, FASTSubtaskTokenizer.tokenize_split). Every
+    # label sentence must fit; the label builder checks this against the real tokenizer.
+    memory_v5_sentence_len: int = 48
+    # Trainable read-query heads on the layer-8 context; each yields one semantic memory
+    # token (replaces the fixed fact-slot keys, so it also sets the semantic token budget).
+    memory_v5_read_queries: int = 8
+
     pytorch_compile_mode: str | None = "max-autotune"
 
     def __post_init__(self):
@@ -421,6 +444,8 @@ class Pi0Config(_model.BaseModelConfig):
                     raise ValueError("v3.5 requires nonzero write-side and read-side loss weights.")
                 if not self.memory_time_consistent_augmentation:
                     raise ValueError("v3.5 requires time-consistent sequence augmentation.")
+            if self.memory_v5_sentence_bank and not self.memory_v4_dual_bank:
+                raise ValueError("memory_v5_sentence_bank requires memory_v4_dual_bank=True (it reuses the dual-bank plumbing).")
             if not self.memory_v4_dual_bank and (
                 self.memory_fact_loss_weight > 0
                 or self.memory_fact_read_loss_weight > 0
@@ -474,6 +499,18 @@ class Pi0Config(_model.BaseModelConfig):
                     raise ValueError("semantic tanh_rms injection requires positive c and tau.")
                 if not -1.0 < self.memory_sem_injection_gate_init < 1.0:
                     raise ValueError("memory_sem_injection_gate_init must lie strictly inside (-1, 1).")
+                if self.memory_v5_sentence_bank:
+                    # v5: the fact head is gone; nothing may reference it.
+                    if self.memory_fact_loss_weight != 0 or self.memory_fact_read_loss_weight != 0:
+                        raise ValueError("memory_v5_sentence_bank has no fact head: fact-loss weights must be 0.")
+                    if self.memory_fact_oracle_writes:
+                        raise ValueError("memory_v5_sentence_bank uses memory_v5_oracle_writes, not the v4 fact oracle.")
+                    if not 0.0 < self.memory_v5_write_conf < 1.0:
+                        raise ValueError("memory_v5_write_conf must lie strictly inside (0, 1).")
+                    if not 1 <= self.memory_v5_sentence_len <= self.causal_token_len:
+                        raise ValueError("memory_v5_sentence_len must lie in [1, causal_token_len].")
+                    if self.memory_v5_read_queries < 1:
+                        raise ValueError("memory_v5_read_queries must be >= 1.")
         if self.pytorch_compile_mode is not None:
             assert self.pytorch_compile_mode in [
                 "default",

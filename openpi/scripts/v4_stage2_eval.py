@@ -72,6 +72,9 @@ def mismatched_pair_fraction(sides: np.ndarray) -> float:
 
 def evaluate_gates(metrics: dict[str, dict[str, float]], mismatch_fraction: float) -> dict[str, dict]:
     normal, reset, donor = metrics["normal"], metrics["reset"], metrics["donor"]
+    # v5 (cluster_v5/README.md §6): the sentence bank has no read head, so the two
+    # read-accuracy gates are not applicable and are excluded from the verdict.
+    read_head_present = normal.get("read_terms", 0.0) > 0
 
     def ratio(a: float, b: float) -> float:
         return float(a / b) if b > 0 else float("inf") if a > 0 else 1.0
@@ -105,9 +108,12 @@ def evaluate_gates(metrics: dict[str, dict[str, float]], mismatch_fraction: floa
             "direction": "at_least",
         },
     }
-    for gate in gates.values():
+    for name, gate in gates.items():
         v, t = gate["value"], gate["threshold"]
         gate["passes"] = bool(v >= t) if gate["direction"] == "at_least" else bool(v <= t)
+        gate["applicable"] = bool(read_head_present) if name in ("read_accuracy_normal", "donor_read_accuracy") else True
+        if not gate["applicable"]:
+            gate["passes"] = True
     return gates
 
 
@@ -181,6 +187,15 @@ def main(argv=None) -> None:
         "v35_transition_count",
     )
     sums = {cond: {k: 0.0 for k in keys} for cond in CONDITIONS}
+    V5_KEYS = (
+        "v5_exact_decision_sum",
+        "v5_exact_evidence_sum",
+        "v5_evidence_count",
+        "v5_qk_cos_sum",
+        "v5_qk_count",
+        "v5_write_requested_count",
+        "v5_sentence_changed_count",
+    )
     sides_seen: list[np.ndarray] = []
     rng = jax.random.key(args.seed)
     for index, (observation, actions) in enumerate(loader):
@@ -199,7 +214,11 @@ def main(argv=None) -> None:
                 v4_intervention=None if cond == "normal" else intervention_prefix + cond,
             )
             for k in keys:
-                sums[cond][k] += float(jax.device_get(losses[k]))
+                # v5 models emit no fact-read terms (no read head); count them as absent.
+                sums[cond][k] += float(jax.device_get(losses[k])) if k in losses else 0.0
+            for k in V5_KEYS:
+                if k in losses:
+                    sums[cond][k] = sums[cond].get(k, 0.0) + float(jax.device_get(losses[k]))
         print(f"batch {index + 1}/{args.batches} done", flush=True)
 
     all_sides = np.concatenate(sides_seen)
@@ -217,6 +236,18 @@ def main(argv=None) -> None:
             "read_terms": s["v4_fact_read_count"],
             "sem_commits": s["v4_sem_commit_count"],
         }
+        if "v5_write_requested_count" in s:
+            metrics[cond].update(
+                {
+                    # v5 sentence telemetry: exact-sentence rates at decision / evidence steps,
+                    # and how close the decision-step read queries land to any committed key.
+                    "v5_exact_decision_rate": s["v5_exact_decision_sum"] / max(s["v4_decision_count"], 1.0),
+                    "v5_exact_evidence_rate": s["v5_exact_evidence_sum"] / max(s["v5_evidence_count"], 1.0),
+                    "v5_qk_cos_mean": s["v5_qk_cos_sum"] / max(s["v5_qk_count"], 1.0),
+                    "v5_sem_writes": s["v5_write_requested_count"],
+                    "v5_sentence_changes": s["v5_sentence_changed_count"],
+                }
+            )
     gates = evaluate_gates(metrics, mismatch)
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -245,7 +276,15 @@ def main(argv=None) -> None:
             f"read_acc={m['fact_read_accuracy']:.3f} raw_read_rms={m['sem_raw_read_rms']:.4f}"
         )
     for name, gate in gates.items():
-        print(f"  gate {name}: value={gate['value']:.4f} threshold={gate['threshold']:.4f} passes={gate['passes']}")
+        tag = "" if gate.get("applicable", True) else " (not applicable: no read head)"
+        print(f"  gate {name}: value={gate['value']:.4f} threshold={gate['threshold']:.4f} passes={gate['passes']}{tag}")
+    if "v5_exact_decision_rate" in metrics["normal"]:
+        for cond in CONDITIONS:
+            m = metrics[cond]
+            print(
+                f"  v5 {cond:6s} exact_decision={m['v5_exact_decision_rate']:.3f} exact_evidence={m['v5_exact_evidence_rate']:.3f} "
+                f"qk_cos={m['v5_qk_cos_mean']:.3f} writes={m['v5_sem_writes']:.0f} changes={m['v5_sentence_changes']:.0f}"
+            )
 
 
 if __name__ == "__main__":

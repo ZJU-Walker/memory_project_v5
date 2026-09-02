@@ -197,6 +197,10 @@ def _validate_v4_run(config: _config.TrainConfig) -> None:
         raise ValueError("v4_protocol requires a memory_v4_dual_bank model.")
     if config.data.base_config.memory_v4_fact_labels_sha256 is None:
         raise ValueError("v4 runs require the pinned fact-label sidecar (memory_v4_fact_labels_sha256).")
+    if getattr(config.model, "memory_v5_sentence_bank", False) and (
+        config.data.base_config.memory_v5_subtask_labels_sha256 is None
+    ):
+        raise ValueError("v5 runs require the pinned subtask-sentence sidecar (memory_v5_subtask_labels_sha256).")
     if config.ema_decay is not None:
         raise ValueError("v4 runs use raw parameters as primary; set ema_decay=None.")
     for regex, params_path in config.v4_graft_sources:
@@ -280,6 +284,8 @@ def _write_v4_run_manifest(config: _config.TrainConfig, params: nnx.State) -> pa
         "weight_loader": repr(config.weight_loader),
         "v4_graft_sources": [list(item) for item in config.v4_graft_sources],
         "fact_labels_sha256": config.data.base_config.memory_v4_fact_labels_sha256,
+        # v5: the detailed-subtask sentence sidecar (None for v4 runs).
+        "subtask_labels_sha256": getattr(config.data.base_config, "memory_v5_subtask_labels_sha256", None),
         "episode_manifest_sha256": config.data.base_config.memory_episode_manifest_sha256,
         "initialization_parameter_tree_sha256": _weight_loaders.parameter_tree_sha256(params.to_pure_dict()),
         "host": platform.node(),
@@ -1280,6 +1286,37 @@ def _v4_fact_info(chunked_loss: dict[str, at.Array]) -> dict[str, at.Array]:
     return info
 
 
+_V5_INFO_KEYS = (
+    "v4_sem_commit_count",
+    "v4_sem_write_eligible_count",
+    "v4_sem_degenerate_count",
+    "v4_sem_final_residual_sum",
+    "v4_sem_final_residual_max",
+    "v4_sem_raw_read_rms_sum",
+    "v4_sem_injected_pre_cast_rms_sum",
+    "v4_sem_injected_post_cast_rms_sum",
+    "v5_sentence_changed_count",
+    "v5_sentence_confident_count",
+    "v5_sentence_conf_sum",
+    "v5_write_requested_count",
+    "v5_token_acc_evidence_sum",
+    "v5_exact_evidence_sum",
+    "v5_evidence_count",
+    "v5_token_acc_decision_sum",
+    "v5_exact_decision_sum",
+    "v5_qk_cos_sum",
+    "v5_qk_count",
+    "v4_decision_ce_sum",
+    "v4_decision_count",
+)
+
+
+def _v5_info(chunked_loss: dict[str, at.Array]) -> dict[str, at.Array]:
+    """v5 sentence-bank telemetry (cluster_v5/README.md §6), raw numerators/denominators for
+    exact logging-window pooling; no loss term is derived from any of them."""
+    return {f"diagnostic/{key}": chunked_loss[key] for key in _V5_INFO_KEYS}
+
+
 def _v35_loss_info(chunked_loss: dict[str, at.Array]) -> dict[str, at.Array]:
     """Keep v3.5 numerators and denominators explicit for exact logging-window pooling."""
     info = {}
@@ -1802,6 +1839,8 @@ def train_step(
                 info["v4_fact_loss"] = fact_loss
                 info["v4_fact_read_loss"] = fact_read_loss
                 info.update(_v4_fact_info(chunked_loss))
+            if "v5_write_requested_count" in chunked_loss:
+                info.update(_v5_info(chunked_loss))
             if "ladder_writer_ce_sum" in chunked_loss:
                 # Section 6 online rungs: features are stop-gradient'ed inside the model, so
                 # this term reaches ONLY the ladder heads -- whose grads train_step removes
@@ -2026,6 +2065,8 @@ def train_step(
                 info["v4_fact_loss"] = fact_contrib  # additive: sums to the exact global macro CE
                 info["v4_fact_read_loss"] = fact_read_contrib
                 info.update(_v4_fact_info(chunked_loss))
+            if "v5_write_requested_count" in chunked_loss:
+                info.update(_v5_info(chunked_loss))
             if "ladder_writer_ce_sum" in chunked_loss:
                 if ladder_count_global is None:
                     raise ValueError("ladder probe losses require the seq_side/evidence/waiting fields.")

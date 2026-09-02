@@ -211,6 +211,13 @@ class DataConfig:
     memory_v4_fact_labels_path: str | None = None
     memory_v4_fact_labels_sha256: str | None = None
 
+    # v5 (cluster_v5/README.md §4): the derived detailed-subtask sentence sidecar
+    # (scripts/v5_build_subtask_labels.py) and its exact pinned bytes. When set, the sequence
+    # subtask transform emits the sidecar sentence as the lookahead-shifted CE target instead
+    # of the canonical task string (`subtask_now` keeps the canonical vocabulary).
+    memory_v5_subtask_labels_path: str | None = None
+    memory_v5_subtask_labels_sha256: str | None = None
+
     # Only used for RLDS data loader (ie currently only used for DROID).
     rlds_data_dir: str | None = None
     # Action space for DROID dataset.
@@ -266,6 +273,13 @@ class DataConfig:
                 raise ValueError(
                     "v4 fact labels require the frozen manifest SHA256 pin (the sidecar cross-checks it)."
                 )
+        if (self.memory_v5_subtask_labels_path is None) != (self.memory_v5_subtask_labels_sha256 is None):
+            raise ValueError("the v5 subtask-sentence sidecar path and its pinned SHA256 must be set together.")
+        if self.memory_v5_subtask_labels_path is not None:
+            if self.memory_episode_manifest_sha256 is None:
+                raise ValueError("v5 subtask sentences require the frozen manifest SHA256 pin.")
+            if not self.subtask_from_task:
+                raise ValueError("v5 subtask sentences are emitted by the sequence subtask transform (subtask_from_task).")
 
 
 class GroupFactory(Protocol):
@@ -2560,6 +2574,161 @@ _CONFIGS = [
                 keep_period=250,
                 num_workers=12,
                 fsdp_devices=1,
+            ),
+            # ---------------------------------------------------------------------------
+            # v5 (cluster_v5/README.md): sentence-fed TRUE fast-weight semantic bank.
+            # Built on Stage 4c: same backbone, split, injection calibration (c=12.4,
+            # tau=0.02, gate 0.5 on both banks), visual bank without side supervision,
+            # single-GPU recipe (batch 2, no accumulation, 1000 updates). No fact head, so
+            # no Stage-1 graft; the semantic path (memory_semantic core, memory_sem_*
+            # key/value projections, read query bank/conditioner/projection, slot
+            # embeddings) is fresh-initialized by the audited loader like every memory leaf.
+            #   stageA: ORACLE sentence writes (label tokens), visual injection off  -> read side only
+            #   stageB: PREDICTED sentence writes (argmax, conf >= 0.9), visual off -> whole loop
+            #   stageC: stageB + visual bank live (the 4c set trains)                -> final dual bank
+            # Failure rule (user, 2026-09-02 13:02): if stageA misses the Stage-2a bar, stop.
+            # ---------------------------------------------------------------------------
+            *(
+                lambda v5_model, v5_data, v5_freeze_semantic_only, v5_freeze_dual, v5_loader: (
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageA",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model, memory_v5_oracle_writes=True, memory_v4_visual_injection=False
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageB",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model, memory_v5_oracle_writes=False, memory_v4_visual_injection=False
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageC",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model, memory_v5_oracle_writes=False, memory_v4_visual_injection=True
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_dual,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
+                )
+            )(
+                v5_model=dataclasses.replace(
+                    v4_model,
+                    memory_v5_sentence_bank=True,
+                    memory_v5_write_conf=0.9,
+                    memory_v5_sentence_len=48,
+                    memory_v5_read_queries=8,
+                    memory_fact_oracle_writes=False,
+                    memory_fact_loss_weight=0.0,
+                    memory_fact_read_loss_weight=0.0,
+                    memory_sem_injection_c=12.4,
+                    memory_sem_injection_tau=0.02,
+                    memory_sem_injection_gate_init=0.5,
+                    memory_injection_c=12.4,
+                    memory_injection_tau=0.02,
+                    memory_injection_gate_init=0.5,
+                    memory_write_side_loss_weight=1e-6,
+                    memory_read_side_loss_weight=1e-6,
+                ),
+                v5_data=dataclasses.replace(
+                    v4_data,
+                    base_config=dataclasses.replace(
+                        v4_data.base_config,
+                        memory_v5_subtask_labels_path=str(
+                            _project_paths.project_path(_project_paths.V5_SUBTASK_LABELS)
+                        ),
+                        memory_v5_subtask_labels_sha256=(
+                            "9976d467e11a6eaf1d540f673727de353331bac6590eb2d4c5acf0a5b0c3043d"
+                        ),
+                    ),
+                    assets=AssetsConfig(assets_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_DIR))),
+                ),
+                # Stages A/B (semantic-only, as Stage 2b): the whole visual subsystem is frozen;
+                # trainable = LLM blocks, action expert, semantic core, memory_sem_* (key/value
+                # projections, read query bank/conditioner/projection), slot embeddings.
+                v5_freeze_semantic_only=nnx_utils.PathRegex(
+                    r".*(memory/|memory_gate|memory_inject_w|memory_sem_inject_w|memory_semantic/gate"
+                    r"|memory_write_side_head|memory_read_side_head"
+                    r"|read_query_compressor|write_query_compressor|write_query_conditioner"
+                    r"|PaliGemma/img/|PaliGemma/llm/embedder).*"
+                ),
+                # Stage C (as Stage 4c): the visual core/compressors/conditioner train through
+                # the task losses; gates, side heads, image tower, embedder stay pinned.
+                v5_freeze_dual=nnx_utils.PathRegex(
+                    r".*(memory/gate|memory_gate|memory_inject_w|memory_sem_inject_w|memory_semantic/gate"
+                    r"|memory_write_side_head|memory_read_side_head"
+                    r"|PaliGemma/img/|PaliGemma/llm/embedder).*"
+                ),
+                v5_loader=weight_loaders.AuditedPartialCheckpointWeightLoader(
+                    "gs://openpi-assets/checkpoints/pi05_base/params",
+                    matched_allowlist=(
+                        r"(?!.*(?:memory|fact_|query_compressor|query_conditioner|state_null_embedding|probe_head|ladder_)).+",
+                    ),
+                    fresh_init_allowlist=(
+                        r".*(?:memory|fact_|query_compressor|query_conditioner|state_null_embedding|probe_head|ladder_).*",
+                    ),
+                ),
             ),
         )
     )(),
