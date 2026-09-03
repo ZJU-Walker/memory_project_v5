@@ -102,9 +102,9 @@ BEANS_BOUNDARIES = {
     "pre": "episode start until the frame the green light FIRST turns on",
     "blink": "the frame the light turns ON for this blink, until the next blink turns on",
     "last_blink": "the frame the last blink turns on, until the yellow go signal",
-    "go": "yellow light on until the gripper closes on the scoop handle",
-    "scoop": "until the scoop finishes delivering beans to the tray for this repetition",
-    "done": "after the last delivery: release the scoop and return home",
+    "go": "yellow light on, reach for the scoop and carry it UNTIL IT IS OVER THE WHITE BOWL",
+    "scoop": "starts when the scoop is OVER THE WHITE BOWL; one whole cycle: dig, carry, dump in the tray, return",
+    "done": "after the last dump: release the scoop and return home",
 }
 _BEANS_BLINK_RE = re.compile(r"^wait for the light: (\d+) green blinks? so far$")
 _BEANS_GO_RE = re.compile(r"^yellow go: pick up the scoop, scoop (\d+) times?$")

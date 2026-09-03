@@ -1,4 +1,4 @@
-# 0902_bean_scoop — subtask label definition (v2, approved 2026-09-03 14:28)
+# 0902_bean_scoop — subtask label definition (v3, 2026-09-03 15:05)
 
 Data: `/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo{1..60}` (30 Hz, 515–1517 frames, right arm scoops,
 left arm idle). Per-frame signals logged by the collector: `led_on.npy` (green light on), `go_on.npy` (yellow go),
@@ -22,12 +22,21 @@ delivery; ~100 frames of return after release. Detected on all 60 episodes with 
 |---|---|---|
 | 1 | 0 … first blink onset − 1 | `wait for the light: no green blink yet` |
 | 2 | onset of blink k … next onset − 1 (last one runs to go − 1) | `wait for the light: k green blink(s) so far` (k = 1..x) |
-| 3 | go … gripper closes on the scoop − 1 | `yellow go: pick up the scoop, scoop x times` (`1 time` for x = 1) |
-| 4 | pickup … end of delivery 1; then end of delivery k−1 + 1 … end of delivery k | `scoop k` (k = 1..x) |
+| 3 | go … bowl arrival 1 − 1 | `yellow go: pick up the scoop, scoop x times` (`1 time` for x = 1) |
+| 4 | bowl arrival k … bowl arrival k+1 − 1 (the last one … end of its dump) | `scoop k` (k = 1..x) |
 | 5 | end of last delivery + 1 … last frame | `done, put down the scoop and return` |
 
 Rules: the count in (2) increments at blink ONSET (the frame the light turns on). (5) covers release and the return
 home. Exact strings: singular "1 green blink so far", plural otherwise; digits, not words.
+
+**Scoop segments start OVER THE WHITE BOWL (v3, user decision 2026-09-03 15:05).** The white bowl is the bean
+SOURCE, the glass tray the destination. v2 cut each scoop at the dump, i.e. in the middle of the arm's travel; v3 cuts
+at the moment the scoop is positioned over the bowl, so one `scoop k` segment is one whole cycle (dig → carry → dump →
+return) and the `yellow go` segment covers grasping the scoop AND carrying it to the bowl. Detection: the right base
+joint j0 dumps at > 0.8 and works the bowl in [-0.10, 0.75]; arrival = the first frame in that band where j0 has
+stopped moving (|dj0/dt| < 0.006 for 10 frames) — the band alone fires mid-swing. Verified frame by frame on 12
+arrivals across 6 episodes (demo1/4/5/37/44/52/12/23/59): the scoop is over the bowl in all of them. Resulting
+segment lengths: scoop 117–342 frames (median 216), go 138–255 (median 195).
 
 **x is stated ONCE (v2, user decision 2026-09-03 14:28).** After the blink phase the target count appears only in
 sentence (3). The scoop sentences carry progress alone, so at the end of scoop k the model must decide between
@@ -64,7 +73,7 @@ beat — the bank is a fixed-size compression of it.
   sentence costs almost nothing under the delta rule).
 
 ## Status
-Labels **written 2026-09-03 14:31**: `subtask_labels.json` in each of the 60 demo folders +
+Labels **rewritten with v3 boundaries 2026-09-03 15:12** (first written 14:31): `subtask_labels.json` in each of the 60 demo folders +
 `/iris/u/kewalk/memory_project/data/0902_bean_scoop/subtask_labels_manifest.json` (per episode: num_frames, x,
 segments). Validation: segments tile [0, n-1] with no gaps in all 60; scoop-sentence count == blink count == x in all
 60; disk files match the manifest. Vocabulary is 11 distinct sentences (3 blink counts + "no green blink yet",
