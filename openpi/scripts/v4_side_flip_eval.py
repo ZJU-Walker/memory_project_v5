@@ -45,9 +45,21 @@ LEFT_TOKEN = 2731
 RIGHT_TOKEN = 1833
 
 
-def swap_side_tokens(causal: np.ndarray, causal_mask: np.ndarray, fast_mask: np.ndarray) -> np.ndarray:
-    """Swap the side word in the TEXT part of every causal buffer (FAST tokens untouched)."""
+WAIT_TOKEN = 9532  # first token of the v5 waiting label "wait; target bin is <side>"
+
+
+def swap_side_tokens(
+    causal: np.ndarray, causal_mask: np.ndarray, fast_mask: np.ndarray, step_scope: np.ndarray | None = None
+) -> np.ndarray:
+    """Swap the side word in the TEXT part of every causal buffer (FAST tokens untouched).
+
+    ``step_scope`` [b, T] restricts the swap to those steps. v5 needs this: with oracle sentence
+    writes the causal text of NON-decision steps is also what gets WRITTEN to the semantic bank, so
+    swapping every step swaps the memory content together with the CE target and D collapses to ~0
+    for a model that reads the bank (the 2026-09-03 A3 ckpt-999 "0.50" was exactly that)."""
     text = causal_mask & ~fast_mask
+    if step_scope is not None:
+        text = text & step_scope[..., None]
     swapped = causal.copy()
     swapped[text & (causal == LEFT_TOKEN)] = RIGHT_TOKEN
     swapped[text & (causal == RIGHT_TOKEN)] = LEFT_TOKEN
@@ -75,6 +87,9 @@ def summarize(records: list[dict], *, first_step_only: bool = False) -> dict:
         out[f"{cond}_side_accuracy"] = float(np.mean(d > 0))
         out[f"{cond}_mean_margin"] = float(np.mean(d))
         out[f"{cond}_mean_abs_margin"] = float(np.mean(np.abs(d)))
+        if cond == "flip":
+            # v5: bank content side-flipped, decision target true -> D < 0 = names the bank's side.
+            out["flip_follows_content_rate"] = float(np.mean(d < 0))
     # Content-consistent pairing: expected answer under the donor bank = donor's fact for the
     # OWN prompted object. "Mismatched" = that expectation differs from the own side.
     usable = [r for r in valid if r.get("donor_expected_valid", True)]
@@ -110,6 +125,7 @@ def summarize(records: list[dict], *, first_step_only: bool = False) -> dict:
 
 
 def main(argv=None) -> None:
+    global CONDITIONS
     import jax
 
     from openpi.models import model as model_lib
@@ -125,6 +141,16 @@ def main(argv=None) -> None:
     parser.add_argument("--batches", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--seed", type=int, default=4)
+    parser.add_argument(
+        "--v5-swap-scope",
+        choices=("auto", "all", "decision_targets"),
+        default="auto",
+        help="v5 sentence bank only. 'decision_targets': swap the side word only in causal buffers whose "
+        "text is the waiting label (side-stripped when written, so the bank content is untouched) and add "
+        "the 'flip' condition = side words swapped in every OTHER (written) sentence with true decision "
+        "targets, so D_flip < 0 means the decision follows the bank content. 'auto' = decision_targets "
+        "for v5 models, 'all' (legacy v4 behaviour) otherwise.",
+    )
     parser.add_argument(
         "--bank",
         choices=("semantic", "visual", "both"),
@@ -167,6 +193,13 @@ def main(argv=None) -> None:
         static_argnames=("train", "v4_intervention"),
     )
 
+    is_v5 = bool(getattr(config.model, "memory_v5_sentence_bank", False))
+    v5_scoped = args.v5_swap_scope == "decision_targets" or (args.v5_swap_scope == "auto" and is_v5)
+    if v5_scoped and not is_v5:
+        raise SystemExit("--v5-swap-scope decision_targets needs a v5 sentence-bank model.")
+    conditions = tuple(CONDITIONS) + (("flip",) if v5_scoped else ())
+    CONDITIONS = conditions
+    print(f"v5_scoped_swap={v5_scoped} conditions={conditions}", flush=True)
     records: list[dict] = []
     rng = jax.random.key(args.seed)
     for index, (observation, actions) in enumerate(loader):
@@ -198,14 +231,27 @@ def main(argv=None) -> None:
         text_mask = causal_mask & ~fast_mask
         token_count = causal_mask.sum(axis=-1)  # [b, T]
         has_side = np.any(text_mask & np.isin(causal, (LEFT_TOKEN, RIGHT_TOKEN)), axis=-1)  # [b, T]
-        swapped_causal = swap_side_tokens(causal, causal_mask, fast_mask)
+        if v5_scoped:
+            decision_target = text_mask[..., 0] & (causal[..., 0] == WAIT_TOKEN)  # [b, T] waiting-label steps
+            swapped_causal = swap_side_tokens(causal, causal_mask, fast_mask, step_scope=decision_target)
+            flip_causal = swap_side_tokens(causal, causal_mask, fast_mask, step_scope=~decision_target)
+            flip_swapped_causal = swap_side_tokens(flip_causal, causal_mask, fast_mask, step_scope=decision_target)
+            flip_observation = observation.replace(tokenized_causal=jax.numpy.asarray(flip_causal))
+            flip_swapped_observation = observation.replace(tokenized_causal=jax.numpy.asarray(flip_swapped_causal))
+        else:
+            swapped_causal = swap_side_tokens(causal, causal_mask, fast_mask)
         swapped_observation = observation.replace(tokenized_causal=jax.numpy.asarray(swapped_causal))
         step_rng = jax.random.fold_in(rng, index)
         ce = {}
         active = None
-        for cond in CONDITIONS:
-            intervention = None if cond == "normal" else intervention_prefix + cond
-            for tag, obs in (("true", observation), ("swap", swapped_observation)):
+        for cond in conditions:
+            if cond == "flip":
+                intervention = None
+                passes = (("true", flip_observation), ("swap", flip_swapped_observation))
+            else:
+                intervention = None if cond == "normal" else intervention_prefix + cond
+                passes = (("true", observation), ("swap", swapped_observation))
+            for tag, obs in passes:
                 losses = sequence_loss(step_rng, obs, actions, train=False, v4_intervention=intervention)
                 # [T, b] -> [b, T]; the CE is the mean over the step's causal tokens, masked to
                 # decision steps by the model (transition-valid waiting frames).
@@ -237,7 +283,7 @@ def main(argv=None) -> None:
                     "has_side_token": bool(has_side[b, t]),
                     "included": included,
                 }
-                for cond in CONDITIONS:
+                for cond in conditions:
                     # mean-token CE difference x token count = log p(true) - log p(swapped)
                     record[f"D_{cond}"] = float((ce[(cond, "swap")][b, t] - ce[(cond, "true")][b, t]) * token_count[b, t])
                     record[f"ce_true_{cond}"] = float(ce[(cond, "true")][b, t])
