@@ -616,15 +616,47 @@ class Pi0(_model.BaseModel):
                     self.memory_v5_write_conf = config.memory_v5_write_conf
                     self.memory_v5_sentence_len = config.memory_v5_sentence_len
                     self.memory_v5_read_queries = config.memory_v5_read_queries
+                    # r2 pooling (Pi0Config.memory_v5_pooling): reference-standardized token states,
+                    # [standardized mean ⊕ trainable attention pooling]. The reference rows are static
+                    # config (python ints), materialized inside the encoder.
+                    self.memory_v5_pooling = config.memory_v5_pooling
+                    self.memory_v5_pool_queries = config.memory_v5_pool_queries
+                    self.memory_v5_reference_tokens = tuple(
+                        tuple(int(t) for t in row) for row in config.memory_v5_reference_tokens
+                    )
+                    if config.memory_v5_pooling == "standardized_attention":
+                        self.memory_sem_sentence_pool = MemoryQueryCompressor(
+                            num_queries=config.memory_v5_pool_queries,
+                            width=paligemma_config.width,
+                            num_heads=config.memory_query_heads,
+                            compute_dtype=jnp.dtype(config.dtype),
+                            qk_norm=config.memory_qk_norm,
+                            rngs=rngs,
+                        )
+                        # Zero-init output: at init the pooled vector IS the standardized mean.
+                        self.memory_sem_sentence_pool.output_proj.kernel.value = jnp.zeros_like(
+                            self.memory_sem_sentence_pool.output_proj.kernel.value
+                        )
+                        encoded_width = (1 + config.memory_v5_pool_queries) * paligemma_config.width
+                    else:
+                        encoded_width = paligemma_config.width
                     self.memory_sem_key_proj = nnx.Linear(
-                        paligemma_config.width, config.memory_semantic.d_key, use_bias=False, rngs=rngs
+                        encoded_width, config.memory_semantic.d_key, use_bias=False, rngs=rngs
                     )
                     self.memory_sem_value_proj = nnx.Linear(
-                        paligemma_config.width, config.memory_semantic.d_value, use_bias=False, rngs=rngs
+                        encoded_width, config.memory_semantic.d_value, use_bias=False, rngs=rngs
                     )
-                    # Identity init: the stored value starts as the sentence encoding itself.
-                    self.memory_sem_value_proj.kernel.value = jnp.eye(
-                        paligemma_config.width, config.memory_semantic.d_value, dtype=jnp.float32
+                    # Identity init on the leading width block: the stored value starts as the
+                    # (standardized) mean encoding itself; the attention block starts at zero.
+                    self.memory_sem_value_proj.kernel.value = jnp.concatenate(
+                        [
+                            jnp.eye(paligemma_config.width, config.memory_semantic.d_value, dtype=jnp.float32),
+                            jnp.zeros(
+                                (encoded_width - paligemma_config.width, config.memory_semantic.d_value),
+                                dtype=jnp.float32,
+                            ),
+                        ],
+                        axis=0,
                     )
                     self.memory_sem_read_query_bank = nnx.Param(
                         jax.random.normal(
@@ -986,13 +1018,12 @@ class Pi0(_model.BaseModel):
     # ------------------------------------------------------------------------------------
     # v5 (cluster_v5/README.md): sentence-fed true fast-weight semantic bank.
     # ------------------------------------------------------------------------------------
-    def v5_encode_sentence(
+    def _v5_token_states(
         self, tokens: at.Int[at.Array, "b s"], token_mask: at.Bool[at.Array, "b s"]
-    ) -> at.Float[at.Array, "b emb"]:
-        """Encode a subtask sentence memory-blind: frozen embedder + blocks 0..memory_layer as a
-        TEXT-ONLY prefix (no images, no memory tokens, no suffix), masked mean over the sentence
-        tokens, L2-normalized. The pass is stop-gradient'ed (D5: frozen sentence encoder), so the
-        only trainable pieces of the write path are the key/value projections."""
+    ) -> at.Float[at.Array, "b s emb"]:
+        """Layer-`memory_layer` token states of a TEXT-ONLY prefix (frozen embedder + blocks
+        0..memory_layer, bidirectional over the valid tokens, no images/memory/suffix), FP32 and
+        stop-gradient'ed (D5: nothing upstream of the pooling/projections trains through here)."""
         batch, length = tokens.shape
         depth = self.PaliGemma.llm.module.configs[0].depth
         safe_tokens = jnp.where(token_mask, tokens, 0).astype(jnp.int32)
@@ -1011,9 +1042,46 @@ class Pi0(_model.BaseModel):
             active_layers=jnp.arange(depth) <= self.memory_layer,
             apply_final_norm=False,
         )
-        hidden = jax.lax.stop_gradient(hidden.astype(jnp.float32))
+        return jax.lax.stop_gradient(hidden.astype(jnp.float32))
+
+    def v5_reference_token_rows(self, length: int) -> tuple[at.Int[at.Array, "r s"], at.Bool[at.Array, "r s"]]:
+        """The static reference sentences as padded token rows of the given length."""
+        rows = self.memory_v5_reference_tokens
+        tokens = [list(row) + [0] * (length - len(row)) for row in rows]
+        mask = [[True] * len(row) + [False] * (length - len(row)) for row in rows]
+        return jnp.asarray(tokens, dtype=jnp.int32), jnp.asarray(mask, dtype=bool)
+
+    def v5_encode_sentence(
+        self, tokens: at.Int[at.Array, "b s"], token_mask: at.Bool[at.Array, "b s"]
+    ) -> at.Float[at.Array, "b enc"]:
+        """Encode a subtask sentence memory-blind into one unit vector.
+
+        "mean" (r1): masked mean of the token states, L2-normalized. Measured side-invariant on
+        the real backbone (98 % of every token state is one shared direction; the two side
+        variants of the inspect sentence pool to cosine 0.9994).
+        "standardized_attention" (r2): standardize each feature against the token states of the
+        static reference sentences encoded by the CURRENT blocks (so the statistics follow the
+        blocks' drift and depend on nothing but the parameters), then pool as
+        [standardized masked mean ⊕ trainable attention pooling] and L2-normalize. The attention
+        block is zero-initialized, so at init the encoding is the standardized mean (side variants
+        at cosine ~0.73) and training can move it toward the side-word states (cosine ~0.13)."""
+        hidden = self._v5_token_states(tokens, token_mask)
         weight = token_mask.astype(jnp.float32)[..., None]
-        pooled = jnp.sum(hidden * weight, axis=1) / jnp.maximum(jnp.sum(weight, axis=1), 1.0)
+        count = jnp.maximum(jnp.sum(weight, axis=1), 1.0)
+        if getattr(self, "memory_v5_pooling", "mean") != "standardized_attention":
+            pooled = jnp.sum(hidden * weight, axis=1) / count
+            return _memory.l2_normalize(pooled)
+        ref_tokens, ref_mask = self.v5_reference_token_rows(tokens.shape[1])
+        ref_hidden = self._v5_token_states(ref_tokens, ref_mask)
+        ref_weight = ref_mask.astype(jnp.float32)[..., None]
+        ref_count = jnp.maximum(jnp.sum(ref_weight), 1.0)
+        mu = jnp.sum(ref_hidden * ref_weight, axis=(0, 1)) / ref_count
+        var = jnp.sum(jnp.square(ref_hidden - mu) * ref_weight, axis=(0, 1)) / ref_count
+        sd = jnp.sqrt(var + 1e-6)
+        standardized = (hidden - mu) / sd * weight
+        pooled_mean = jnp.sum(standardized, axis=1) / count
+        attended = self.memory_sem_sentence_pool(standardized, source_valid=token_mask)
+        pooled = jnp.concatenate([pooled_mean, attended.reshape(attended.shape[0], -1)], axis=-1)
         return _memory.l2_normalize(pooled)
 
     def v5_sentence_intent(

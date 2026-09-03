@@ -954,6 +954,20 @@ class TrainConfig:
 
 
 # Use `get_config` if you need to get a config by name in your code.
+# v5 r2 standardization reference: the 8 sentences of data/v5_subtask_labels_0830_0831.json,
+# PaliGemma token ids with the trained trailing newline (scripts/v5_build_subtask_labels.py
+# --tokenizer-model; verified in pi0_v5_test). Static config, not data.
+V5_REFERENCE_SENTENCE_TOKENS: tuple[tuple[int, ...], ...] = (
+    (3446, 2145, 79844, 578, 13846, 10246, 108),  # close both lids and reset arms
+    (98651, 2145, 53183, 235292, 31985, 2731, 235269, 11455, 17682, 3741, 1833, 108),  # inspect both bins: banana left, grey pepper box right
+    (98651, 2145, 53183, 235292, 31985, 1833, 235269, 11455, 17682, 3741, 2731, 108),  # inspect both bins: banana right, grey pepper box left
+    (4141, 2145, 79844, 108),  # open both lids
+    (4141, 2731, 8881, 108),  # open left bin
+    (4141, 1833, 8881, 108),  # open right bin
+    (9532, 235289, 4408, 8881, 603, 2731, 108),  # wait; target bin is left
+    (9532, 235289, 4408, 8881, 603, 1833, 108),  # wait; target bin is right
+)
+
 _CONFIGS = [
     #
     # Inference Aloha configs.
@@ -2591,6 +2605,43 @@ _CONFIGS = [
             # ---------------------------------------------------------------------------
             *(
                 lambda v5_model, v5_data, v5_freeze_semantic_only, v5_freeze_dual, v5_loader: (
+                    # ---- r2 (2026-09-02 18:31): standardized + trainable attention pooling ----
+                    # r1 (stageA, "mean" pooling) FAILED the Stage-2a bar: the mean-pooled encoder
+                    # is side-invariant (README §8). stageA2 differs from stageA ONLY in the
+                    # sentence encoder (memory_v5_pooling="standardized_attention", 4 pool queries,
+                    # the sidecar's 8 sentences as the standardization reference).
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageA2",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model,
+                            memory_v5_oracle_writes=True,
+                            memory_v4_visual_injection=False,
+                            memory_v5_pooling="standardized_attention",
+                            memory_v5_pool_queries=4,
+                            memory_v5_reference_tokens=V5_REFERENCE_SENTENCE_TOKENS,
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
                     TrainConfig(
                         name="pi05_yam_mem_v5_stageA",
                         v4_protocol=True,

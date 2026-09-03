@@ -49,6 +49,14 @@ def test_v5_config_gating_and_spec():
         pi0_config.Pi0Config(**_v5_kwargs(memory_v5_sentence_len=10_000))
     with pytest.raises(ValueError, match="memory_v5_write_conf"):
         pi0_config.Pi0Config(**_v5_kwargs(memory_v5_write_conf=1.0))
+    with pytest.raises(ValueError, match="memory_v5_pooling"):
+        pi0_config.Pi0Config(**_v5_kwargs(memory_v5_pooling="max"))
+    with pytest.raises(ValueError, match="memory_v5_reference_tokens"):
+        pi0_config.Pi0Config(**_v5_kwargs(memory_v5_pooling="standardized_attention"))
+    r2 = pi0_config.Pi0Config(
+        **_v5_kwargs(memory_v5_pooling="standardized_attention", memory_v5_reference_tokens=((1, 2, 3), (4,)))
+    )
+    assert r2.memory_v5_pool_queries == 4
 
 
 class _TinyV5Seq(_TinyV35):
@@ -62,11 +70,18 @@ class _TinyV5Seq(_TinyV35):
     v5_semantic_write = pi0.Pi0.v5_semantic_write
     _v4_inject_semantic = pi0.Pi0._v4_inject_semantic
 
-    def __init__(self, rngs: nnx.Rngs, *, oracle_writes: bool = True, write_conf: float = 0.9):
+    _v5_token_states = pi0.Pi0._v5_token_states
+    v5_reference_token_rows = pi0.Pi0.v5_reference_token_rows
+
+    def __init__(self, rngs: nnx.Rngs, *, oracle_writes: bool = True, write_conf: float = 0.9, pooling: str = "mean"):
         super().__init__(rngs)
         width = 64
         self.memory_v4_dual_bank = True
         self.memory_v5_sentence_bank = True
+        self.memory_v5_pooling = pooling
+        self.memory_v5_pool_queries = 2
+        self.memory_v5_reference_tokens = ((5, 6), (7, 8), (5,))
+        encoded_width = (1 + 2) * width if pooling == "standardized_attention" else width
         self.memory_v5_oracle_writes = oracle_writes
         self.memory_v5_write_conf = write_conf
         self.memory_v5_sentence_len = 2  # the tiny causal buffer is 2 tokens wide
@@ -90,9 +105,16 @@ class _TinyV5Seq(_TinyV35):
             ),
             rngs=rngs,
         )
-        self.memory_sem_key_proj = nnx.Linear(width, 8, use_bias=False, rngs=rngs)
-        self.memory_sem_value_proj = nnx.Linear(width, width, use_bias=False, rngs=rngs)
-        self.memory_sem_value_proj.kernel.value = jnp.eye(width, dtype=jnp.float32)
+        if pooling == "standardized_attention":
+            self.memory_sem_sentence_pool = pi0.MemoryQueryCompressor(num_queries=2, width=width, num_heads=8, rngs=rngs)
+            self.memory_sem_sentence_pool.output_proj.kernel.value = jnp.zeros_like(
+                self.memory_sem_sentence_pool.output_proj.kernel.value
+            )
+        self.memory_sem_key_proj = nnx.Linear(encoded_width, 8, use_bias=False, rngs=rngs)
+        self.memory_sem_value_proj = nnx.Linear(encoded_width, width, use_bias=False, rngs=rngs)
+        self.memory_sem_value_proj.kernel.value = jnp.concatenate(
+            [jnp.eye(width, dtype=jnp.float32), jnp.zeros((encoded_width - width, width), dtype=jnp.float32)], axis=0
+        )
         self.memory_sem_read_query_bank = nnx.Param(
             jax.random.normal(rngs.params(), (3, width), dtype=jnp.float32) / 8.0
         )
@@ -234,3 +256,60 @@ def test_v5_interventions_are_read_side_only(tiny_v5_oracle, intervention):
         tiny_v5_oracle._compute_sequence_loss_v32(
             jax.random.key(46), observation, _actions(), train=True, v4_intervention=intervention
         )
+
+
+@pytest.fixture(scope="module")
+def tiny_v5_r2():
+    original_vocab = gemma.PALIGEMMA_VOCAB_SIZE
+    try:
+        gemma.PALIGEMMA_VOCAB_SIZE = 128
+        yield _TinyV5Seq(nnx.Rngs(7), pooling="standardized_attention")
+    finally:
+        gemma.PALIGEMMA_VOCAB_SIZE = original_vocab
+
+
+def test_v5_r2_standardized_attention_encoder(tiny_v5_r2):
+    model = tiny_v5_r2
+    tokens = jnp.asarray([[5, 6], [6, 5]], dtype=jnp.int32)
+    mask = jnp.ones((2, 2), dtype=bool)
+    encoded = model.v5_encode_sentence(tokens, mask)
+    assert encoded.shape == (2, 3 * 64)
+    np.testing.assert_allclose(np.linalg.norm(np.asarray(encoded), axis=-1), 1.0, atol=1e-4)
+    # Zero-init attention block: at init the encoding is exactly the standardized mean.
+    np.testing.assert_array_equal(np.asarray(encoded[:, 64:]), 0.0)
+    assert not np.allclose(np.asarray(encoded[0]), np.asarray(encoded[1]), atol=1e-4)
+    # Reference rows are materialized from the static tuples, padded to the sentence length.
+    ref_tokens, ref_mask = model.v5_reference_token_rows(2)
+    np.testing.assert_array_equal(np.asarray(ref_tokens), [[5, 6], [7, 8], [5, 0]])
+    np.testing.assert_array_equal(np.asarray(ref_mask), [[True, True], [True, True], [True, False]])
+    keys, values = model.v5_sentence_intent(encoded)
+    assert keys.shape == (2, 1, 8) and values.shape == (2, 1, 64)
+    # Identity-on-the-mean-block value init: value == L2(standardized mean) at init.
+    np.testing.assert_allclose(np.asarray(values[:, 0]), np.asarray(_l2(encoded[:, :64])), atol=1e-3)
+
+    # Gradient reaches the trainable pooling (its zero output projection) and the key
+    # projection, but nothing in the backbone (stop-gradient token states).
+    def key_loss(m):
+        e = m.v5_encode_sentence(tokens, mask)
+        k, _ = m.v5_sentence_intent(e)
+        return jnp.sum(k * jnp.arange(8, dtype=jnp.float32))
+
+    grads = nnx.grad(key_loss)(model)
+    assert float(jnp.max(jnp.abs(grads["memory_sem_sentence_pool"]["output_proj"]["kernel"].value))) > 0.0
+    assert float(jnp.max(jnp.abs(grads["memory_sem_key_proj"]["kernel"].value))) > 0.0
+    for leaf in jax.tree_util.tree_leaves(grads["PaliGemma"]):
+        assert float(jnp.max(jnp.abs(leaf))) == 0.0
+
+
+def _l2(x):
+    return x / jnp.maximum(jnp.linalg.norm(x, axis=-1, keepdims=True), 1e-6)
+
+
+def test_v5_r2_oracle_sequence_still_commits_every_change(tiny_v5_r2):
+    observation = _v4_sequence_observation()
+    losses = tiny_v5_r2._compute_sequence_loss_v32(jax.random.key(48), observation, _actions(), train=False)
+    for key, value in losses.items():
+        assert np.all(np.isfinite(np.asarray(value))), key
+    np.testing.assert_array_equal(losses["v5_sentence_changed_count"], 3.0)
+    np.testing.assert_array_equal(losses["v4_sem_commit_count"], 3.0)
+    np.testing.assert_array_equal(losses["v4_sem_degenerate_count"], 0.0)

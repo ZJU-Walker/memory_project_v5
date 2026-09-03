@@ -293,6 +293,20 @@ class Pi0Config(_model.BaseModelConfig):
     # Trainable read-query heads on the layer-8 context; each yields one semantic memory
     # token (replaces the fixed fact-slot keys, so it also sets the semantic token budget).
     memory_v5_read_queries: int = 8
+    # r2 (cluster_v5/README.md §8, 2026-09-02 18:31): how the sentence's layer-8 token states are
+    # turned into one vector. "mean" = the r1 encoder (masked mean; measured side-invariant: the
+    # two side variants of the inspect sentence come out at cosine 0.9994 because 98 % of every
+    # token state is one shared direction). "standardized_attention" = standardize each feature
+    # against the token states of a fixed reference sentence set encoded by the CURRENT blocks
+    # 0..memory_layer (tracks their drift, deterministic, no stored statistics), then pool as
+    # [standardized mean ⊕ trainable attention pooling (MemoryQueryCompressor, zero-init output)]
+    # -> Wk/Wv. At init this equals the standardized mean (side variants at cosine 0.73); the
+    # pooler can learn to select the side-word states (cosine 0.13 in the probe).
+    memory_v5_pooling: str = "mean"
+    memory_v5_pool_queries: int = 4
+    # Reference token rows (each a tuple of token ids, trailing newline included) for the
+    # standardization statistics. Static config; the v5 configs use the sidecar's 8 sentences.
+    memory_v5_reference_tokens: tuple[tuple[int, ...], ...] = ()
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -511,6 +525,18 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("memory_v5_sentence_len must lie in [1, causal_token_len].")
                     if self.memory_v5_read_queries < 1:
                         raise ValueError("memory_v5_read_queries must be >= 1.")
+                    if self.memory_v5_pooling not in ("mean", "standardized_attention"):
+                        raise ValueError("memory_v5_pooling must be 'mean' or 'standardized_attention'.")
+                    if self.memory_v5_pooling == "standardized_attention":
+                        if self.memory_v5_pool_queries < 1:
+                            raise ValueError("memory_v5_pool_queries must be >= 1.")
+                        if not self.memory_v5_reference_tokens or any(
+                            len(row) == 0 or len(row) > self.memory_v5_sentence_len for row in self.memory_v5_reference_tokens
+                        ):
+                            raise ValueError(
+                                "standardized_attention pooling needs non-empty memory_v5_reference_tokens rows of at "
+                                "most memory_v5_sentence_len tokens."
+                            )
         if self.pytorch_compile_mode is not None:
             assert self.pytorch_compile_mode in [
                 "default",
