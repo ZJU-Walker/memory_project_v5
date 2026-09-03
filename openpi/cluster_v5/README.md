@@ -308,3 +308,14 @@ build no fallback.
   (commit `75a1194`). Queue (`queue_a3.log`): r1 → batteries ckpt 999/500 → videos ckpt-999 (self + oracle, 8 dev episodes)
   → placeholder. ETA: training ~02:40, batteries ~03:20, videos ~03:40.
 
+* 2026-09-03 00:35 — **overnight automation (user 00:17: "once your battery is over continue working on the next step ...
+  if the result is not ok, just keep training the current model, at least occupy the GPU").** New config
+  `pi05_yam_mem_v5_stageB3` = A3 architecture with `memory_v5_oracle_writes=False` (the model's own decoded sentences,
+  changed & confident ≥ 0.9), warm-started by grafting EVERY leaf (`v4_graft_sources=((".+", A3 r1 ckpt-999 params),)`)
+  — A3 trains the LLM blocks and the semantic path, so B must start from the whole A3 tree. Watcher
+  `cluster_v5/next_after_a3_hgx2.sh` (armed on the node): after the A3 queue (batteries + videos) it reads
+  `side_flip_v5_stageA3_20260902_r1_999_semantic` and branches — automation threshold first-step
+  `donor_follows_content_rate ≥ 0.9` and `normal_side_accuracy ≥ 0.9` → B3 smoke (20) → B3 r1 (1000) → batteries →
+  videos; otherwise (or if B3 fails to start) → A3 r1 resumed to 3000 updates → batteries at 3000/2000 → videos at 3000.
+  The formal §7 bar (1.00) is still judged by hand from the same JSON. Log: `v5/diagnostics/next_after_a3.log`.
+
