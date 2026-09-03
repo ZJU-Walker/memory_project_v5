@@ -1,6 +1,6 @@
 """Build per-episode `subtask_labels.json` for 0902_bean_scoop from the logged signals + right-arm joints.
 
-Definition: cluster_v5/BEANS_LABELS.md (v1). Same file format as the bins task: a list of
+Definition: cluster_v5/BEANS_LABELS.md (v2). Same file format as the bins task: a list of
 {"task", "start", "end"} segments tiling [0, num_frames-1]. `--dry-run` prints the segments and writes nothing.
 """
 import argparse, glob, json, os, pathlib
@@ -56,8 +56,12 @@ def build(ev: dict) -> list[dict]:
     out.append({"task": f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}", "start": ev["go"], "end": ev["pickup"] - 1})
     start = ev["pickup"]
     for k, (_ds, de) in enumerate(ev["deliveries"], start=1):
-        out.append({"task": f"scoop {k} of {x}", "start": start, "end": de}); start = de + 1
-    out.append({"task": f"done: {x} of {x} scooped, put down the scoop and return", "start": start, "end": n - 1})
+        # v2 (user 2026-09-03 14:28): progress only, x is NOT restated. The stop decision at the
+        # last scoop therefore cannot be read off the current sentence -- it needs the go sentence
+        # ("scoop x times") or the blink count, both many memory steps in the past. That is the
+        # memory test; restating x here would make a previous-sentence-only model sufficient.
+        out.append({"task": f"scoop {k}", "start": start, "end": de}); start = de + 1
+    out.append({"task": "done, put down the scoop and return", "start": start, "end": n - 1})
     # must tile
     assert out[0]["start"] == 0 and out[-1]["end"] == n - 1
     for a, b in zip(out, out[1:]):
