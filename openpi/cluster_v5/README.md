@@ -257,3 +257,31 @@ build no fallback.
   **Two protocol findings.** (1) By the lookahead shift, the oracle write rule stores the decision sentence (`wait; target bin is X`) one step BEFORE the first decision step, so during stage-A/A2 training the literal answer sat in the bank at every decision step — and the model still could not copy it out on held-out episodes. (2) The training-set "decision sentence exact 86–91 %" is memorization of the 54 training episodes (r1 reached the same with a side-blind bank); only held-out interventions are evidence. Both runs' training telemetry should be read with this in mind.
   Bottleneck per the evidence: decoding a stored sentence vector into the side token through blocks 9–17 with only the decision loss, 1000 updates, 54 episodes. Directions discussed with the user (not built): an auxiliary read-back loss on the retrieved vector, or a structured (object → side) value parsed from the model's own sentence.
 * 2026-09-02 23:00 — `scripts/v5_heldout_video.py`: held-out episode rollout with the semantic bank carried at the training stride, greedy sentence decode against the memory-extended cache (the dual-bank decoding path v4 left unimplemented, rollout-only: no actions), v5 write rule in "self" (model's own sentence, conf ≥ 0.9) or "oracle" (label) mode, H.264 render of `top_camera_rgb.mp4` with GT phase / training target / PRED / bank overlays. Outputs `v5/diagnostics/videos_A2_999/ep<idx>_<mode>.{mp4,json}`.
+
+- **2026-09-02 23:30 — held-out rollout videos, all 8 development episodes, A2 ckpt-999** (`scripts/v5_heldout_video.py`,
+  outputs `v5/diagnostics/videos_A2_999/ep<idx>_{self,oracle}.{mp4,json}`, H.264, top camera with GT / PRED / bank bands,
+  orange border = decision steps). `self` = the model writes its own decoded sentences (no label enters the model);
+  `oracle` = label sentences written as in training. Script fix (commit 64e8b09): a window whose decision phase straddles
+  a 40-step boundary is fetched from an earlier frame (the training transform rejects D steps without an E anchor).
+
+| ep | object, side | self: inspect sentence exact | self: decision steps naming the side (first decision) | oracle: decision |
+|---|---|---|---|---|
+| 1 | grey pepper box, left | 4/5 | 0/5 (`open both lids`) | 5/5 |
+| 2 | banana, left | 1/2 | 0/4 (`open both lids`) | 4/4 |
+| 7 | banana, right | 4/5 | 0/5 (`open both lids`) | 5/5 |
+| 21 | grey pepper box, right | 3/4 | 0/6 (`open both lids`) | 6/6 |
+| 35 | grey pepper box, left | 3/4 | 0/8 (`open both lids`) | 8/8 |
+| 42 | grey pepper box, right | 2/3 | 0/6 (`open both lids`) | 6/6 |
+| 61 | banana, left | 4/5 | 0/4 (`open both lids`) | 4/4 |
+| 64 | banana, right | 3/4 | 0/7 (`open both lids`) | 7/7 |
+
+  **Reading.** Perception is solved: in every held-out episode the model decodes and writes the exact inspect sentence
+  with both objects on the correct sides (8/8, the non-exact evidence steps are the phase boundary). Inference from
+  the bank never happens: at every decision step of every episode the self-fed model says `open both lids` (0/47
+  decision steps overall), and it only names the correct bin once the arm is visibly moving to it. With oracle
+  writes it is 47/47 — but the trace shows the answer sentence (`wait; target bin is X`) was written into the bank
+  one step before the first decision step (lookahead), and the model's prediction at every step equals the most
+  recently written sentence. A2 therefore learned "repeat the last stored sentence", which the training protocol
+  rewards, not "read the side out of the inspect sentence". Proposed next run (not launched, awaiting the user):
+  A3 = A2 with oracle writes restricted to evidence-phase sentences (never the waiting label), so the decision loss
+  can only be satisfied by reading the side from the stored inspect sentence.
