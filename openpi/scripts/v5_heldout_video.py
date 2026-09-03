@@ -153,6 +153,13 @@ def main() -> None:
     parser.add_argument("--params", type=pathlib.Path, required=True)
     parser.add_argument("--episode-index", type=int, required=True, help="LeRobot episode index (manifest episode_index)")
     parser.add_argument("--write-mode", choices=("self", "oracle"), default="self")
+    parser.add_argument(
+        "--intervention",
+        choices=("none", "flip_sides", "blank"),
+        default="none",
+        help="flip_sides: swap the side words (left<->right) in every sentence WRITTEN to the bank; "
+        "blank: never commit (the semantic bank stays empty). Decode targets/overlays are unchanged.",
+    )
     parser.add_argument("--output-dir", type=pathlib.Path, required=True)
     parser.add_argument("--max-decode-steps", type=int, default=24)
     parser.add_argument("--fps", type=float, default=30.0)
@@ -272,8 +279,12 @@ def main() -> None:
                 cur = np.zeros((1, sentence_len), dtype=np.int32)
                 cur[0, :n] = gen_tokens[gen_mask][:n]
                 confident = conf >= conf_threshold
+            if args.intervention == "flip_sides":
+                # PaliGemma ids: 2731 = " left", 1833 = " right" (the sidecar's side words).
+                flipped = np.where(cur == 2731, 1833, np.where(cur == 1833, 2731, cur))
+                cur = flipped.astype(np.int32)
             changed = bool(np.any(cur != prev_tokens)) and bool(span.any())
-            commit = changed and confident
+            commit = changed and confident and args.intervention != "blank"
             sem_state, applied, key = write(model, jnp.asarray(cur), jnp.asarray(span[None]), sem_state, jnp.asarray([commit]))
             applied = bool(np.asarray(applied)[0])
             prev_tokens = cur
@@ -308,6 +319,7 @@ def main() -> None:
         "prompt": episode["prompt"],
         "target_side": episode["target_side"],
         "write_mode": args.write_mode,
+        "intervention": args.intervention,
         "steps": len(records),
         "decision_steps": len(decisions),
         "decision_side_correct": sum(1 for r in decisions if side(r.pred) == episode["target_side"]),
@@ -319,7 +331,7 @@ def main() -> None:
         "final_bank": bank,
         "records": [dataclasses.asdict(r) for r in records],
     }
-    tag = f"ep{args.episode_index:02d}_{args.write_mode}"
+    tag = f"ep{args.episode_index:02d}_{args.write_mode}" + ("" if args.intervention == "none" else f"_{args.intervention}")
     (args.output_dir / f"{tag}.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(f"decision steps {summary['decision_side_correct']}/{summary['decision_steps']} name the true side; "
           f"first decision: {summary['first_decision_pred']!r} ({'OK' if summary['first_decision_correct'] else 'WRONG'}); "
@@ -358,7 +370,7 @@ def main() -> None:
             nonlocal y
             cv2.putText(canvas, text[:110], (8, y), font, scale, color, 1, cv2.LINE_AA)
             y += 24
-        put(f"{episode['stable_id']}  prompt: {episode['prompt']}  frame {frame_id}  [{args.write_mode} writes]", (200, 200, 200), 0.5)
+        put(f"{episode['stable_id']}  prompt: {episode['prompt']}  frame {frame_id}  [{args.write_mode} writes{'' if args.intervention == 'none' else ' / ' + args.intervention}]", (200, 200, 200), 0.5)
         put(f"GT phase : {frame_sentence[frame_id]}", (255, 255, 255))
         if current is not None:
             ok_pred = current.pred == current.gt_target
