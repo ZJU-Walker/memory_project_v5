@@ -2681,7 +2681,7 @@ _CONFIGS = [
                         num_workers=12,
                         fsdp_devices=1,
                     ),
-                    # B3 (README §8, 2026-09-03 00:30) = A3 architecture, the model's OWN decoded sentences written
+                    # B3 (README §8, 2026-09-03 00:21) = A3 architecture, the model's OWN decoded sentences written
                     # (changed & confident), warm-started from the A3 r1 ckpt-999 (every leaf grafted; the base loader
                     # only fills what the graft would miss, i.e. nothing).
                     TrainConfig(

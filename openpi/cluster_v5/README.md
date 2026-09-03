@@ -308,7 +308,7 @@ build no fallback.
   (commit `75a1194`). Queue (`queue_a3.log`): r1 → batteries ckpt 999/500 → videos ckpt-999 (self + oracle, 8 dev episodes)
   → placeholder. ETA: training ~02:40, batteries ~03:20, videos ~03:40.
 
-* 2026-09-03 00:35 — **overnight automation (user 00:17: "once your battery is over continue working on the next step ...
+* 2026-09-03 00:21 — **overnight automation (user 00:17: "once your battery is over continue working on the next step ...
   if the result is not ok, just keep training the current model, at least occupy the GPU").** New config
   `pi05_yam_mem_v5_stageB3` = A3 architecture with `memory_v5_oracle_writes=False` (the model's own decoded sentences,
   changed & confident ≥ 0.9), warm-started by grafting EVERY leaf (`v4_graft_sources=((".+", A3 r1 ckpt-999 params),)`)
