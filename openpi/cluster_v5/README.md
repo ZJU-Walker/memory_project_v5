@@ -303,3 +303,8 @@ build no fallback.
   videos ckpt-999 via the new generic `cluster_v5/run_videos_hgx2.sh` → placeholder). Bar unchanged (§7): first-step
   follows-content 1.00 with donor flips on the development episodes, plus the self-mode videos naming the side.
 
+* 2026-09-03 00:08 — **A3 r1 launched**: smoke (20 updates) exit 0 with `v5_bank_rewritten_count` active (2 rewrites in the
+  last logged window), then `pi05_yam_mem_v5_stageA3`, exp `v5_stageA3_20260902_r1`, 1000 updates, batch 2, from the local root
+  (commit `75a1194`). Queue (`queue_a3.log`): r1 → batteries ckpt 999/500 → videos ckpt-999 (self + oracle, 8 dev episodes)
+  → placeholder. ETA: training ~02:40, batteries ~03:20, videos ~03:40.
+
