@@ -385,3 +385,20 @@ build no fallback.
   the remaining batteries and the ckpt-999 videos. What the battery cannot show: whether the one-step delay fixed
   phase tracking without a teacher — that is the self-write videos (next).
 
+* 2026-09-03 16:50 — **A4 ckpt-999 self-write videos (8 dev episodes, `videos_v5_stageA4_20260903_r1_999/ep*_self`).** Rendered on
+  the H200 (batteries after the stage-2 semantic one were skipped at the user's request, videos first). Result: the one-step
+  delay FIXED phase tracking — every episode whose first frame was read as `open both lids` ran the whole loop on its own
+  sentences and decided correctly (ep01 5/5, ep21 6/6, ep35 8/8, ep42 6/6; A3 managed this in 1/8). It EXPOSED a new failure
+  at frame 0: in 4/8 episodes (ep02, ep07, ep61, ep64) the very first frame — lids closed, arms home, empty bank — is read as
+  the waiting phase and the model emits `wait; target bin is right` at conf 0.97–0.99, which the write rule commits at step 1;
+  the bank is then poisoned (sentences degenerate into `<loc…>` garbage, the inspect sentence is never written) and only
+  ep07 recovers (5/5, true side happened to be right; ep64 3/7 for the same reason; ep02, ep61 0/N). The same frames give
+  `open both lids` in A3. Root cause: training windows start anywhere in the episode with a BLANK bank (per-window carry
+  init), so a window starting in the waiting phase teaches "closed lids + home arms + empty bank ⇒ wait; target bin is
+  <guess>"; at a real episode start the bank is empty for the same visual state. Proposed fix (A5): prefill the bank at
+  every training window start with the distinct label sentences of the frames BEFORE the window (oracle history, frozen
+  encoder, delta-rule commits before step 0), so an empty bank occurs only at frame 0 — exactly as in a rollout. Not
+  built yet. Note: the H100 (job 17192955) render of ep02 was byte-identical to the H200's — that node's environment is
+  fine (the checkpoint copy `/scr/kewalk_v5_ckpt/A4_999` checksums equal to `keep_999`); the policy server there was
+  stopped at the user's instruction.
+
