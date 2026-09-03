@@ -2726,6 +2726,86 @@ _CONFIGS = [
                         num_workers=12,
                         fsdp_devices=1,
                     ),
+                    # A4 (README §8, 2026-09-03 11:45) = A3 + one-step write delay (the bank holds only what has happened).
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageA4",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model,
+                            memory_v5_oracle_writes=True,
+                            memory_v4_visual_injection=False,
+                            memory_v5_pooling="standardized_attention",
+                            memory_v5_pool_queries=4,
+                            memory_v5_reference_tokens=V5_REFERENCE_SENTENCE_TOKENS,
+                            memory_v5_bank_waiting_prefix=V5_BANK_WAITING_PREFIX_TOKENS,
+                            memory_v5_bank_waiting_tokens=V5_BANK_WAITING_TOKENS,
+                            memory_v5_write_delay_steps=1,
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
+                    # B4 = A4 architecture, the model's OWN sentences (delayed one step), warm start from A4 r1 ckpt-999.
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageB4",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model,
+                            memory_v5_oracle_writes=False,
+                            memory_v4_visual_injection=False,
+                            memory_v5_pooling="standardized_attention",
+                            memory_v5_pool_queries=4,
+                            memory_v5_reference_tokens=V5_REFERENCE_SENTENCE_TOKENS,
+                            memory_v5_write_delay_steps=1,
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(
+                            (
+                                r".+",
+                                str(
+                                    _project_paths.project_path(
+                                        _project_paths.V5_CHECKPOINTS_DIR
+                                        / "pi05_yam_mem_v5_stageA4/v5_stageA4_20260903_r1/999/params"
+                                    )
+                                ),
+                            ),
+                        ),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
                     TrainConfig(
                         name="pi05_yam_mem_v5_stageA",
                         v4_protocol=True,

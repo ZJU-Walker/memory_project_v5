@@ -208,6 +208,7 @@ def main() -> None:
 
     sem_state = model.memory_semantic.init_state(1)
     prev_tokens = np.full((1, sentence_len), -1, dtype=np.int32)
+    pending = (np.zeros((1, sentence_len), dtype=np.int32), np.zeros(sentence_len, dtype=bool), False)
     bank: list[str] = []
     bank_keys: list[np.ndarray] = []
     records: list[StepRecord] = []
@@ -279,6 +280,11 @@ def main() -> None:
                 cur = np.zeros((1, sentence_len), dtype=np.int32)
                 cur[0, :n] = gen_tokens[gen_mask][:n]
                 confident = conf >= conf_threshold
+            if getattr(cfg.model, "memory_v5_write_delay_steps", 0) == 1:
+                # A4: write what was produced one step ago (nothing at the first step).
+                produced = (cur.copy(), span.copy(), confident)
+                cur, span, confident = pending
+                pending = produced
             if args.intervention == "flip_sides":
                 # PaliGemma ids: 2731 = " left", 1833 = " right" (the sidecar's side words).
                 flipped = np.where(cur == 2731, 1833, np.where(cur == 1833, 2731, cur))

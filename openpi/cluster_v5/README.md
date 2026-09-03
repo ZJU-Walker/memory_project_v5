@@ -345,3 +345,26 @@ build no fallback.
   self baselines at the same checkpoint, then batteries at 2999. If the flipped bank flips the decisions on held-out
   episodes, the model reads the side from the bank and the side-flip battery's D statistic is wrong for v5.
 
+* 2026-09-03 11:45 — **RESOLVED: A3 reads the side from the bank; the side-flip battery was invalid for v5.** Flipped-side
+  replay on ckpt-2999 (`videos_v5_stageA3_20260902_r1_2999/ep*_oracle_flip_sides.*`): with only the side words of the
+  WRITTEN sentences swapped, the decision follows the stored sentence in **8/8 held-out episodes, 45/45 decision steps**
+  (plain oracle: 45/45 true side). Cause of the battery's "0.50": `v4_side_flip_eval.py` swapped the side word in EVERY
+  causal buffer, and in v5 oracle mode the causal text of the inspect step is also what is written to the bank, so the
+  "swap" pass swapped the memory content together with the CE target (D ≈ 0 for a model that reads the bank); reset/donor
+  were equally void because the in-window oracle writes refill the bank before the decision. Fix (commit ef8ee89):
+  `--v5-swap-scope decision_targets` (auto for v5 models) swaps only the waiting-label buffers (side-stripped when
+  written) and adds the `flip` condition (side words swapped in the written sentences, true targets) with
+  `flip_follows_content_rate`. Corrected reading of A3: (1) side reading out of a fast-weight bank WORKS (the D4
+  make-or-break question); (2) phase tracking was learned as "say the newest bank entry" because the lookahead write
+  leaks the NEXT phase's sentence for every phase, so self-write rollouts cannot advance phases (never produce
+  `close both lids…`, lock on `open both lids`). User 11:42: "do both" → A4 + B4.
+* 2026-09-03 12:05 — **A4 = A3 + one-step write delay** (`Pi0Config.memory_v5_write_delay_steps=1`): the sentence written
+  at step t is the one produced/labelled at step t-1 (both modes; step 0 of a window writes nothing; pending sentence,
+  span and confidence are carried, padded steps keep them). The bank then holds only what has already happened: within a
+  phase copying is harmless, at a phase change the model must see it. Test `test_v5_a4_one_step_write_delay` (2 commits
+  for 3 sentences). Configs `pi05_yam_mem_v5_stageA4` (= A3 + delay) and `pi05_yam_mem_v5_stageB4` (= A4 arch, own
+  sentences, delay, every leaf grafted from A4 r1 ckpt-999). `v5_heldout_video.py` applies the same delay when the config
+  has it. Queue `cluster_v5/queue_a4_hgx2.sh`: A4 smoke → r1 → ckpt-999 copied to `keep_999` (lesson from the deleted A3
+  999) → batteries (v5-scoped) → videos → verdict (first-step normal ≥ 0.9 AND flip_follows_content ≥ 0.9) → B4 smoke →
+  r1 → batteries → videos → placeholder; FAIL → A4 continued to 2999 → batteries/videos 2999 → placeholder.
+

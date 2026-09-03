@@ -615,6 +615,7 @@ class Pi0(_model.BaseModel):
                     self.memory_v5_oracle_writes = config.memory_v5_oracle_writes
                     self.memory_v5_bank_waiting_prefix = tuple(config.memory_v5_bank_waiting_prefix)
                     self.memory_v5_bank_waiting_tokens = tuple(config.memory_v5_bank_waiting_tokens)
+                    self.memory_v5_write_delay_steps = int(config.memory_v5_write_delay_steps)
                     self.memory_v5_write_conf = config.memory_v5_write_conf
                     self.memory_v5_sentence_len = config.memory_v5_sentence_len
                     self.memory_v5_read_queries = config.memory_v5_read_queries
@@ -4590,6 +4591,9 @@ class Pi0(_model.BaseModel):
                     prev_sentence,
                     key_ring,
                     ring_count,
+                    pending_sentence,
+                    pending_span,
+                    pending_conf,
                 ) = carry
             elif v4_on:
                 state, sem_state, sem_written, runtime_state_valid, runtime_credit_reachable = carry
@@ -4831,6 +4835,11 @@ class Pi0(_model.BaseModel):
                     else:
                         cur_sentence = jnp.where(sent_span, jax.lax.stop_gradient(pred_sentence), 0)
                         sentence_confident = sentence_conf >= self.memory_v5_write_conf
+                    # A4 one-step write delay: what is written now is what was produced one step ago.
+                    produced_sentence, produced_span, produced_confident = cur_sentence, write_span, sentence_confident
+                    if getattr(self, "memory_v5_write_delay_steps", 0) == 1:
+                        cur_sentence, write_span, sentence_confident = pending_sentence, pending_span, pending_conf
+                        has_span = jnp.any(write_span, axis=-1)
                     sentence_changed = jnp.any(cur_sentence != prev_sentence, axis=-1) & has_span
                     sem_write_requested = sentence_changed & sentence_confident & transition_valid
                     sem_encoded = self.v5_encode_sentence(cur_sentence, write_span)
@@ -4848,6 +4857,10 @@ class Pi0(_model.BaseModel):
                     sem_commit = sem_aux["commit_applied"][:, 0] & transition_valid
                     next_sem_written = sem_written | sem_commit
                     next_prev_sentence = jnp.where(transition_valid[:, None], cur_sentence, prev_sentence)
+                    # Padded/invalid steps keep the pending sentence so a gap does not drop a write.
+                    next_pending_sentence = jnp.where(transition_valid[:, None], produced_sentence, pending_sentence)
+                    next_pending_span = jnp.where(transition_valid[:, None], produced_span, pending_span)
+                    next_pending_conf = jnp.where(transition_valid, produced_confident, pending_conf)
                     # Diagnostic ring of the committed keys (no loss): lets the decision-step
                     # read report how close its queries land to anything written so far.
                     ring_size = key_ring.shape[1]
@@ -5168,6 +5181,9 @@ class Pi0(_model.BaseModel):
                     next_prev_sentence,
                     next_key_ring,
                     next_ring_count,
+                    next_pending_sentence,
+                    next_pending_span,
+                    next_pending_conf,
                 ), outputs
             if v4_on:
                 return (
@@ -5193,6 +5209,10 @@ class Pi0(_model.BaseModel):
                 jnp.full((b, self.memory_v5_sentence_len), -1, dtype=jnp.int32),
                 jnp.zeros((b, 8, self.memory_semantic.config.d_key), dtype=jnp.float32),
                 jnp.zeros((b,), dtype=jnp.int32),
+                # A4 pending (one-step-delayed) sentence: nothing pending at step 0.
+                jnp.zeros((b, self.memory_v5_sentence_len), dtype=jnp.int32),
+                jnp.zeros((b, self.memory_v5_sentence_len), dtype=bool),
+                jnp.zeros((b,), dtype=bool),
             )
         elif v4_on:
             initial_carry = (

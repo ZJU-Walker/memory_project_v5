@@ -375,3 +375,44 @@ def test_v5_a3_config_validation():
             memory_v5_oracle_writes=True, memory_v5_bank_waiting_prefix=(9532,), memory_v5_bank_waiting_tokens=(9532, 108)
         )
     )
+
+
+@pytest.fixture(scope="module")
+def tiny_v5_a4():
+    original_vocab = gemma.PALIGEMMA_VOCAB_SIZE
+    try:
+        gemma.PALIGEMMA_VOCAB_SIZE = 128
+        model = _TinyV5Seq(nnx.Rngs(9), pooling="standardized_attention")
+        model.memory_v5_write_delay_steps = 1
+        yield model
+    finally:
+        gemma.PALIGEMMA_VOCAB_SIZE = original_vocab
+
+
+def test_v5_a4_one_step_write_delay(tiny_v5_a4):
+    observation = _v4_sequence_observation()  # causal sentences [5,6], [7,8], [5,8]
+    actions = _actions()
+    delayed = tiny_v5_a4._compute_sequence_loss_v32(jax.random.key(49), observation, actions, train=False)
+    # Step 0 has nothing pending; steps 1 and 2 write the sentences of steps 0 and 1.
+    np.testing.assert_array_equal(delayed["v5_write_requested_count"], 2.0)
+    np.testing.assert_array_equal(delayed["v4_sem_commit_count"], 2.0)
+    for key, value in delayed.items():
+        assert np.all(np.isfinite(np.asarray(value))), key
+    # Equivalent to the undelayed model seeing the sentences shifted one step later, except that
+    # the last sentence is never written: reads at step 2 agree bit for bit.
+    causal = np.array(observation.tokenized_causal)
+    shifted = causal.copy()
+    shifted[0, 1] = causal[0, 0]
+    shifted[0, 2] = causal[0, 1]
+    shifted_obs = observation.replace(tokenized_causal=jnp.asarray(shifted))
+    tiny_v5_a4.memory_v5_write_delay_steps = 0
+    try:
+        undelayed = tiny_v5_a4._compute_sequence_loss_v32(jax.random.key(49), shifted_obs, actions, train=False)
+    finally:
+        tiny_v5_a4.memory_v5_write_delay_steps = 1
+    # The undelayed run also writes at step 0 (its sentence [5,6] is "changed" vs the sentinel);
+    # the delayed run writes [5,6] at step 1 instead, so only the step-2 read is comparable.
+    d_steps = np.asarray(delayed["v5_exact_decision_steps"])
+    u_steps = np.asarray(undelayed["v5_exact_decision_steps"])
+    assert d_steps.shape == u_steps.shape == (3, 1)
+

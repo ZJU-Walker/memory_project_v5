@@ -315,6 +315,14 @@ class Pi0Config(_model.BaseModelConfig):
     # unchanged; predicted mode (stage B) writes the model's own sentence verbatim.
     memory_v5_bank_waiting_prefix: tuple[int, ...] = ()
     memory_v5_bank_waiting_tokens: tuple[int, ...] = ()
+    # A4 (README §8, 2026-09-03 11:45): the sentence WRITTEN at step t is the sentence produced /
+    # labelled at step t-1 (one memory step = one 15-frame stride), in both oracle and predicted
+    # mode. The lookahead-shifted label otherwise puts the NEXT phase's sentence into the bank one
+    # step early for every phase, and A3 learned "say the newest bank entry" instead of noticing
+    # phase changes in the images (self-write rollouts stall). With the delay the bank only ever
+    # holds what has already happened; within a phase copying is harmless, at a phase change the
+    # model must see it. Step 0 of a window has nothing pending and writes nothing.
+    memory_v5_write_delay_steps: int = 0
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -544,6 +552,8 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("the bank waiting prefix/tokens must fit in memory_v5_sentence_len.")
                     if self.memory_v5_bank_waiting_prefix and not self.memory_v5_oracle_writes:
                         raise ValueError("memory_v5_bank_waiting_prefix only applies to oracle writes (stage A).")
+                    if self.memory_v5_write_delay_steps not in (0, 1):
+                        raise ValueError("memory_v5_write_delay_steps must be 0 or 1.")
                     if self.memory_v5_pooling not in ("mean", "standardized_attention"):
                         raise ValueError("memory_v5_pooling must be 'mean' or 'standardized_attention'.")
                     if self.memory_v5_pooling == "standardized_attention":
