@@ -70,3 +70,15 @@ segments). Validation: segments tile [0, n-1] with no gaps in all 60; scoop-sent
 60; disk files match the manifest. Vocabulary is 11 distinct sentences (3 blink counts + "no green blink yet",
 3 go sentences, 3 scoop-progress sentences, 1 done).
 
+## Manual review
+`examples/yam/label_subtasks.py --beans-task` (added 2026-09-03): the browser labeler with a per-EPISODE vocabulary
+derived from that demo's x (from `led_cue.json`, else inferred from the labels), boundary hints per phase, and
+`validate_beans_schema` (blink counts 1..x in order, scoop numbers 1..x in order, the go segment's x consistent with
+both, a `done` segment present). All 60 labeled episodes pass with no problems; the checker catches an off-by-one
+blink and a missing scoop in negative tests. Video frame counts equal `metadata.json` num_steps and the label
+coverage in every episode spot-checked, so frame indices in the UI are the array indices.
+
+    .venv/bin/python examples/yam/label_subtasks.py --data-dir /iris/u/kewalk/memory_project/data/0902_bean_scoop \
+        --beans-task --port 8010
+    # then from the laptop:  ssh -L 8010:localhost:8010 iris-ws-18.stanford.edu   ->  http://localhost:8010
+
