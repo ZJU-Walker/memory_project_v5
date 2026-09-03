@@ -10,7 +10,7 @@ from openpi.models.pi0 import make_attn_mask
 import sentencepiece
 
 params_dir = sys.argv[1]
-cfg = _config.get_config("pi05_yam_mem_v5_stageA")
+cfg = _config.get_config(sys.argv[2] if len(sys.argv) > 2 else "pi05_yam_mem_v5_stageA")
 t0 = time.time()
 model = cfg.model.load(_model.restore_params(params_dir, restore_type=np.ndarray)); model.eval()
 print("model loaded in %.0fs" % (time.time() - t0), flush=True)

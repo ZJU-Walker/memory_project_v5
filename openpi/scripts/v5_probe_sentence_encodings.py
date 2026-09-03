@@ -11,7 +11,7 @@ from openpi.shared import download
 import sentencepiece
 
 params_dir = sys.argv[1]
-cfg = _config.get_config("pi05_yam_mem_v5_stageA")
+cfg = _config.get_config(sys.argv[2] if len(sys.argv) > 2 else "pi05_yam_mem_v5_stageA")
 t0 = time.time()
 params = _model.restore_params(params_dir, restore_type=np.ndarray)
 model = cfg.model.load(params); model.eval()

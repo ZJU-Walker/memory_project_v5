@@ -208,24 +208,27 @@ def main() -> None:
     for window_start in range(0, length, steps_per_window * stride):
         item = tds[start + window_start]
         batched = jax.tree.map(lambda x: np.asarray(x)[None], item)
-        step_mask = np.asarray(batched["seq_step_mask"])[0]
-        decision_mask = np.asarray(batched["seq_decision_mask"])[0]
-        write_mask = np.asarray(batched["seq_write_mask"])[0]
-        causal = np.asarray(batched["tokenized_causal"])[0]
-        causal_mask = np.asarray(batched["tokenized_causal_mask"])[0]
-        causal_fast = np.asarray(batched["causal_fast_mask"])[0]
+        # The same conversion the training loader applies (uint8 images -> [-1, 1] float, field mapping).
+        seq_obs = _model.Observation.from_dict(batched)
+        step_mask = np.asarray(seq_obs.seq_step_mask)[0]
+        decision_mask = np.asarray(seq_obs.seq_decision_mask)[0]
+        write_mask = np.asarray(seq_obs.seq_write_mask)[0]
+        causal = np.asarray(seq_obs.tokenized_causal)[0]
+        causal_mask = np.asarray(seq_obs.tokenized_causal_mask)[0]
+        causal_fast = np.asarray(seq_obs.causal_fast_mask)[0]
         for t in range(steps_per_window):
             frame = window_start + t * stride
             if not step_mask[t] or frame >= length:
                 break
+            # One time slice, exactly as the training scan builds its per-step observation.
             observation = _model.Observation(
-                images={k: jnp.asarray(v[:, t]) for k, v in batched["image"].items()},
-                image_masks={k: jnp.ones((1,), dtype=bool) for k in batched["image"]},
-                state=jnp.asarray(batched["state"][:, t]),
-                tokenized_prompt=jnp.asarray(batched["tokenized_prompt"][:, t]),
-                tokenized_prompt_mask=jnp.asarray(batched["tokenized_prompt_mask"][:, t]),
+                images={k: jnp.asarray(v[:, t]) for k, v in seq_obs.images.items()},
+                image_masks={k: jnp.asarray(v[:, t]) for k, v in seq_obs.image_masks.items()},
+                state=jnp.asarray(seq_obs.state[:, t]),
+                tokenized_prompt=jnp.asarray(seq_obs.tokenized_prompt[:, t]),
+                tokenized_prompt_mask=jnp.asarray(seq_obs.tokenized_prompt_mask[:, t]),
             )
-            state_token_mask = jnp.asarray(batched["token_state_mask"][:, t])
+            state_token_mask = jnp.asarray(seq_obs.token_state_mask[:, t])
             gen_tokens, gen_mask, gen_prob, sem_rms, sem_queries = decode(model, observation, state_token_mask, sem_state)
             gen_tokens = np.asarray(gen_tokens)[0]
             gen_mask = np.asarray(gen_mask)[0]
