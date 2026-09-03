@@ -319,3 +319,13 @@ build no fallback.
   videos; otherwise (or if B3 fails to start) → A3 r1 resumed to 3000 updates → batteries at 3000/2000 → videos at 3000.
   The formal §7 bar (1.00) is still judged by hand from the same JSON. Log: `v5/diagnostics/next_after_a3.log`.
 
+* 2026-09-03 02:40 — **A3 r1 ckpt-999 verdict: FAIL (bar §7).** Training exit 0 at 02:24 (train-window decision exact
+  0.46 → 0.83 at step 600 → 0.87–0.90; qk cosine held ~0.7; inspect exact 0.78). Held-out semantic side-flip
+  (`side_flip_v5_stageA3_20260902_r1_999_semantic`): FIRST decision step — normal side accuracy **0.500**, reset 0.500,
+  donor 0.521, donor flip rate 0.417, **follows-content 0.438** (bar 1.00); all decision steps — normal 0.726, reset
+  0.717 (blank bank as good as the real one), follows-content 0.461. Reading: with the leak closed the model did not
+  learn to read the side out of the stored inspect sentence at all (chance on held-out first steps; reset = normal);
+  the step-600 jump on training windows was scene memorization, exactly as in run A (there at step 400). The
+  continuation to 3000 updates (watcher FAIL branch) is GPU occupation per the user's 00:17 instruction, not a test:
+  the training decision loss is already satisfied by memorization, so more steps add no pressure to read.
+
