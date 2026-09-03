@@ -329,3 +329,19 @@ build no fallback.
   continuation to 3000 updates (watcher FAIL branch) is GPU occupation per the user's 00:17 instruction, not a test:
   the training decision loss is already satisfied by memorization, so more steps add no pressure to read.
 
+* 2026-09-03 11:35 — **overnight outcome + a contradiction to resolve.** Watcher took the FAIL branch at 04:57; A3 r1 resumed
+  to 3000 (exit 0 09:28; final ckpt is `2999`, so the watcher's "3000" batteries/videos failed on a missing directory, the
+  `2000` batteries ran: first-step normal 0.375 / reset 0.438 / follows 0.375). The continuation's keep policy (multiples of
+  250) DELETED ckpt-999 from the node; it was never synced to NFS — the judged checkpoint is lost (memory note
+  `checkpoint-keep-period-deletes-999`). **Contradiction in the ckpt-999 evidence:** (a) side-flip battery: first-step
+  normal 0.50 = reset 0.50 = donor, with LARGE margins (|D| 3–14) that are nearly identical across normal/reset/donor →
+  the side choice there is not influenced by the semantic bank; (b) stage-2 battery on the same held-out windows:
+  exact decision sentence 0.85 (normal) vs **0.00 (reset)** vs 0.30 (donor) → the bank content decides whether the
+  waiting sentence is produced at all; (c) oracle-write videos (bank = [open, inspect, close, `wait`], side ONLY in the
+  inspect sentence): first decision correct 8/8 episodes, 45/45 decision steps, conf 0.999; ep21 names the side two
+  steps before `wait` is written. Self-write videos: 0/N in 7 episodes (phase lock on `open both lids`), ep64 7/7.
+  Decisive test launched at 11:32 on ckpt-2999 (`v5/diagnostics/run_video_A3_2999.sh`, `--intervention`): oracle
+  writes with the stored side words swapped (`flip_sides`) and with an empty bank (`blank`), plus the plain oracle and
+  self baselines at the same checkpoint, then batteries at 2999. If the flipped bank flips the decisions on held-out
+  episodes, the model reads the side from the bank and the side-flip battery's D statistic is wrong for v5.
+
