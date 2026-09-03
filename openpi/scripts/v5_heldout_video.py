@@ -205,8 +205,25 @@ def main() -> None:
     bank_keys: list[np.ndarray] = []
     records: list[StepRecord] = []
     step_index = 0
-    for window_start in range(0, length, steps_per_window * stride):
-        item = tds[start + window_start]
+    window_start = 0
+    while window_start < length:
+        # The training transform refuses a window whose decision steps have no evidence anchor
+        # inside it (a D phase straddling a window boundary).  For the rollout we simply fetch
+        # the window from an earlier frame so the anchor is included, and skip the steps already
+        # processed; the memory state itself is carried step by step and is unaffected.
+        first_t = 0
+        while True:
+            fetch_start = window_start - first_t * stride
+            try:
+                item = tds[start + fetch_start]
+                break
+            except ValueError as err:
+                if "E anchor" not in str(err) or fetch_start - stride < 0:
+                    raise
+                first_t += 1
+        if first_t:
+            print(f"window at frame {window_start} fetched from frame {fetch_start} (skipping {first_t} steps)", flush=True)
+        window_start = fetch_start
         batched = jax.tree.map(lambda x: np.asarray(x)[None], item)
         # The same conversion the training loader applies (uint8 images -> [-1, 1] float, field mapping).
         seq_obs = _model.Observation.from_dict(batched)
@@ -216,7 +233,8 @@ def main() -> None:
         causal = np.asarray(seq_obs.tokenized_causal)[0]
         causal_mask = np.asarray(seq_obs.tokenized_causal_mask)[0]
         causal_fast = np.asarray(seq_obs.causal_fast_mask)[0]
-        for t in range(steps_per_window):
+        next_start = window_start + steps_per_window * stride
+        for t in range(first_t, steps_per_window):
             frame = window_start + t * stride
             if not step_mask[t] or frame >= length:
                 break
@@ -270,6 +288,7 @@ def main() -> None:
             d = "D" if decision_mask[t] else " "
             print(f"[{step_index:3d} f{frame:4d} {d}{flag}] pred={pred!r} conf={conf:.2f} | target={gt_target!r} | bank={len(bank)}", flush=True)
             step_index += 1
+        window_start = next_start
 
     # ---- summary
     decisions = [r for r in records if r.decision]
