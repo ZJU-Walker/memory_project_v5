@@ -377,3 +377,11 @@ build no fallback.
   terms through the scan; the read-RMS telemetry is excluded — sqrt at 0 on the blank-bank step, infinite gradient in
   every configuration, never in the loss). 15/15 tests. Broken A4 checkpoints deleted on the node; queue relaunched.
 
+* 2026-09-03 16:22 — **A4 r1 ckpt-999: PASSES the §7 bar on the fixed battery.** Training exit 0 at 16:04 (curve identical to A3:
+  decision exact 0.87–0.90 from step 600, qk cosine held 0.78–0.79 instead of A3's 0.70). Held-out semantic side-flip
+  (v5-scoped, `side_flip_v5_stageA4_20260903_r1_999_semantic`): FIRST decision step — normal side accuracy **1.000**
+  (48/48), reset 0.438, flip follows-content **1.000** (48/48), margins +15.4 / −18.0 nats; all decision steps — normal
+  0.839, reset 0.417, flip follows-content 0.852. Queue verdict rule (normal ≥ 0.9 & flip ≥ 0.9) → PASS → B4 launches after
+  the remaining batteries and the ckpt-999 videos. What the battery cannot show: whether the one-step delay fixed
+  phase tracking without a teacher — that is the self-write videos (next).
+
