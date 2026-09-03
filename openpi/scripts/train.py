@@ -1299,6 +1299,7 @@ _V5_INFO_KEYS = (
     "v5_sentence_confident_count",
     "v5_sentence_conf_sum",
     "v5_write_requested_count",
+    "v5_bank_rewritten_count",
     "v5_token_acc_evidence_sum",
     "v5_exact_evidence_sum",
     "v5_evidence_count",

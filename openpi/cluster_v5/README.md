@@ -285,3 +285,21 @@ build no fallback.
   rewards, not "read the side out of the inspect sentence". Proposed next run (not launched, awaiting the user):
   A3 = A2 with oracle writes restricted to evidence-phase sentences (never the waiting label), so the decision loss
   can only be satisfied by reading the side from the stored inspect sentence.
+
+- **2026-09-02 23:49 — user go for A3 = A2 + side-stripped bank write of the waiting label.** Diagnosis from the
+  8-episode videos: the lookahead-shifted oracle write stored `wait; target bin is X` one step before the first decision
+  step, so A/A2 learned "repeat the newest bank entry". The user's refinement over a plain skip: keep writing at the
+  waiting phase, but store only `wait` (side stripped), so the bank still records every phase transition and the side
+  exists in the bank only inside the inspect sentence. Implementation (this commit):
+  `Pi0Config.memory_v5_bank_waiting_prefix=(9532,)` ("wait") and `memory_v5_bank_waiting_tokens=(9532, 108)`
+  ("wait\n"); in ORACLE mode a label sentence starting with the prefix is written as the replacement tokens
+  (`pi0.py` sentence write block, `write_span`), decode targets / CE / telemetry keep the real label; predicted mode
+  (stage B) is untouched and writes the model's own sentence verbatim (so after its first decision the model's own
+  `wait; target bin is X` does land in the bank — write happens after the read, first decision step unaffected).
+  New telemetry `v5_bank_rewritten_count`. Config `pi05_yam_mem_v5_stageA3` = A2 + the two fields. Tests:
+  `test_v5_a3_waiting_label_is_written_side_stripped` (bank reads bit-identical to writing the literal replacement
+  tokens; no-op on windows without a waiting label) and `test_v5_a3_config_validation`. `v5_heldout_video.py` oracle
+  mode applies the same rewrite. Launch: `cluster_v5/queue_a3_hgx2.sh` (smoke 20 → r1 1000 → batteries 999/500 →
+  videos ckpt-999 via the new generic `cluster_v5/run_videos_hgx2.sh` → placeholder). Bar unchanged (§7): first-step
+  follows-content 1.00 with donor flips on the development episodes, plus the self-mode videos naming the side.
+

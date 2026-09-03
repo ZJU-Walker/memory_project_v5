@@ -967,6 +967,10 @@ V5_REFERENCE_SENTENCE_TOKENS: tuple[tuple[int, ...], ...] = (
     (9532, 235289, 4408, 8881, 603, 2731, 108),  # wait; target bin is left
     (9532, 235289, 4408, 8881, 603, 1833, 108),  # wait; target bin is right
 )
+# A3 bank rewrite of the waiting label (PaliGemma tokenizer): sentences starting with "wait" are
+# stored as "wait\n" (README §8, 2026-09-02 23:49). 9532 = "wait", 108 = "\n".
+V5_BANK_WAITING_PREFIX_TOKENS: tuple[int, ...] = (9532,)
+V5_BANK_WAITING_TOKENS: tuple[int, ...] = (9532, 108)
 
 _CONFIGS = [
     #
@@ -2620,6 +2624,41 @@ _CONFIGS = [
                             memory_v5_pooling="standardized_attention",
                             memory_v5_pool_queries=4,
                             memory_v5_reference_tokens=V5_REFERENCE_SENTENCE_TOKENS,
+                        ),
+                        data=v5_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=200, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=v5_loader,
+                        v4_graft_sources=(),
+                        num_train_steps=1_000,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
+                    # A3 (README §8, 2026-09-02 23:49) = A2 + side-stripped bank write of the waiting label.
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_stageA3",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model,
+                            memory_v5_oracle_writes=True,
+                            memory_v4_visual_injection=False,
+                            memory_v5_pooling="standardized_attention",
+                            memory_v5_pool_queries=4,
+                            memory_v5_reference_tokens=V5_REFERENCE_SENTENCE_TOKENS,
+                            memory_v5_bank_waiting_prefix=V5_BANK_WAITING_PREFIX_TOKENS,
+                            memory_v5_bank_waiting_tokens=V5_BANK_WAITING_TOKENS,
                         ),
                         data=v5_data,
                         assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),

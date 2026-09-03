@@ -313,3 +313,65 @@ def test_v5_r2_oracle_sequence_still_commits_every_change(tiny_v5_r2):
     np.testing.assert_array_equal(losses["v5_sentence_changed_count"], 3.0)
     np.testing.assert_array_equal(losses["v4_sem_commit_count"], 3.0)
     np.testing.assert_array_equal(losses["v4_sem_degenerate_count"], 0.0)
+
+
+@pytest.fixture(scope="module")
+def tiny_v5_a3():
+    original_vocab = gemma.PALIGEMMA_VOCAB_SIZE
+    try:
+        gemma.PALIGEMMA_VOCAB_SIZE = 128
+        model = _TinyV5Seq(nnx.Rngs(8), pooling="standardized_attention")
+        # A3: label sentences starting with token 7 are stored as [7, 9] (the tiny "wait\n").
+        model.memory_v5_bank_waiting_prefix = (7,)
+        model.memory_v5_bank_waiting_tokens = (7, 9)
+        yield model
+    finally:
+        gemma.PALIGEMMA_VOCAB_SIZE = original_vocab
+
+
+def test_v5_a3_waiting_label_is_written_side_stripped(tiny_v5_a3):
+    observation = _v4_sequence_observation()  # causal sentences [5,6], [7,8], [5,8]
+    actions = _actions()
+    with_rewrite = tiny_v5_a3._compute_sequence_loss_v32(jax.random.key(48), observation, actions, train=False)
+    np.testing.assert_array_equal(with_rewrite["v5_write_requested_count"], 3.0)
+    np.testing.assert_array_equal(with_rewrite["v5_bank_rewritten_count"], 1.0)
+    np.testing.assert_array_equal(with_rewrite["v4_sem_commit_count"], 3.0)
+
+    # The bank must end up exactly as if the label at that step had been the literal [7, 9]
+    # with no rewrite configured: the reads (which never see the causal buffer) agree bit for bit.
+    causal = np.array(observation.tokenized_causal)
+    causal[0, 1, :2] = [7, 9]
+    literal = observation.replace(tokenized_causal=jnp.asarray(causal))
+    prefix, tokens = tiny_v5_a3.memory_v5_bank_waiting_prefix, tiny_v5_a3.memory_v5_bank_waiting_tokens
+    tiny_v5_a3.memory_v5_bank_waiting_prefix, tiny_v5_a3.memory_v5_bank_waiting_tokens = (), ()
+    try:
+        plain = tiny_v5_a3._compute_sequence_loss_v32(jax.random.key(48), literal, actions, train=False)
+        # A window without a waiting label is untouched by the rewrite.
+        causal[0, 1, :2] = [6, 8]
+        unaffected = observation.replace(tokenized_causal=jnp.asarray(causal))
+        plain_unaffected = tiny_v5_a3._compute_sequence_loss_v32(jax.random.key(48), unaffected, actions, train=False)
+    finally:
+        tiny_v5_a3.memory_v5_bank_waiting_prefix, tiny_v5_a3.memory_v5_bank_waiting_tokens = prefix, tokens
+    np.testing.assert_array_equal(plain["v5_bank_rewritten_count"], 0.0)
+    for key in ("v4_sem_raw_read_rms_sum", "v5_qk_cos_sum", "v4_sem_commit_count"):
+        np.testing.assert_allclose(np.asarray(with_rewrite[key]), np.asarray(plain[key]), rtol=0, atol=1e-6, err_msg=key)
+    rewrite_unaffected = tiny_v5_a3._compute_sequence_loss_v32(jax.random.key(48), unaffected, actions, train=False)
+    np.testing.assert_array_equal(rewrite_unaffected["v5_bank_rewritten_count"], 0.0)
+    for key in ("v4_sem_raw_read_rms_sum", "v5_qk_cos_sum"):
+        np.testing.assert_allclose(
+            np.asarray(rewrite_unaffected[key]), np.asarray(plain_unaffected[key]), rtol=0, atol=1e-6, err_msg=key
+        )
+
+
+def test_v5_a3_config_validation():
+    with pytest.raises(ValueError, match="set together"):
+        pi0_config.Pi0Config(**_v5_kwargs(memory_v5_oracle_writes=True, memory_v5_bank_waiting_prefix=(9532,)))
+    with pytest.raises(ValueError, match="oracle writes"):
+        pi0_config.Pi0Config(
+            **_v5_kwargs(memory_v5_bank_waiting_prefix=(9532,), memory_v5_bank_waiting_tokens=(9532, 108))
+        )
+    pi0_config.Pi0Config(
+        **_v5_kwargs(
+            memory_v5_oracle_writes=True, memory_v5_bank_waiting_prefix=(9532,), memory_v5_bank_waiting_tokens=(9532, 108)
+        )
+    )

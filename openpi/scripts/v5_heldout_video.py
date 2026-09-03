@@ -258,6 +258,13 @@ def main() -> None:
                 span = (causal_mask[t] & ~causal_fast[t])[:sentence_len]
                 cur = np.where(span, causal[t][:sentence_len], 0).astype(np.int32)[None]
                 confident = True
+                # A3 training protocol: a waiting label is stored side-stripped ("wait\n").
+                prefix = tuple(cfg.model.memory_v5_bank_waiting_prefix)
+                if prefix and span[: len(prefix)].all() and tuple(cur[0, : len(prefix)].tolist()) == prefix:
+                    tokens = tuple(cfg.model.memory_v5_bank_waiting_tokens)
+                    cur = np.zeros((1, sentence_len), dtype=np.int32)
+                    cur[0, : len(tokens)] = tokens
+                    span = np.arange(sentence_len) < len(tokens)
             else:
                 span = np.zeros(sentence_len, dtype=bool)
                 n = int(min(gen_mask.sum(), sentence_len))

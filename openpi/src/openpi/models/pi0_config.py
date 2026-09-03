@@ -307,6 +307,14 @@ class Pi0Config(_model.BaseModelConfig):
     # Reference token rows (each a tuple of token ids, trailing newline included) for the
     # standardization statistics. Static config; the v5 configs use the sidecar's 8 sentences.
     memory_v5_reference_tokens: tuple[tuple[int, ...], ...] = ()
+    # A3 (cluster_v5/README.md §8, 2026-09-02 23:49): in ORACLE mode a label sentence that starts
+    # with `memory_v5_bank_waiting_prefix` is written to the bank as `memory_v5_bank_waiting_tokens`
+    # (the side-stripped "wait\n"). The lookahead-shifted decision label otherwise lands in the
+    # bank one step before the first decision step, and A/A2 learned to repeat the newest entry
+    # instead of reading the side out of the inspect sentence. Decode targets and losses are
+    # unchanged; predicted mode (stage B) writes the model's own sentence verbatim.
+    memory_v5_bank_waiting_prefix: tuple[int, ...] = ()
+    memory_v5_bank_waiting_tokens: tuple[int, ...] = ()
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -525,6 +533,17 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("memory_v5_sentence_len must lie in [1, causal_token_len].")
                     if self.memory_v5_read_queries < 1:
                         raise ValueError("memory_v5_read_queries must be >= 1.")
+                    if bool(self.memory_v5_bank_waiting_prefix) != bool(self.memory_v5_bank_waiting_tokens):
+                        raise ValueError(
+                            "memory_v5_bank_waiting_prefix and memory_v5_bank_waiting_tokens must be set together."
+                        )
+                    if self.memory_v5_bank_waiting_prefix and (
+                        len(self.memory_v5_bank_waiting_prefix) > self.memory_v5_sentence_len
+                        or len(self.memory_v5_bank_waiting_tokens) > self.memory_v5_sentence_len
+                    ):
+                        raise ValueError("the bank waiting prefix/tokens must fit in memory_v5_sentence_len.")
+                    if self.memory_v5_bank_waiting_prefix and not self.memory_v5_oracle_writes:
+                        raise ValueError("memory_v5_bank_waiting_prefix only applies to oracle writes (stage A).")
                     if self.memory_v5_pooling not in ("mean", "standardized_attention"):
                         raise ValueError("memory_v5_pooling must be 'mean' or 'standardized_attention'.")
                     if self.memory_v5_pooling == "standardized_attention":

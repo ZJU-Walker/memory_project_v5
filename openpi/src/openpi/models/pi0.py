@@ -613,6 +613,8 @@ class Pi0(_model.BaseModel):
                     # Every leaf name contains "memory" on purpose: the audited weight loader's
                     # fresh-init allowlist and the memory-group grad clip key on it.
                     self.memory_v5_oracle_writes = config.memory_v5_oracle_writes
+                    self.memory_v5_bank_waiting_prefix = tuple(config.memory_v5_bank_waiting_prefix)
+                    self.memory_v5_bank_waiting_tokens = tuple(config.memory_v5_bank_waiting_tokens)
                     self.memory_v5_write_conf = config.memory_v5_write_conf
                     self.memory_v5_sentence_len = config.memory_v5_sentence_len
                     self.memory_v5_read_queries = config.memory_v5_read_queries
@@ -4801,15 +4803,37 @@ class Pi0(_model.BaseModel):
                     sentence_token_correct = (pred_sentence == label_sentence) & sent_span
                     sentence_token_acc = jnp.sum(sentence_token_correct.astype(jnp.float32), axis=-1) / span_count
                     sentence_exact = jnp.all(sentence_token_correct | ~sent_span, axis=-1) & has_span
+                    write_span = sent_span
+                    bank_rewritten = jnp.zeros((b,), dtype=bool)
                     if getattr(self, "memory_v5_oracle_writes", False):
                         cur_sentence = jnp.where(sent_span, label_sentence, 0)
                         sentence_confident = jnp.ones((b,), dtype=bool)
+                        waiting_prefix = tuple(getattr(self, "memory_v5_bank_waiting_prefix", ()))
+                        if waiting_prefix:
+                            # A3: a label sentence starting with the waiting prefix ("wait") is
+                            # stored side-stripped (memory_v5_bank_waiting_tokens, "wait\n"), so the
+                            # lookahead-shifted decision label never carries the answer into the
+                            # bank. Decode targets and telemetry keep the real label.
+                            waiting_tokens = tuple(self.memory_v5_bank_waiting_tokens)
+                            n_prefix = len(waiting_prefix)
+                            prefix_arr = jnp.asarray(waiting_prefix, dtype=jnp.int32)
+                            bank_rewritten = jnp.all(
+                                (label_sentence[:, :n_prefix] == prefix_arr[None]) & sent_span[:, :n_prefix], axis=-1
+                            )
+                            replacement = (
+                                jnp.zeros((sent_len,), dtype=jnp.int32)
+                                .at[: len(waiting_tokens)]
+                                .set(jnp.asarray(waiting_tokens, dtype=jnp.int32))
+                            )
+                            replacement_span = jnp.arange(sent_len) < len(waiting_tokens)
+                            cur_sentence = jnp.where(bank_rewritten[:, None], replacement[None], cur_sentence)
+                            write_span = jnp.where(bank_rewritten[:, None], replacement_span[None], sent_span)
                     else:
                         cur_sentence = jnp.where(sent_span, jax.lax.stop_gradient(pred_sentence), 0)
                         sentence_confident = sentence_conf >= self.memory_v5_write_conf
                     sentence_changed = jnp.any(cur_sentence != prev_sentence, axis=-1) & has_span
                     sem_write_requested = sentence_changed & sentence_confident & transition_valid
-                    sem_encoded = self.v5_encode_sentence(cur_sentence, sent_span)
+                    sem_encoded = self.v5_encode_sentence(cur_sentence, write_span)
                     sem_keys, sem_values = self.v5_sentence_intent(sem_encoded)
                     sem_write_state, sem_aux = self.v5_semantic_write(
                         sem_state, sem_keys, sem_values, sem_write_requested
@@ -4992,6 +5016,7 @@ class Pi0(_model.BaseModel):
                             "v5_sentence_confident": (sentence_confident & transition_valid).astype(jnp.float32),
                             "v5_sentence_conf": sentence_conf * transition_validf,
                             "v5_write_requested": sem_write_requested.astype(jnp.float32),
+                            "v5_bank_rewritten": (bank_rewritten & sem_write_requested).astype(jnp.float32),
                             "v5_token_acc_evidence": sentence_token_acc * evidence_active,
                             "v5_exact_evidence": sentence_exact.astype(jnp.float32) * evidence_active,
                             "v5_evidence_count": evidence_active,
@@ -5330,6 +5355,7 @@ class Pi0(_model.BaseModel):
                     "v5_sentence_confident_count": jnp.sum(ys["v5_sentence_confident"]),
                     "v5_sentence_conf_sum": jnp.sum(ys["v5_sentence_conf"]),
                     "v5_write_requested_count": jnp.sum(ys["v5_write_requested"]),
+                    "v5_bank_rewritten_count": jnp.sum(ys["v5_bank_rewritten"]),
                     "v5_token_acc_evidence_sum": jnp.sum(ys["v5_token_acc_evidence"]),
                     "v5_exact_evidence_sum": jnp.sum(ys["v5_exact_evidence"]),
                     "v5_evidence_count": jnp.sum(ys["v5_evidence_count"]),
