@@ -22,7 +22,7 @@ delivery; ~100 frames of return after release. Detected on all 60 episodes with 
 |---|---|---|
 | 1 | 0 … first blink onset − 1 | `wait for the light: no green blink yet` |
 | 2 | onset of blink k … next onset − 1 (last one runs to go − 1) | `wait for the light: k green blink(s) so far` (k = 1..x) |
-| 3 | go … gripper closes on the scoop − 1 | `yellow go: pick up the scoop, scoop x times` |
+| 3 | go … gripper closes on the scoop − 1 | `yellow go: pick up the scoop, scoop x times` (`1 time` for x = 1) |
 | 4 | pickup … end of delivery 1; then end of delivery k−1 + 1 … end of delivery k | `scoop k of x` (k = 1..x) |
 | 5 | end of last delivery + 1 … last frame | `done: x of x scooped, put down the scoop and return` |
 

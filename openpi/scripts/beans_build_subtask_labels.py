@@ -53,7 +53,7 @@ def build(ev: dict) -> list[dict]:
     for k, (on, _off) in enumerate(ev["blinks"], start=1):
         end = ev["blinks"][k][0] - 1 if k < x else ev["go"] - 1
         out.append({"task": f"wait for the light: {plural(k)}", "start": on, "end": end})
-    out.append({"task": f"yellow go: pick up the scoop, scoop {x} times", "start": ev["go"], "end": ev["pickup"] - 1})
+    out.append({"task": f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}", "start": ev["go"], "end": ev["pickup"] - 1})
     start = ev["pickup"]
     for k, (_ds, de) in enumerate(ev["deliveries"], start=1):
         out.append({"task": f"scoop {k} of {x}", "start": start, "end": de}); start = de + 1
