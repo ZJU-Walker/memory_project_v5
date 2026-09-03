@@ -1068,6 +1068,14 @@ class Pi0(_model.BaseModel):
         [standardized masked mean ⊕ trainable attention pooling] and L2-normalize. The attention
         block is zero-initialized, so at init the encoding is the standardized mean (side variants
         at cosine ~0.73) and training can move it toward the side-word states (cosine ~0.13)."""
+        # Rows with no tokens (A4: nothing pending at a window's first step; padded steps) are
+        # encoded as a one-token dummy so every path stays finite in forward AND backward (an
+        # empty row gives a zero vector whose L2-normalization has a NaN gradient, which killed
+        # the first A4 launch); callers mask the commit for such rows anyway.
+        has_tokens = jnp.any(token_mask, axis=1)
+        dummy_mask = jnp.arange(token_mask.shape[1])[None, :] < 1
+        token_mask = jnp.where(has_tokens[:, None], token_mask, dummy_mask)
+        tokens = jnp.where(has_tokens[:, None], tokens, jnp.zeros_like(tokens))
         hidden = self._v5_token_states(tokens, token_mask)
         weight = token_mask.astype(jnp.float32)[..., None]
         count = jnp.maximum(jnp.sum(weight, axis=1), 1.0)

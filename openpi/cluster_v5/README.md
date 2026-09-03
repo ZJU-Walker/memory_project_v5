@@ -368,3 +368,12 @@ build no fallback.
   999) → batteries (v5-scoped) → videos → verdict (first-step normal ≥ 0.9 AND flip_follows_content ≥ 0.9) → B4 smoke →
   r1 → batteries → videos → placeholder; FAIL → A4 continued to 2999 → batteries/videos 2999 → placeholder.
 
+* 2026-09-03 13:35 — **A4 r1 first launch dead (NaN), fixed, relaunched.** The 12:11 run froze at the step-0 loss; log: loss
+  and grad norms NaN from step 100. Cause (reproduced on the tiny model): with the one-step delay the first step of every
+  window has an EMPTY pending sentence; the encoder pooled it to a zero vector whose L2-normalization has a 0/0 gradient
+  → NaN into `memory_sem_sentence_pool`/`memory_sem_key_proj` → clip → every parameter. Forward was finite, so the
+  existing tests (forward-only) passed. Fix: `v5_encode_sentence` encodes empty rows as a one-token dummy (commit for
+  such rows was already masked). New test `test_v5_a4_delayed_writes_have_finite_gradients` (gradients of the TRAINING
+  terms through the scan; the read-RMS telemetry is excluded — sqrt at 0 on the blank-bank step, infinite gradient in
+  every configuration, never in the loss). 15/15 tests. Broken A4 checkpoints deleted on the node; queue relaunched.
+

@@ -416,3 +416,26 @@ def test_v5_a4_one_step_write_delay(tiny_v5_a4):
     u_steps = np.asarray(undelayed["v5_exact_decision_steps"])
     assert d_steps.shape == u_steps.shape == (3, 1)
 
+
+def test_v5_a4_delayed_writes_have_finite_gradients(tiny_v5_a4):
+    """The first A4 launch died at step 100 (loss NaN): the empty pending row at a window's first
+    step was encoded as a zero vector whose L2-normalization has a NaN gradient. Every gradient of
+    the sequence loss must be finite with the delay on."""
+    observation = _v4_sequence_observation()
+    actions = _actions()
+
+    def total_loss(model):
+        # Training terms only: the read-RMS telemetry is a sqrt at exactly zero on the blank-bank
+        # step (infinite gradient in every configuration) and never enters the training loss.
+        losses = model._compute_sequence_loss_v32(jax.random.key(50), observation, actions, train=False)
+        return jnp.sum(losses["v4_decision_ce_steps"]) + jnp.sum(losses["v5_qk_cos_sum"])
+
+    grads = nnx.grad(total_loss)(tiny_v5_a4)
+    bad = [
+        "/".join(str(k) for k in path)
+        for path, leaf in jax.tree_util.tree_leaves_with_path(grads)
+        if not bool(jnp.all(jnp.isfinite(jnp.asarray(leaf))))
+    ]
+    assert not bad, bad[:10]
+    assert float(jnp.max(jnp.abs(grads["memory_sem_key_proj"]["kernel"].value))) > 0.0
+
