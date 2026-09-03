@@ -24,6 +24,9 @@ Usage::
     uv run examples/yam/label_subtasks.py --data-dir /path/to/demos \\
         --subtasks "observe bins" "open left bin" "open right bin"
 
+    # bean-scoop task (0902_bean_scoop): vocabulary follows each episode's blink count x
+    uv run examples/yam/label_subtasks.py --data-dir /path/to/0902_bean_scoop --beans-task
+
 then open the printed URL. Over SSH, forward the port::
 
     ssh -L 8000:localhost:8000 <host>
@@ -87,6 +90,107 @@ MEMORY_PHASES: tuple[dict, ...] = (
 
 # Label strings that vary by side, keyed by phase; used to infer a segment's side.
 _SIDED_KEYS = {phase["key"] for phase in MEMORY_PHASES if "{side}" in phase["label"]}
+
+
+# ---------------------------------------------------------------------------------------
+# 0902_bean_scoop ("--beans-task"): watch the green light blink x times, wait for the yellow
+# go signal, then scoop x times. Definition: openpi/cluster_v5/BEANS_LABELS.md (v2). The
+# vocabulary is per EPISODE because it depends on x (as the bin task's depends on the side):
+# x is read from the demo's led_cue.json, or inferred from existing labels.
+# ---------------------------------------------------------------------------------------
+BEANS_BOUNDARIES = {
+    "pre": "episode start until the frame the green light FIRST turns on",
+    "blink": "the frame the light turns ON for this blink, until the next blink turns on",
+    "last_blink": "the frame the last blink turns on, until the yellow go signal",
+    "go": "yellow light on until the gripper closes on the scoop handle",
+    "scoop": "until the scoop finishes delivering beans to the tray for this repetition",
+    "done": "after the last delivery: release the scoop and return home",
+}
+_BEANS_BLINK_RE = re.compile(r"^wait for the light: (\d+) green blinks? so far$")
+_BEANS_GO_RE = re.compile(r"^yellow go: pick up the scoop, scoop (\d+) times?$")
+_BEANS_SCOOP_RE = re.compile(r"^scoop (\d+)$")
+_BEANS_PRE = "wait for the light: no green blink yet"
+_BEANS_DONE = "done, put down the scoop and return"
+
+
+def beans_subtasks(x: int) -> list[str]:
+    """The labels one episode with `x` blinks can use (4 + 2x - 1 <= 9 for x <= 3)."""
+    blinks = [f"wait for the light: {k} green blink{'' if k == 1 else 's'} so far" for k in range(1, x + 1)]
+    go = [f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}"]
+    scoops = [f"scoop {k}" for k in range(1, x + 1)]
+    return [_BEANS_PRE, *blinks, *go, *scoops, _BEANS_DONE]
+
+
+def beans_boundaries(x: int) -> list[str]:
+    blinks = [BEANS_BOUNDARIES["blink"]] * (x - 1) + [BEANS_BOUNDARIES["last_blink"]]
+    return [BEANS_BOUNDARIES["pre"], *blinks, BEANS_BOUNDARIES["go"],
+            *([BEANS_BOUNDARIES["scoop"]] * x), BEANS_BOUNDARIES["done"]]
+
+
+def all_beans_subtasks(max_x: int = 3) -> list[str]:
+    """Every label the beans task can produce, for save-time validation."""
+    return sorted({label for x in range(1, max_x + 1) for label in beans_subtasks(x)})
+
+
+def beans_x_of(demo: pathlib.Path, segments: list[dict], default: int = 3) -> int:
+    """x for one episode: the collector's led_cue.json, else the labels, else `default`."""
+    cue = demo / "led_cue.json"
+    if cue.is_file():
+        try:
+            value = json.loads(cue.read_text()).get("x")
+            if isinstance(value, int) and value > 0:
+                return value
+        except json.JSONDecodeError:
+            pass
+    for seg in segments:
+        if match := _BEANS_GO_RE.match(seg["task"]):
+            return int(match.group(1))
+    blinks = [int(m.group(1)) for seg in segments if (m := _BEANS_BLINK_RE.match(seg["task"]))]
+    return max(blinks, default=default)
+
+
+def validate_beans_schema(segments: list[dict]) -> list[str]:
+    """Check beans structure: phases in order, blink count 1..x, scoop count 1..x, x consistent.
+
+    A miscounted blink or a missing scoop is the whole supervision signal for this task, so it
+    is caught here rather than surfacing as a model that cannot count.
+    """
+    if not segments or not any(
+        _BEANS_GO_RE.match(seg["task"]) or _BEANS_BLINK_RE.match(seg["task"]) for seg in segments
+    ):
+        return []  # not a beans vocabulary
+    problems: list[str] = []
+    blinks, scoops, go_x, seen_go, seen_done = [], [], None, False, False
+    for i, seg in enumerate(segments, start=1):
+        task = seg["task"]
+        if task == _BEANS_PRE:
+            if i != 1:
+                problems.append(f"segment {i}: {_BEANS_PRE!r} must be the first segment")
+        elif match := _BEANS_BLINK_RE.match(task):
+            if seen_go:
+                problems.append(f"segment {i} ({task!r}) comes after the go signal")
+            blinks.append(int(match.group(1)))
+        elif match := _BEANS_GO_RE.match(task):
+            seen_go, go_x = True, int(match.group(1))
+        elif match := _BEANS_SCOOP_RE.match(task):
+            if not seen_go:
+                problems.append(f"segment {i} ({task!r}) comes before the go signal")
+            scoops.append(int(match.group(1)))
+        elif task == _BEANS_DONE:
+            seen_done = True
+        else:
+            continue  # unknown labels are reported by validate_segments
+    if blinks and blinks != list(range(1, len(blinks) + 1)):
+        problems.append(f"blink counts are {blinks}, expected 1..{len(blinks)} in order")
+    if scoops and scoops != list(range(1, len(scoops) + 1)):
+        problems.append(f"scoop numbers are {scoops}, expected 1..{len(scoops)} in order")
+    if go_x is not None and blinks and go_x != len(blinks):
+        problems.append(f"the go segment says {go_x} scoops but there are {len(blinks)} blink segments")
+    if go_x is not None and scoops and go_x != len(scoops):
+        problems.append(f"the go segment says {go_x} scoops but there are {len(scoops)} scoop segments")
+    if seen_go and not seen_done:
+        problems.append(f"episode has no {_BEANS_DONE!r} segment")
+    return problems
 
 
 def memory_subtasks(side: str) -> list[str]:
@@ -267,7 +371,7 @@ def validate_segments(segments: list[dict], num_frames: int, subtasks: list[str]
         expected_start = seg["end"] + 1
     if segments and expected_start < num_frames:
         problems.append(f"episode not covered: labeled {expected_start} of {num_frames} frames")
-    return problems + validate_phase_schema(segments)
+    return problems + validate_phase_schema(segments) + validate_beans_schema(segments)
 
 
 def save_segments(
@@ -296,6 +400,7 @@ class LabelerState:
     data_dir: pathlib.Path
     subtasks: list[str]
     memory_mode: bool = False
+    beans_mode: bool = False
     label_file: str = LABEL_FILE
     excluded_demos: frozenset[str] = frozenset()
 
@@ -330,7 +435,7 @@ class LabelerState:
                     "num_segments": len(segments),
                     "covered": covered,
                     "complete": bool(segments) and covered >= _metadata_steps(demo),
-                    "side": self.side_of_segments(segments),
+                    "side": f"x={beans_x_of(demo, segments)}" if self.beans_mode else self.side_of_segments(segments),
                 }
             )
         return summaries
@@ -341,13 +446,19 @@ class LabelerState:
         _, fps = probe_video(str(demo / TOP_MP4))
         segments = load_segments(demo, self.label_file)
         side = self.side_of_segments(segments) or side
+        if self.beans_mode:
+            x = beans_x_of(demo, segments)
+            subtasks, boundaries, side = beans_subtasks(x), beans_boundaries(x), f"x={x}"
+        else:
+            subtasks = self.subtasks_for(side)
+            boundaries = [p["boundary"] for p in MEMORY_PHASES] if self.memory_mode else []
         return {
             "name": demo.name,
             "num_frames": num_frames,
             "fps": fps,
             "segments": segments,
-            "subtasks": self.subtasks_for(side),
-            "boundaries": [p["boundary"] for p in MEMORY_PHASES] if self.memory_mode else [],
+            "subtasks": subtasks,
+            "boundaries": boundaries,
             "memory_mode": self.memory_mode,
             "side": side,
         }
@@ -415,7 +526,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         demo = self.state.data_dir / payload["demo"]
         # Validate against every allowed label, not just the current side's five, so a
         # mixed-side episode is reported by the phase check rather than as "unknown subtask".
-        vocabulary = all_memory_subtasks() if self.state.memory_mode else self.state.subtasks
+        if self.state.beans_mode:
+            vocabulary = all_beans_subtasks()
+        elif self.state.memory_mode:
+            vocabulary = all_memory_subtasks()
+        else:
+            vocabulary = self.state.subtasks
         result = save_segments(
             demo,
             payload["segments"],
@@ -867,6 +983,11 @@ def main() -> int:
         action="store_true",
         help="use the five-phase bin-memory schema with a per-episode left/right side",
     )
+    parser.add_argument(
+        "--beans-task",
+        action="store_true",
+        help="use the 0902_bean_scoop schema; the vocabulary follows each episode's x (blink count)",
+    )
     parser.add_argument("--subtasks", nargs="+", default=list(DEFAULT_SUBTASKS))
     parser.add_argument(
         "--label-file",
@@ -894,10 +1015,13 @@ def main() -> int:
     if pathlib.Path(args.label_file).name != args.label_file:
         parser.error("--label-file must be a filename, not a path")
 
+    if args.beans_task and args.memory_task:
+        parser.error("--beans-task and --memory-task are different schemas; pick one")
     Handler.state = LabelerState(
         data_dir=args.data_dir,
         subtasks=args.subtasks,
         memory_mode=args.memory_task,
+        beans_mode=args.beans_task,
         label_file=args.label_file,
         excluded_demos=excluded_demos,
     )
