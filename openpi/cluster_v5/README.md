@@ -490,3 +490,17 @@ build no fallback.
   untouched). `scripts/v5_serve_smoke.py` = in-process policy smoke with synthetic observations. The hgx-1 GPU sentinel
   frees the 1-GPU job's placeholder whenever a policy server or the smoke runs.
 
+* 2026-09-04 03:18 — **B5a ckpt-999 self-write videos: 8/8 held-out episodes correct, 45/45 decision steps.** B5a (A5
+  weights → own delayed confidence-gated sentences, peak LR 2.5e-5, 1000 updates on the H200; final own-write telemetry
+  CE 1.06, decision exact 0.91, inspect exact 0.74, qk 0.89) rolls out on its own sentences: frame 0 = `open both lids`
+  in every episode, the inspect sentence written correctly, the correct side at EVERY decision step (ep01 5/5, ep02 4/4,
+  ep07 5/5, ep21 6/6, ep35 8/8, ep42 6/6, ep61 4/4, ep64 7/7), and the transition into `open left/right bin` reached in
+  all 8. Six episodes wrote exactly the 5 true phases; ep07/ep64 wrote one spurious `wait; target bin is <side>` at frame
+  45 and recovered (the stability gate remains the optional cure). Compared with B5 direct (0/5, 0/4 on the two episodes
+  rendered) this confirms the two-stage recipe: reading and phase tracking learned on the clean oracle bank survive the
+  switch to self-writes. A6 (read-side fix, 500 updates at batch 8 on 4xH100 from A5-999) ckpt-499 first-step battery:
+  normal 1.000, flip follows-content 1.000, margins +15.1/−15.5 (A5 +11.0/−12.0) → B6a next (own sentences from A6-499).
+  Judged checkpoints: `v5/checkpoints/pi05_yam_mem_v5_stageB5a/v5_stageB5a_20260903_r1/keep_999` (NFS copy for the robot
+  server), `.../pi05_yam_mem_v5_stageA6/v5_stageA6_20260903_r1/keep_499`. Both B runs continue training after their tests
+  (user rule 02:02) with saves every 250 updates.
+
