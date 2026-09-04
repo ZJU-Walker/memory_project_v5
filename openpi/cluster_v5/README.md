@@ -524,3 +524,14 @@ build no fallback.
   at 09:46 toward 3000 (batch 8, saves 750/1000/…). Judged checkpoints untouched: B5a keep_999, B6a keep_499 (both NFS).
   Robot serving: `cluster_v5/serve_v5_hgx1.sh <ckpt dir> <config> [port]` on iris-hgx-1 (job 17192955).
 
+* 2026-09-04 11:25 — **Robot deployment for B6a (user 11:08).** Ported from the v4 runbook: `websocket_policy_server.py`
+  runs `infer` via `asyncio.to_thread` (keepalive survives a cold compile), `openpi_client.WebsocketClientPolicy(ping_timeout)`,
+  `serve_yam_memory.py --warmup` (plain + RTC-prefixed synthetic request, then reset). New `examples/yam/client_memory_v5.py`
+  (from the v4 client: same YAM/RealSense plumbing, RTC broker at stride 15, `r` reset / `q` quit, H.264 recording;
+  guard on `memory_v5_sentence_bank`, stride 15, RTC fields, training prompts; overlay = decoded sentence + confidence
+  (`*` = committed this tick) + the bank's sentences + commit count; `--dry-run`) with `client_memory_v5_test.py`.
+  Launcher `v5/diagnostics/run_server_v5.sh [port] [ckpt_dir]` (default B6a keep_499; frees the 1-GPU job's placeholder;
+  the sentinel keeps it off while the server runs). Live check: server on iris-hgx-1 (10.79.12.252:8000, job 17192955,
+  next to the user's Qwen server), warmup 37 s + 15.5 s, `client_memory_v5.py --dry-run` from the login node: contract
+  OK, 40 random-observation steps, one commit (`open both lids`), RTC replan exercised. Server left running for the trial.
+
