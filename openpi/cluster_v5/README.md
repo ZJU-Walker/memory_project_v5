@@ -504,3 +504,13 @@ build no fallback.
   server), `.../pi05_yam_mem_v5_stageA6/v5_stageA6_20260903_r1/keep_499`. Both B runs continue training after their tests
   (user rule 02:02) with saves every 250 updates.
 
+* 2026-09-04 05:51 — **B6a ckpt-499 self-write videos: 8/8 episodes, 44/45 decision steps, exactly 5 writes in EVERY
+  episode.** B6a (A6-499 weights → own sentences, 500 updates at batch 8 on 4xH100; final own-write telemetry CE 0.60,
+  decision exact 0.91, inspect exact 0.79, qk 0.88) writes only the five true phases in all eight held-out episodes — the
+  read-side fix removed the early spurious `wait` writes B5a still had in 2/8 — and reaches `open left/right bin` in all.
+  The single miss (ep07, first decision step) is a one-step PHASE lag (`close both lids…` at f435, then the correct
+  `wait; target bin is right`), not a wrong side; it then said `open right bin` one step early. Side decisions: 100 %.
+  B5a vs B6a on the same episodes: 45/45 vs 44/45 decisions; spurious writes 2 episodes (8 and 13 writes) vs none.
+  Judged checkpoint `v5/checkpoints/pi05_yam_mem_v5_stageB6a/v5_stageB6a_20260903_r1/keep_499` (NFS). Both B runs now
+  go through their batteries and then continue training (user rule).
+
