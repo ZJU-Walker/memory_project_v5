@@ -251,6 +251,23 @@ class FASTSubtaskTokenizer(FASTTokenizer):
             return (*result, np.asarray(state_mask))
         return result
 
+    def tokenize_sentence(self, subtask: str, length: int) -> tuple[np.ndarray, np.ndarray]:
+        """v5 history prefill: one subtask sentence tokenized EXACTLY like the causal prefix of
+        `tokenize_split` (lower/strip/underscore cleaning, trailing newline, no bos), left-aligned
+        in a `length`-wide int32 buffer with its bool mask. An empty string is an all-invalid row."""
+        tokens = np.zeros((length,), dtype=np.int32)
+        mask = np.zeros((length,), dtype=bool)
+        cleaned = subtask.lower().strip().replace("_", " ")
+        if not cleaned:
+            return tokens, mask
+        ids = self._paligemma_tokenizer.encode(cleaned + "\n")
+        if len(ids) > length:
+            logging.warning(f"v5 prefill sentence ({len(ids)} tokens) exceeds the sentence buffer ({length}), truncating.")
+            ids = ids[:length]
+        tokens[: len(ids)] = np.asarray(ids, dtype=np.int32)
+        mask[: len(ids)] = True
+        return tokens, mask
+
     def tokenize_split(
         self,
         prompt: str,

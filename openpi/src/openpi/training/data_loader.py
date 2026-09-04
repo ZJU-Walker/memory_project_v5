@@ -266,6 +266,9 @@ def create_torch_dataset(
                     tasks=dataset_meta.tasks,
                     episode_waiting_valid=info.get("episode_waiting_valid", ()),
                     episode_sentences=episode_sentences,
+                    prefill_history=bool(getattr(model_config, "memory_v5_prefill_history", False)),
+                    prefill_max=int(getattr(model_config, "memory_v5_prefill_max", 6)),
+                    write_delay_steps=int(getattr(model_config, "memory_v5_write_delay_steps", 0)),
                 )
             )
         fact_targets_table = None

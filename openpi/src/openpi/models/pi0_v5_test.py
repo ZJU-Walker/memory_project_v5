@@ -439,3 +439,181 @@ def test_v5_a4_delayed_writes_have_finite_gradients(tiny_v5_a4):
     assert not bad, bad[:10]
     assert float(jnp.max(jnp.abs(grads["memory_sem_key_proj"]["kernel"].value))) > 0.0
 
+
+
+# ---------------------------------------------------------------------------------------------
+# A5 (cluster_v5/README.md §8, 2026-09-03 17:10): history prefill at every window start.
+
+
+@pytest.fixture(scope="module")
+def tiny_v5_a5():
+    original_vocab = gemma.PALIGEMMA_VOCAB_SIZE
+    try:
+        gemma.PALIGEMMA_VOCAB_SIZE = 128
+        model = _TinyV5Seq(nnx.Rngs(11), pooling="standardized_attention")
+        model.memory_v5_write_delay_steps = 1
+        model.memory_v5_prefill_history = True
+        model.memory_v5_prefill_max = 2
+        # The visual bank is not injected in the A4/A5 configs; off here too so the decision CE
+        # depends on the semantic bank only (the rollout/prefill equivalence below is exact then).
+        model.memory_v4_visual_injection = False
+        yield model
+    finally:
+        gemma.PALIGEMMA_VOCAB_SIZE = original_vocab
+
+
+_PER_SAMPLE_FIELDS = frozenset(
+    {
+        "seq_sparse_skip_o",
+        "seq_episode_index",
+        "seq_collection_id",
+        "seq_object_id",
+        "seq_memory_cell",
+        "seq_side_label",
+        "seq_fact_labels",
+        "memory_v5_prefill_tokens",
+        "memory_v5_prefill_mask",
+        "memory_v5_prefill_gaps",
+        "memory_v5_pending_tokens",
+        "memory_v5_pending_mask",
+    }
+)
+
+
+def _slice_steps(observation, start: int):
+    """Keep steps [start:] of every per-step observation field (the tiny fixtures use T=3)."""
+    import dataclasses
+
+    updates = {}
+    for field in dataclasses.fields(observation):
+        value = getattr(observation, field.name)
+        if value is None or field.name in _PER_SAMPLE_FIELDS:
+            continue
+        if isinstance(value, dict):
+            updates[field.name] = {k: v[:, start:] for k, v in value.items()}
+        elif getattr(value, "ndim", 0) >= 2:
+            updates[field.name] = value[:, start:]
+    return observation.replace(**updates)
+
+
+def _with_prefill(observation, sentences, gaps, pending, *, sentence_len=2, prefill_max=2):
+    b = observation.tokenized_causal.shape[0]
+    tokens = np.zeros((b, prefill_max, sentence_len), dtype=np.int32)
+    mask = np.zeros((b, prefill_max, sentence_len), dtype=bool)
+    gap_arr = np.zeros((b, prefill_max), dtype=np.int32)
+    for p, row in enumerate(sentences):
+        tokens[:, p, : len(row)] = row
+        mask[:, p, : len(row)] = True
+        gap_arr[:, p] = gaps[p]
+    pending_tokens = np.zeros((b, sentence_len), dtype=np.int32)
+    pending_mask = np.zeros((b, sentence_len), dtype=bool)
+    if pending:
+        pending_tokens[:, : len(pending)] = pending
+        pending_mask[:, : len(pending)] = True
+    return observation.replace(
+        memory_v5_prefill_tokens=jnp.asarray(tokens),
+        memory_v5_prefill_mask=jnp.asarray(mask),
+        memory_v5_prefill_gaps=jnp.asarray(gap_arr),
+        memory_v5_pending_tokens=jnp.asarray(pending_tokens),
+        memory_v5_pending_mask=jnp.asarray(pending_mask),
+    )
+
+
+def test_v5_a5_prefilled_window_equals_rollout_from_frame_zero(tiny_v5_a5):
+    """A window that starts at step 2 with the history prefilled ([5,6] committed, [7,8] pending)
+    must read exactly what the full 3-step rollout reads at its step 2 -- so an empty bank means
+    "episode start" in training exactly as it does in a rollout."""
+    full = _with_prefill(_v4_sequence_observation(), sentences=[], gaps=[], pending=None)
+    actions = _actions()
+    rollout = tiny_v5_a5._compute_sequence_loss_v32(jax.random.key(51), full, actions, train=False)
+    np.testing.assert_array_equal(rollout["v5_prefill_sentence_count"], 0.0)
+    # Sentences [5,6] (step 0), [7,8] (step 1), [5,8] (step 2); delay 1: step 1 writes [5,6],
+    # step 2 writes [7,8]. Before step 2's write the bank holds [5,6] only, with one decay-free
+    # step after its commit (gap 0), and [7,8] pending.
+    tail = _slice_steps(full, 2)
+    tail = _with_prefill(tail, sentences=[[5, 6]], gaps=[0], pending=[7, 8])
+    window = tiny_v5_a5._compute_sequence_loss_v32(jax.random.key(51), tail, actions[:, 2:], train=False)
+    np.testing.assert_array_equal(window["v5_prefill_sentence_count"], 1.0)
+    np.testing.assert_array_equal(window["v5_write_requested_count"], 1.0)  # [7,8] written at its step 0
+    np.testing.assert_array_equal(rollout["v5_write_requested_count"], 2.0)
+    np.testing.assert_allclose(
+        np.asarray(window["v4_decision_ce_steps"])[0], np.asarray(rollout["v4_decision_ce_steps"])[2], rtol=1e-5, atol=1e-6
+    )
+    np.testing.assert_allclose(
+        np.asarray(window["v5_exact_decision_steps"])[0], np.asarray(rollout["v5_exact_decision_steps"])[2]
+    )
+    # Control: the same tail WITHOUT the history reads a blank bank and (in general) differs.
+    blank_tail = _with_prefill(tail, sentences=[], gaps=[], pending=None)
+    blank = tiny_v5_a5._compute_sequence_loss_v32(jax.random.key(51), blank_tail, actions[:, 2:], train=False)
+    assert not np.allclose(np.asarray(blank["v4_decision_ce_steps"])[0], np.asarray(rollout["v4_decision_ce_steps"])[2])
+    for key, value in window.items():
+        assert np.all(np.isfinite(np.asarray(value))), key
+
+
+def test_v5_a5_prefill_decay_gap_is_applied(tiny_v5_a5):
+    """A prefilled sentence with a decay gap of g reads like the same sentence committed g
+    write-free steps earlier: the read differs from the gap-0 prefill and matches the analytic
+    decay of the bank."""
+    tail = _slice_steps(_v4_sequence_observation(), 2)
+    actions = _actions()[:, 2:]
+    gap0 = _with_prefill(tail, sentences=[[5, 6]], gaps=[0], pending=None)
+    gap3 = _with_prefill(tail, sentences=[[5, 6]], gaps=[3], pending=None)
+    out0 = tiny_v5_a5._compute_sequence_loss_v32(jax.random.key(52), gap0, actions, train=False)
+    out3 = tiny_v5_a5._compute_sequence_loss_v32(jax.random.key(52), gap3, actions, train=False)
+    # The raw read of a delta-output bank scales with the decayed output weights: three extra
+    # write-free steps multiply it by (1 - alpha)^3 (the injection is RMS-normalized, so the
+    # decision CE itself barely moves -- the bank state is what the gap must change).
+    ratio = float(out3["v4_sem_raw_read_rms_sum"]) / float(out0["v4_sem_raw_read_rms_sum"])
+    np.testing.assert_allclose(ratio, (1.0 - 0.01) ** 3, rtol=1e-4)
+    # Direct check of the bank arithmetic: prefill with gap 3 == prefill with gap 0 then 3 decays.
+    b = 1
+    tokens = jnp.asarray([[5, 6]], dtype=jnp.int32)
+    mask = jnp.ones((b, 2), dtype=bool)
+    keys, values = tiny_v5_a5.v5_sentence_intent(tiny_v5_a5.v5_encode_sentence(tokens, mask))
+    state = tiny_v5_a5.memory_semantic.init_state(b)
+    written, _ = tiny_v5_a5.v5_semantic_write(state, keys, values, jnp.ones((b,), dtype=bool))
+    decayed3, _ = tiny_v5_a5.memory_semantic.analytic_decay(written, jnp.asarray([3], dtype=jnp.int32))
+    stepwise = written
+    for _ in range(3):
+        stepwise, _ = tiny_v5_a5.v5_semantic_write(stepwise, keys, values, jnp.zeros((b,), dtype=bool))
+    for name in decayed3.fast_weights:
+        np.testing.assert_allclose(
+            np.asarray(decayed3.fast_weights[name]), np.asarray(stepwise.fast_weights[name]), rtol=1e-5, atol=1e-6
+        )
+
+
+def test_v5_a5_prefill_has_finite_gradients(tiny_v5_a5):
+    observation = _with_prefill(_v4_sequence_observation(), sentences=[[5, 6], [7, 8]], gaps=[1, 0], pending=[5, 8])
+    actions = _actions()
+
+    def total_loss(model):
+        losses = model._compute_sequence_loss_v32(jax.random.key(53), observation, actions, train=False)
+        return jnp.sum(losses["v4_decision_ce_steps"]) + jnp.sum(losses["v5_qk_cos_sum"])
+
+    grads = nnx.grad(total_loss)(tiny_v5_a5)
+    bad = [
+        "/".join(str(k) for k in path)
+        for path, leaf in jax.tree_util.tree_leaves_with_path(grads)
+        if not bool(jnp.all(jnp.isfinite(jnp.asarray(leaf))))
+    ]
+    assert not bad, bad[:10]
+
+
+def test_v5_a5_config_validation():
+    config = pi0_config.Pi0Config(
+        **_v5_kwargs(memory_v5_oracle_writes=True, memory_v5_write_delay_steps=1, memory_v5_prefill_history=True)
+    )
+    spec = config.inputs_spec(batch_size=2)[0]
+    assert spec.memory_v5_prefill_tokens.shape == (2, config.memory_v5_prefill_max, config.memory_v5_sentence_len)
+    assert spec.memory_v5_pending_mask.shape == (2, config.memory_v5_sentence_len)
+    with pytest.raises(ValueError, match="memory_v5_prefill_max"):
+        pi0_config.Pi0Config(**_v5_kwargs(memory_v5_prefill_history=True, memory_v5_prefill_max=0))
+    with pytest.raises(ValueError, match="writes sentences exactly"):
+        pi0_config.Pi0Config(
+            **_v5_kwargs(
+                memory_v5_oracle_writes=True,
+                memory_v5_prefill_history=True,
+                memory_v5_bank_waiting_prefix=(9,),
+                memory_v5_bank_waiting_tokens=(9, 1),
+            )
+        )

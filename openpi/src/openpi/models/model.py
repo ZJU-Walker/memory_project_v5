@@ -171,6 +171,15 @@ class Observation(Generic[ArrayT]):
     # Sparse family and stable manifest metadata are scalar per sampled sequence (batched as
     # [batch]).  `seq_memory_cell` is the stable lexicographic ID of
     # (collection, object, target-side) used for episode-first macro losses.
+    # v5 A5 history prefill (cluster_v5/README.md §8): the distinct label sentences committed
+    # before the window's first step [batch, P, L] with their masks and post-commit decay gaps
+    # [batch, P], and the one-step-delayed pending sentence [batch, L]. Absent for every
+    # non-prefill config.
+    memory_v5_prefill_tokens: at.Int[ArrayT, "*sb v5p v5l"] | None = None
+    memory_v5_prefill_mask: at.Bool[ArrayT, "*sb v5p v5l"] | None = None
+    memory_v5_prefill_gaps: at.Int[ArrayT, "*sb v5p"] | None = None
+    memory_v5_pending_tokens: at.Int[ArrayT, "*sb v5l"] | None = None
+    memory_v5_pending_mask: at.Bool[ArrayT, "*sb v5l"] | None = None
     seq_sparse_skip_o: at.Bool[ArrayT, "*sb"] | None = None
     seq_episode_index: at.Int[ArrayT, "*sb"] | None = None
     seq_collection_id: at.Int[ArrayT, "*sb"] | None = None
@@ -225,6 +234,11 @@ class Observation(Generic[ArrayT]):
             seq_read_credit_reachable=data.get("seq_read_credit_reachable"),
             seq_decay_gap_before=data.get("seq_decay_gap_before"),
             seq_use_pressure_mask=data.get("seq_use_pressure_mask"),
+            memory_v5_prefill_tokens=data.get("memory_v5_prefill_tokens"),
+            memory_v5_prefill_mask=data.get("memory_v5_prefill_mask"),
+            memory_v5_prefill_gaps=data.get("memory_v5_prefill_gaps"),
+            memory_v5_pending_tokens=data.get("memory_v5_pending_tokens"),
+            memory_v5_pending_mask=data.get("memory_v5_pending_mask"),
             seq_sparse_skip_o=data.get("seq_sparse_skip_o"),
             seq_episode_index=data.get("seq_episode_index"),
             seq_collection_id=data.get("seq_collection_id"),

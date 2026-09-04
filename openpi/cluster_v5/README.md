@@ -402,3 +402,28 @@ build no fallback.
   fine (the checkpoint copy `/scr/kewalk_v5_ckpt/A4_999` checksums equal to `keep_999`); the policy server there was
   stopped at the user's instruction.
 
+* 2026-09-03 17:45 — **A5/B5 fixes built (user-approved 17:07/17:09), all tests green, B5 launched directly (A skipped).**
+  Three changes, from the A4 self-write analysis (16:50 entry):
+  1. **History prefill** (`memory_v5_prefill_history`, `memory_v5_prefill_max=6`): `MemorySequenceSubtasks` walks the
+     stride/lookahead grid back from the window's first frame and emits the distinct label sentences produced before the
+     window (`memory_v5_prefill`), the analytic-decay gaps after each commit (`memory_v5_prefill_gaps`) and the one-step-
+     delayed pending sentence (`memory_v5_pending`); `TokenizeMemorySubtaskInputs(prefill_len=sentence_len)` tokenizes
+     them exactly like the causal prefix (`FASTSubtaskTokenizer.tokenize_sentence`); `Observation` carries
+     `memory_v5_prefill_{tokens,mask,gaps}` / `memory_v5_pending_{tokens,mask}`; `Pi0._compute_sequence_loss_v32`
+     commits them before the scan (frozen encoder, delta rule, `analytic_decay(gap)` after each commit, key ring and
+     `prev_sentence`/pending carries initialised), telemetry `v5_prefill_sentence_count`. Test
+     `test_v5_a5_prefilled_window_equals_rollout_from_frame_zero`: a window starting at step 2 with the prefilled history
+     reproduces the 3-step rollout's step-2 decision CE to 1e-5 (and differs from the blank-bank tail). Stage B keeps the
+     label history for the prefill.
+  2. **Exact writes**: the A3/A4 waiting-sentence rewrite (`memory_v5_bank_waiting_*`) is NOT set in A5/B5 (config
+     validation forbids it with the prefill) — the bank holds `wait; target bin is <side>` in oracle and self mode alike,
+     as the user asked (no task-specific rewrite; the one-step delay alone keeps the FIRST decision step leak-free).
+  3. **Battery**: `v4_side_flip_eval.py` flips the side words of the prefilled evidence sentences with the window's (a
+     waiting sentence in the history keeps its true side) and the first-step summary EXCLUDES windows whose history
+     already holds a waiting sentence (`excluded_history_decided`) — their "first" decision step reads an earlier decision.
+  B5 (`pi05_yam_mem_v5_stageB5`) = A4 encoder/delay + prefill + own sentences from the start, A-stage init (pi05 base +
+  Stage-4c visual bank through the audited loader, no A checkpoint graft — which also removes the bf16/f32 graft failure
+  of B4). Tests: `pi0_v5_test.py` 19 passed, `scripts/v5_prefill_test.py` 5 passed, transforms/tokenizer 12, config+v4 18.
+  Queue `cluster_v5/queue_b5_hgx2.sh`: smoke → r1 (1000) → keep_999 → videos (self, oracle) → batteries → verdict →
+  placeholder. The useless A4→2999 continuation on the H200 was stopped for it.
+

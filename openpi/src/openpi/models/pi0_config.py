@@ -323,6 +323,17 @@ class Pi0Config(_model.BaseModelConfig):
     # holds what has already happened; within a phase copying is harmless, at a phase change the
     # model must see it. Step 0 of a window has nothing pending and writes nothing.
     memory_v5_write_delay_steps: int = 0
+    # A5 (README §8, 2026-09-03 17:10): every training window starts with the bank PREFILLED
+    # with the distinct label sentences of the steps before it (frozen encoder, delta-rule
+    # commits with the analytic decay between them, then the pending sentence of the delay).
+    # Without it every window started blank wherever it began, which taught "closed lids + home
+    # arms + empty bank => wait; target bin is <guess>" (4/8 held-out self-write rollouts died
+    # at frame 0) and let decision steps in late windows be solved only by scene memorization.
+    # With it an empty bank means "the episode just started", as in a rollout. Stage B keeps
+    # the label history for the prefill (the model's own history does not exist at a window
+    # start). Sentences are written EXACTLY as labelled/decoded (no waiting-sentence rewrite).
+    memory_v5_prefill_history: bool = False
+    memory_v5_prefill_max: int = 6
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -554,6 +565,10 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("memory_v5_bank_waiting_prefix only applies to oracle writes (stage A).")
                     if self.memory_v5_write_delay_steps not in (0, 1):
                         raise ValueError("memory_v5_write_delay_steps must be 0 or 1.")
+                    if self.memory_v5_prefill_history and self.memory_v5_prefill_max < 1:
+                        raise ValueError("memory_v5_prefill_max must be >= 1 with memory_v5_prefill_history.")
+                    if self.memory_v5_prefill_history and self.memory_v5_bank_waiting_prefix:
+                        raise ValueError("memory_v5_prefill_history writes sentences exactly; drop the waiting rewrite.")
                     if self.memory_v5_pooling not in ("mean", "standardized_attention"):
                         raise ValueError("memory_v5_pooling must be 'mean' or 'standardized_attention'.")
                     if self.memory_v5_pooling == "standardized_attention":
@@ -677,6 +692,27 @@ class Pi0Config(_model.BaseModelConfig):
                                 "seq_memory_cell": jax.ShapeDtypeStruct([batch_size], jnp.int32),
                             }
                             if self.memory_v35_enabled
+                            else {}
+                        ),
+                        **(
+                            {
+                                "memory_v5_prefill_tokens": jax.ShapeDtypeStruct(
+                                    [batch_size, self.memory_v5_prefill_max, self.memory_v5_sentence_len], jnp.int32
+                                ),
+                                "memory_v5_prefill_mask": jax.ShapeDtypeStruct(
+                                    [batch_size, self.memory_v5_prefill_max, self.memory_v5_sentence_len], bool
+                                ),
+                                "memory_v5_prefill_gaps": jax.ShapeDtypeStruct(
+                                    [batch_size, self.memory_v5_prefill_max], jnp.int32
+                                ),
+                                "memory_v5_pending_tokens": jax.ShapeDtypeStruct(
+                                    [batch_size, self.memory_v5_sentence_len], jnp.int32
+                                ),
+                                "memory_v5_pending_mask": jax.ShapeDtypeStruct(
+                                    [batch_size, self.memory_v5_sentence_len], bool
+                                ),
+                            }
+                            if getattr(self, "memory_v5_prefill_history", False)
                             else {}
                         ),
                         **(

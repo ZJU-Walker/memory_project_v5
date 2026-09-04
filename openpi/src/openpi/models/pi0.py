@@ -616,6 +616,8 @@ class Pi0(_model.BaseModel):
                     self.memory_v5_bank_waiting_prefix = tuple(config.memory_v5_bank_waiting_prefix)
                     self.memory_v5_bank_waiting_tokens = tuple(config.memory_v5_bank_waiting_tokens)
                     self.memory_v5_write_delay_steps = int(config.memory_v5_write_delay_steps)
+                    self.memory_v5_prefill_history = bool(config.memory_v5_prefill_history)
+                    self.memory_v5_prefill_max = int(config.memory_v5_prefill_max)
                     self.memory_v5_write_conf = config.memory_v5_write_conf
                     self.memory_v5_sentence_len = config.memory_v5_sentence_len
                     self.memory_v5_read_queries = config.memory_v5_read_queries
@@ -5206,21 +5208,76 @@ class Pi0(_model.BaseModel):
             return state, outputs
 
         initial_state = self.memory.init_state(b)
+        v5_prefill_count = jnp.zeros((b,), dtype=jnp.float32)
         if v5_on:
+            sem_init_state = self.memory_semantic.init_state(b)
+            sem_init_written = jnp.zeros((b,), dtype=bool)
+            # Sentinel previous sentence (-1 never equals a token id): step 0 is "changed".
+            init_prev_sentence = jnp.full((b, self.memory_v5_sentence_len), -1, dtype=jnp.int32)
+            init_key_ring = jnp.zeros((b, 8, self.memory_semantic.config.d_key), dtype=jnp.float32)
+            init_ring_count = jnp.zeros((b,), dtype=jnp.int32)
+            # A4 pending (one-step-delayed) sentence: nothing pending at step 0.
+            init_pending_sentence = jnp.zeros((b, self.memory_v5_sentence_len), dtype=jnp.int32)
+            init_pending_span = jnp.zeros((b, self.memory_v5_sentence_len), dtype=bool)
+            init_pending_conf = jnp.zeros((b,), dtype=bool)
+            if getattr(self, "memory_v5_prefill_history", False):
+                # A5 history prefill: commit the distinct label sentences of the steps before
+                # the window in order (frozen encoder, delta rule), collapsing the write-free
+                # steps between commits with the analytic decay, so the bank at the window's
+                # first step is what a rollout from the episode's first frame would hold.
+                # Invalid rows are exact no-ops. Read-side interventions (reset/donor) act at
+                # the decision read as before and are unaffected.
+                if observation.memory_v5_prefill_tokens is None or observation.memory_v5_pending_tokens is None:
+                    raise ValueError("memory_v5_prefill_history needs memory_v5_prefill_*/pending_* observation fields.")
+                prefill_tokens = jnp.asarray(observation.memory_v5_prefill_tokens).astype(jnp.int32)
+                prefill_mask = jnp.asarray(observation.memory_v5_prefill_mask)
+                prefill_gaps = jnp.asarray(observation.memory_v5_prefill_gaps).astype(jnp.int32)
+                sent_len = self.memory_v5_sentence_len
+                ring_size = init_key_ring.shape[1]
+                for p in range(prefill_tokens.shape[1]):
+                    row_mask = prefill_mask[:, p, :sent_len]
+                    row_valid = jnp.any(row_mask, axis=-1)
+                    row_tokens = jnp.where(row_mask, prefill_tokens[:, p, :sent_len], 0)
+                    row_encoded = self.v5_encode_sentence(row_tokens, row_mask)
+                    row_keys, row_values = self.v5_sentence_intent(row_encoded)
+                    written_state, row_aux = self.v5_semantic_write(sem_init_state, row_keys, row_values, row_valid)
+                    gap = jnp.where(row_valid, jnp.maximum(prefill_gaps[:, p], 0), 0)
+                    decayed_state, _ = self.memory_semantic.analytic_decay(written_state, gap)
+                    sem_init_state = jax.tree.map(
+                        lambda new, old: jnp.where(row_valid.reshape((b,) + (1,) * (new.ndim - 1)), new, old),
+                        decayed_state,
+                        sem_init_state,
+                    )
+                    row_commit = row_aux["commit_applied"][:, 0] & row_valid
+                    sem_init_written = sem_init_written | row_commit
+                    ring_slot = jnp.mod(init_ring_count, ring_size)
+                    ring_hit = row_commit[:, None] & (jnp.arange(ring_size)[None, :] == ring_slot[:, None])
+                    init_key_ring = jnp.where(ring_hit[..., None], jax.lax.stop_gradient(row_keys), init_key_ring)
+                    init_ring_count = init_ring_count + row_commit.astype(jnp.int32)
+                    init_prev_sentence = jnp.where(row_valid[:, None], row_tokens, init_prev_sentence)
+                    v5_prefill_count = v5_prefill_count + row_valid.astype(jnp.float32)
+                pending_mask = jnp.asarray(observation.memory_v5_pending_mask)[:, :sent_len]
+                pending_tokens = jnp.where(pending_mask, jnp.asarray(observation.memory_v5_pending_tokens)[:, :sent_len], 0)
+                pending_valid = jnp.any(pending_mask, axis=-1)
+                if getattr(self, "memory_v5_write_delay_steps", 0) == 1:
+                    init_pending_sentence = pending_tokens.astype(jnp.int32)
+                    init_pending_span = pending_mask
+                    init_pending_conf = pending_valid
+                else:
+                    # Undelayed: the last produced sentence is already in the history.
+                    init_prev_sentence = jnp.where(pending_valid[:, None], pending_tokens, init_prev_sentence)
             initial_carry = (
                 initial_state,
-                self.memory_semantic.init_state(b),
+                sem_init_state,
+                sem_init_written,
                 jnp.zeros((b,), dtype=bool),
                 jnp.zeros((b,), dtype=bool),
-                jnp.zeros((b,), dtype=bool),
-                # Sentinel previous sentence (-1 never equals a token id): step 0 is "changed".
-                jnp.full((b, self.memory_v5_sentence_len), -1, dtype=jnp.int32),
-                jnp.zeros((b, 8, self.memory_semantic.config.d_key), dtype=jnp.float32),
-                jnp.zeros((b,), dtype=jnp.int32),
-                # A4 pending (one-step-delayed) sentence: nothing pending at step 0.
-                jnp.zeros((b, self.memory_v5_sentence_len), dtype=jnp.int32),
-                jnp.zeros((b, self.memory_v5_sentence_len), dtype=bool),
-                jnp.zeros((b,), dtype=bool),
+                init_prev_sentence,
+                init_key_ring,
+                init_ring_count,
+                init_pending_sentence,
+                init_pending_span,
+                init_pending_conf,
             )
         elif v4_on:
             initial_carry = (
@@ -5391,6 +5448,8 @@ class Pi0(_model.BaseModel):
                     "v5_exact_decision_sum": jnp.sum(ys["v5_exact_decision"]),
                     "v5_qk_cos_sum": jnp.sum(ys["v5_qk_cos_max"]),
                     "v5_qk_count": jnp.sum(ys["v5_qk_count"]),
+                    # A5: prefilled sentences per window (sum over the batch; 0 without prefill).
+                    "v5_prefill_sentence_count": jnp.sum(v5_prefill_count),
                     # Per-step [T, b] sentence exactness at every valid step, for the batteries.
                     "v5_exact_decision_steps": ys["v5_exact_decision"],
                     "v5_exact_evidence_steps": ys["v5_exact_evidence"],

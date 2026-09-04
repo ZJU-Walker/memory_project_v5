@@ -409,6 +409,41 @@ class MemorySequenceSubtasks(DataTransformFn):
     # keeps the canonical vocabulary because the phase masks and the sparse-skip legality
     # checks key on it. Empty = canonical labels (every v3.x/v4 config).
     episode_sentences: tuple = ()
+    # v5 A5 (cluster_v5/README.md §8, 2026-09-03 17:10) history prefill: the distinct label
+    # sentences of the memory steps BEFORE the window (same stride/lookahead grid walked back
+    # from the window's first frame), with the analytic-decay gaps between their commits, plus the
+    # one-step-delayed pending sentence. The model commits them before the window's first step, so
+    # an empty bank only ever occurs at an episode's first frame -- as in a rollout.
+    prefill_history: bool = False
+    prefill_max: int = 6
+    write_delay_steps: int = 0
+
+    def _history_prefill(self, labels_before: list[str]) -> tuple[list[str], np.ndarray, str]:
+        """`labels_before[j]` = the sentence produced at pre-window step j (j = 0 oldest, the
+        window starts at step K = len(labels_before)). With delay d the sentence produced at step j
+        is committed at step j + d when it differs from the one before; the bank at the window's
+        first step holds the distinct sentences produced at steps 0..K-1-d, and step K-1's sentence
+        (d = 1) is still pending. Returns (sentences, decay gaps after each commit, pending)."""
+        k = len(labels_before)
+        d = int(self.write_delay_steps)
+        history = labels_before[: max(k - d, 0)]
+        pending = labels_before[k - 1] if (d == 1 and k >= 1) else ""
+        sentences: list[str] = []
+        first_steps: list[int] = []
+        for j, sentence in enumerate(history):
+            if j == 0 or sentence != history[j - 1]:
+                sentences.append(sentence)
+                first_steps.append(j)
+        gaps = []
+        for i, a in enumerate(first_steps):
+            nxt = first_steps[i + 1] if i + 1 < len(first_steps) else len(history)
+            gaps.append(nxt - a - 1)
+        # Keep the most recent entries when the history is longer than the buffer (the dropped
+        # ones are the oldest, i.e. the most decayed).
+        sentences, gaps = sentences[-self.prefill_max :], gaps[-self.prefill_max :]
+        pad = self.prefill_max - len(sentences)
+        gap_arr = np.asarray(gaps + [0] * pad, dtype=np.int32)
+        return sentences + [""] * pad, gap_arr, pending
 
     def __call__(self, data: DataDict) -> DataDict:
         episode = int(np.asarray(data["episode_index"]).item())
@@ -433,6 +468,19 @@ class MemorySequenceSubtasks(DataTransformFn):
             "subtask": subtask,
             "subtask_now": [self.tasks[int(ep_tasks[i])] for i in idx_now],
         }
+        if self.prefill_history:
+            n_before = frame // self.stride
+            before_idx = np.minimum(
+                frame - np.arange(n_before, 0, -1) * self.stride + self.lookahead, len(ep_tasks) - 1
+            )
+            if self.episode_sentences:
+                labels_before = [str(ep_sentences[i]) for i in before_idx]
+            else:
+                labels_before = [self.tasks[int(ep_tasks[i])] for i in before_idx]
+            sentences, gaps, pending = self._history_prefill(labels_before)
+            out["memory_v5_prefill"] = sentences
+            out["memory_v5_prefill_gaps"] = gaps
+            out["memory_v5_pending"] = pending
         if self.episode_waiting_valid:
             # Same shift convention as the labels they gate: `subtask_valid` follows the
             # lookahead-shifted CE/aux target, `subtask_now_valid` the observation's own phase.
@@ -1038,6 +1086,9 @@ class TokenizeMemorySubtaskInputs(DataTransformFn):
 
     tokenizer: _tokenizer.FASTSubtaskTokenizer
     causal_len: int
+    # v5 A5 history prefill: width of the tokenized prefill/pending sentence rows
+    # (Pi0Config.memory_v5_sentence_len). 0 = the transform never emits prefill fields.
+    prefill_len: int = 0
 
     def __call__(self, data: DataDict) -> DataDict:
         if (prompt := data.pop("prompt", None)) is None:
@@ -1045,6 +1096,22 @@ class TokenizeMemorySubtaskInputs(DataTransformFn):
         if not isinstance(prompt, str):
             prompt = prompt.item()
         subtask = data.pop("subtask", None)
+        prefill = data.pop("memory_v5_prefill", None)
+        prefill_gaps = data.pop("memory_v5_prefill_gaps", None)
+        pending = data.pop("memory_v5_pending", None)
+        if prefill is not None:
+            if self.prefill_len <= 0:
+                raise ValueError("memory_v5_prefill present but the tokenizer transform has prefill_len=0.")
+            rows = [self.tokenizer.tokenize_sentence(str(text), self.prefill_len) for text in prefill]
+            data = {
+                **data,
+                "memory_v5_prefill_tokens": np.stack([r[0] for r in rows]),
+                "memory_v5_prefill_mask": np.stack([r[1] for r in rows]),
+                "memory_v5_prefill_gaps": np.asarray(prefill_gaps, dtype=np.int32),
+            }
+            pending_tokens, pending_mask = self.tokenizer.tokenize_sentence(str(pending or ""), self.prefill_len)
+            data["memory_v5_pending_tokens"] = pending_tokens
+            data["memory_v5_pending_mask"] = pending_mask
 
         state = data["state"]
         if subtask is None:

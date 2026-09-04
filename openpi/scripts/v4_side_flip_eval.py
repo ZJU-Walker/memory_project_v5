@@ -48,6 +48,36 @@ RIGHT_TOKEN = 1833
 WAIT_TOKEN = 9532  # first token of the v5 waiting label "wait; target bin is <side>"
 
 
+def swap_side_tokens_in_sentences(tokens: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """A5 history prefill: swap the side word in every prefilled/pending sentence row that is NOT a
+    waiting sentence (first token != WAIT_TOKEN). Rows are [..., L]; waiting rows keep the true side
+    because the 'flip' condition flips only the non-decision (evidence) content."""
+    tokens = np.asarray(tokens)
+    mask = np.asarray(mask)
+    row_scope = mask[..., 0] & (tokens[..., 0] != WAIT_TOKEN)
+    text = mask & row_scope[..., None]
+    swapped = tokens.copy()
+    swapped[text & (tokens == LEFT_TOKEN)] = RIGHT_TOKEN
+    swapped[text & (tokens == RIGHT_TOKEN)] = LEFT_TOKEN
+    return swapped
+
+
+def prefill_holds_waiting_sentence(observation) -> np.ndarray | None:
+    """[b] True when the window's prefilled/pending history already contains a waiting sentence,
+    i.e. its first decision step is NOT the episode's first (the bank holds an earlier decision).
+    None for observations without the A5 prefill fields."""
+    if getattr(observation, "memory_v5_prefill_tokens", None) is None:
+        return None
+    tokens = np.asarray(observation.memory_v5_prefill_tokens)
+    mask = np.asarray(observation.memory_v5_prefill_mask)
+    held = np.any(mask[..., 0] & (tokens[..., 0] == WAIT_TOKEN), axis=-1)
+    if getattr(observation, "memory_v5_pending_tokens", None) is not None:
+        p_tokens = np.asarray(observation.memory_v5_pending_tokens)
+        p_mask = np.asarray(observation.memory_v5_pending_mask)
+        held = held | (p_mask[..., 0] & (p_tokens[..., 0] == WAIT_TOKEN))
+    return held
+
+
 def swap_side_tokens(
     causal: np.ndarray, causal_mask: np.ndarray, fast_mask: np.ndarray, step_scope: np.ndarray | None = None
 ) -> np.ndarray:
@@ -72,7 +102,12 @@ def summarize(records: list[dict], *, first_step_only: bool = False) -> dict:
     ``first_step_only`` restricts to each sequence's first decision step (one term per
     sequence, the battery's original unit); otherwise every decision step counts."""
     if first_step_only:
+        # A5: a window whose prefilled history already holds a waiting sentence does not start
+        # its decision phase here; its "first" decision step reads an earlier decision and is
+        # excluded from the first-step statistic (reported as `excluded_history_decided`).
         records = [r for r in records if r["decision_order"] == 0]
+        history_decided = [r for r in records if r.get("history_decided", False)]
+        records = [r for r in records if not r.get("history_decided", False)]
     valid = [r for r in records if r["included"]]
     out = {
         "decision_steps": len(records),
@@ -80,6 +115,8 @@ def summarize(records: list[dict], *, first_step_only: bool = False) -> dict:
         "included": len(valid),
         "excluded_no_side_token": len(records) - len(valid),
     }
+    if first_step_only:
+        out["excluded_history_decided"] = len(history_decided)
     if not valid:
         return out
     for cond in CONDITIONS:
@@ -236,10 +273,23 @@ def main(argv=None) -> None:
             swapped_causal = swap_side_tokens(causal, causal_mask, fast_mask, step_scope=decision_target)
             flip_causal = swap_side_tokens(causal, causal_mask, fast_mask, step_scope=~decision_target)
             flip_swapped_causal = swap_side_tokens(flip_causal, causal_mask, fast_mask, step_scope=decision_target)
-            flip_observation = observation.replace(tokenized_causal=jax.numpy.asarray(flip_causal))
-            flip_swapped_observation = observation.replace(tokenized_causal=jax.numpy.asarray(flip_swapped_causal))
+            flip_fields = {}
+            if getattr(observation, "memory_v5_prefill_tokens", None) is not None:
+                # A5: the prefilled history is bank content too -- flip its evidence sentences with
+                # the window's, keep any waiting sentence (a decision) at the truth.
+                flip_fields["memory_v5_prefill_tokens"] = jax.numpy.asarray(
+                    swap_side_tokens_in_sentences(observation.memory_v5_prefill_tokens, observation.memory_v5_prefill_mask)
+                )
+                flip_fields["memory_v5_pending_tokens"] = jax.numpy.asarray(
+                    swap_side_tokens_in_sentences(observation.memory_v5_pending_tokens, observation.memory_v5_pending_mask)
+                )
+            flip_observation = observation.replace(tokenized_causal=jax.numpy.asarray(flip_causal), **flip_fields)
+            flip_swapped_observation = observation.replace(
+                tokenized_causal=jax.numpy.asarray(flip_swapped_causal), **flip_fields
+            )
         else:
             swapped_causal = swap_side_tokens(causal, causal_mask, fast_mask)
+        history_decided = prefill_holds_waiting_sentence(observation)
         swapped_observation = observation.replace(tokenized_causal=jax.numpy.asarray(swapped_causal))
         step_rng = jax.random.fold_in(rng, index)
         ce = {}
@@ -282,6 +332,8 @@ def main(argv=None) -> None:
                     "decision_tokens": int(token_count[b, t]),
                     "has_side_token": bool(has_side[b, t]),
                     "included": included,
+                    # A5: the prefilled history already held a waiting sentence (see summarize).
+                    "history_decided": bool(history_decided[b]) if history_decided is not None else False,
                 }
                 for cond in conditions:
                     # mean-token CE difference x token count = log p(true) - log p(swapped)
