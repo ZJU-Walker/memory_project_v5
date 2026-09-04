@@ -8,8 +8,13 @@ cv5=/iris/u/kewalk/memory_project_v5/openpi/cluster_v5
 ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
 bcfg=pi05_yam_mem_v5_stageB6a; bexp=v5_stageB6a_20260903_r1; bsmoke=v5_stageB6a_20260903_smoke
 log=$diag/queue_a6_hgx1.log
-until grep -qE "A6 failed the bar|B6a smoke|A6 (smoke|r1) failed" $log 2>/dev/null; do sleep 60; done
-if ! grep -q "A6 failed the bar" $log; then echo "B6a regardless: not needed ($(date '+%m/%d %H:%M'))" >> $log; exit 0; fi
+# Anchor on the ckpt-499 verdict line of the CURRENT run (earlier failed smoke attempts also live in this log).
+until grep -qE "A6 ckpt-499 verdict|A6 r1 (exit=[1-9]|failed)" $log 2>/dev/null; do sleep 60; done
+if ! grep -q "A6 failed the bar" $log; then
+  # PASS: the chain itself runs B6a; wait for its smoke line to confirm, then leave.
+  until grep -q "B6a smoke" $log; do sleep 60; done
+  echo "B6a regardless: not needed ($(date '+%m/%d %H:%M'))" >> $log; exit 0
+fi
 while pgrep -f "v4_side_flip_eva[l]|v4_stage2_eva[l]" >/dev/null; do sleep 15; done
 echo "B6a regardless of the A6 verdict (user rule) $(date '+%m/%d %H:%M')" >> $log
 bash $cv5/run_train_h200.sh $bcfg $bsmoke --num-train-steps 20 --save-interval 10 --keep-period 10
