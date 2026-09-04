@@ -40,16 +40,19 @@ while true; do
     [ -n "$ph" ] && { kill $ph 2>/dev/null; echo "$(date '+%m/%d %H:%M') training present: killed 4-GPU-job placeholders $ph" >> $LOGDIR/sentinel_hgx1.log; }
   else
     for g in 1 2 3; do launch 17178887 $g 4 64; done
-    if ! pgrep -f "v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_probe_[a-z_]*\.py|v5_probe_query_drif[t]" >/dev/null; then
+    if ! pgrep -f "v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py|v5_probe_query_drif[t]" >/dev/null; then
       launch 17178887 0 4 64
     fi
   fi
-  # The robot policy server (or its serving smoke) runs in the 1-GPU job: free that GPU for it.
-  if pgrep -f "serve_yam_memor[y].py|v5_serve_smok[e].py|serve_v5_hgx[1].sh|run_serve_smoke_hgx[1].sh" >/dev/null; then
-    ph=$(pgrep -f "gpu_placeholder_marker_17192955_g0" || true)
-    [ -n "$ph" ] && { kill $ph 2>/dev/null; echo "$(date '+%m/%d %H:%M') policy server present: killed 1-GPU-job placeholder $ph" >> $LOGDIR/sentinel_hgx1.log; }
-  elif ! pgrep -f "srun --jobid=17192955" >/dev/null || pgrep -f "gpu_placeholder_marker_17192955_g0" >/dev/null; then
-    launch 17192955 0 1 52
+  # 2026-09-04 15:58 (user: the 2xH100 job 17267129 was "also placeholder training", ours to use): GPU 1 always
+  # holds a busy placeholder; GPU 0 only while no eval python runs (the beans evaluations take GPU 0). The job's
+  # batch payload is the user's 1 GB keep-alive (train_hs.sh) and is never touched. The 1-GPU serving job 17192955
+  # is gone.
+  if ! pgrep -f "train.py pi05_yam_mem_v[4]" >/dev/null; then  # only once the v4 step there is gone
+    if ! pgrep -f "v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null; then
+      launch 17267129 0 2 64
+    fi
+    launch 17267129 1 2 64
   fi
   sleep 60
 done

@@ -591,3 +591,13 @@ build no fallback.
   while the sentinel names its per-GPU placeholders `..._<job>_g<k>` — the kill pattern is now the marker prefix
   (commit 490fa31). Also: `pkill`/`kill $(pgrep -f X)` inside an ssh command whose text contains X kills that shell
   (bracket-trick patterns only). Client: `client_memory_v5.py` accepts the beans prompt (`--steps-between-inference 5`).
+  16:07 — **Cluster reshuffle.** The serving job 17192955 and the H200 jobs 17207774/17248791 ended (the robot server is
+  down; restart it when a GPU is assigned). Stopping the user's "placeholder training" on the H200 job 17267134 ended
+  that job (it was the batch payload) — lesson: only stop srun STEPS, never a job's payload. The user resubmitted the
+  H200 as job 17267793 (iris-hgx-2; payload = 1 GB keep-alive, never touched): our busy placeholder holds it and
+  `cluster_v5/evals_beans_waiter.sh` (armed 16:01) evaluates beans-A/B keep_499 there as they appear. The 2xH100 job
+  17267129 (iris-hgx-1) was reassigned to us by the user (its v4 Stage 4e r2 step stopped 16:04 at the user's
+  instruction; the v4 session informed); the sentinel now holds both of its GPUs (GPU 0 free while an eval runs).
+  Train chain re-armed as `queue_beans3_hgx1.sh` (A exit → B smoke → B r1 → keep_499 → continuation; no evals in the
+  chain). beans-A r1: step 33 at 16:07, 16.7 s/update → A ends ≈18:15, B r1 ≈20:40, continuation until the job's
+  22:46 limit. Note `run_beans_evals_hgx1.sh` (GPU 0 of a hgx-1 job, `GRES=`) exists for the 2xH100 job as a fallback.
