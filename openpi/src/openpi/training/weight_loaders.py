@@ -107,13 +107,13 @@ class AuditedPartialCheckpointWeightLoader(PartialCheckpointWeightLoader):
         _validate_allowlist_configuration(self)
         if self.manifest_output_path is None:
             raise AuditedGraftError("audited partial loading requires manifest_output_path")
-        restored_path = download.maybe_download(self.params_path)
         cast_dtype = None
         if self.source_cast_dtype is not None:
             cast_dtype = np.dtype(jax.numpy.dtype(self.source_cast_dtype))
             if cast_dtype != np.dtype(jax.numpy.float32):
                 raise AuditedGraftError(f"source_cast_dtype must be float32 (lossless widening), got {self.source_cast_dtype!r}")
             logger.info("Audited partial initialization: restoring %s as %s", self.params_path, cast_dtype)
+        restored_path = download.maybe_download(self.params_path)
         source_params = _model.restore_params(restored_path, restore_type=np.ndarray, dtype=cast_dtype)
         if cast_dtype is not None:
             narrowed = [
