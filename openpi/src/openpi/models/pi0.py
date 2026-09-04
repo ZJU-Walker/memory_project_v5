@@ -3819,6 +3819,9 @@ class Pi0(_model.BaseModel):
         v35_anchor_key: at.Float[at.Array, "b dk"] | None,
         v35_anchor_value: at.Float[at.Array, "b dv"] | None,
         v35_anchor_delay_steps: int | at.Int[at.Array, " b"] | None,
+        semantic_state: _memory.MemoryState | None = None,
+        v5_prev_tokens: at.Int[at.Array, "b s"] | None = None,
+        v5_prev_mask: at.Bool[at.Array, "b s"] | None = None,
     ) -> tuple[_model.Actions, _memory.MemoryState, dict[str, at.Array]]:
         """v3.2 inference: layer-8 dual-query read/write with 16 persistent memory tokens.
 
@@ -3862,6 +3865,9 @@ class Pi0(_model.BaseModel):
             state_token_mask=preprocessed.token_state_mask,
             v35_oracle_direction=v35_oracle_direction,
             v35_oracle_injected_rms=v35_oracle_injected_rms,
+            semantic_state=semantic_state,
+            v5_prev_tokens=v5_prev_tokens,
+            v5_prev_mask=v5_prev_mask,
         )
         kv_cache = prepared["cache"]
         final_prefix = prepared["final_prefix"]
@@ -3989,25 +3995,31 @@ class Pi0(_model.BaseModel):
             )
 
         def greedy(hidden_vec):
-            logits = self.PaliGemma.llm(hidden_vec[:, None], method="decode")[:, 0]
-            return jnp.argmax(logits, axis=-1).astype(preprocessed.tokenized_prompt.dtype)
+            logits = self.PaliGemma.llm(hidden_vec[:, None], method="decode")[:, 0].astype(jnp.float32)
+            token = jnp.argmax(logits, axis=-1)
+            prob = jnp.take_along_axis(jax.nn.softmax(logits, axis=-1), token[:, None], axis=-1)[:, 0]
+            return token.astype(preprocessed.tokenized_prompt.dtype), prob
 
-        token0 = greedy(self._v32_causal_seed(final_prefix, prefix_mask)[:, 0])
+        token0, prob0 = greedy(self._v32_causal_seed(final_prefix, prefix_mask)[:, 0])
         gen_tokens = jnp.zeros((batch, self.causal_token_len), dtype=preprocessed.tokenized_prompt.dtype)
         gen_mask = jnp.zeros((batch, self.causal_token_len), dtype=bool)
+        gen_prob = jnp.zeros((batch, self.causal_token_len), dtype=jnp.float32)
 
-        def record(tokens, mask, done, token, index):
+        def record(tokens, mask, probs, done, token, prob, index):
             tokens = tokens.at[:, index].set(jnp.where(done, tokens[:, index], token))
+            probs = probs.at[:, index].set(jnp.where(done, probs[:, index], prob))
             mask = mask.at[:, index].set(~done)
-            return tokens, mask, done | (token == stop_token) | (token == PALIGEMMA_EOS_TOKEN)
+            return tokens, mask, probs, done | (token == stop_token) | (token == PALIGEMMA_EOS_TOKEN)
 
-        gen_tokens, gen_mask, done = record(gen_tokens, gen_mask, jnp.zeros(batch, dtype=bool), token0, 0)
+        gen_tokens, gen_mask, gen_prob, done = record(
+            gen_tokens, gen_mask, gen_prob, jnp.zeros(batch, dtype=bool), token0, prob0, 0
+        )
 
         def decode_cond(carry):
-            return (carry[-1] < max_decode_steps) & ~jnp.all(carry[2])
+            return (carry[-1] < max_decode_steps) & ~jnp.all(carry[3])
 
         def decode_step(carry):
-            tokens, mask, done, previous, cache, index = carry
+            tokens, mask, probs, done, previous, cache, index = carry
             token_emb = self.PaliGemma.llm(previous[:, None], method="embed")
             (out, _), cache = self.PaliGemma.llm(
                 [token_emb, None],
@@ -4016,12 +4028,14 @@ class Pi0(_model.BaseModel):
                 kv_cache=cache,
                 cache_position=gen_base + index - 1,
             )
-            token = greedy(out[:, 0])
-            tokens, mask, done = record(tokens, mask, done, token, index)
-            return tokens, mask, done, token, cache, index + 1
+            token, prob = greedy(out[:, 0])
+            tokens, mask, probs, done = record(tokens, mask, probs, done, token, prob, index)
+            return tokens, mask, probs, done, token, cache, index + 1
 
-        carry = (gen_tokens, gen_mask, done, token0, kv_cache, jnp.asarray(1, dtype=jnp.int32))
-        gen_tokens, gen_mask, _, previous, kv_cache, generated = jax.lax.while_loop(decode_cond, decode_step, carry)
+        carry = (gen_tokens, gen_mask, gen_prob, done, token0, kv_cache, jnp.asarray(1, dtype=jnp.int32))
+        gen_tokens, gen_mask, gen_prob, _, previous, kv_cache, generated = jax.lax.while_loop(
+            decode_cond, decode_step, carry
+        )
         last_emb = self.PaliGemma.llm(previous[:, None], method="embed")
         _, kv_cache = self.PaliGemma.llm(
             [last_emb, None],
@@ -4059,7 +4073,10 @@ class Pi0(_model.BaseModel):
             return carry[1] >= -dt / 2
 
         actions, _ = jax.lax.while_loop(keep_denoising, denoise, (noise, 1.0))
-        return finish(actions, gen_tokens, gen_mask)
+        extra = {"token_prob": gen_prob}
+        if semantic_state is not None and "sem_queries" in prepared:
+            extra["sem_queries"] = prepared["sem_queries"]
+        return finish(actions, gen_tokens, gen_mask, extra=extra)
 
     def sample_with_memory(
         self,
@@ -4084,8 +4101,19 @@ class Pi0(_model.BaseModel):
         v35_anchor_key: at.Float[at.Array, "b dk"] | None = None,
         v35_anchor_value: at.Float[at.Array, "b dv"] | None = None,
         v35_anchor_delay_steps: int | at.Int[at.Array, " b"] | None = None,
+        semantic_state: _memory.MemoryState | None = None,
+        v5_prev_tokens: at.Int[at.Array, "b s"] | None = None,
+        v5_prev_mask: at.Bool[at.Array, "b s"] | None = None,
     ) -> tuple[_model.Actions, _memory.MemoryState, dict[str, at.Array]]:
         """Memory-conditioned fused inference: one prefill + an incremental memory append.
+
+        v5 sentence-bank models (cluster_v5/README.md) additionally take ``semantic_state`` (the
+        semantic fast-weight bank, threaded by the caller) and, for the A6 query conditioning,
+        the previous decoded sentence ``v5_prev_tokens``/``v5_prev_mask``. The semantic bank is
+        READ here and never written: the caller applies the sentence write rule (one-step delay,
+        changed-and-confident) with `v5_encode_sentence`/`v5_sentence_intent`/`v5_semantic_write`
+        exactly as `scripts/v5_heldout_video.py` and the policy server do; `aux["token_prob"]`
+        carries the per-token argmax probabilities the confidence gate needs.
 
         Static layout: [images 0..num_img | context text (positions unchanged) | memory tokens |
         generated subtask | action suffix]. The prefill is identical to the baseline path and
@@ -4124,11 +4152,16 @@ class Pi0(_model.BaseModel):
         """
         assert self.predict_with_memory, "the model was not built with predict_with_memory"
         if getattr(self, "memory_v4_dual_bank", False):
-            # Dual-bank inference (per-bank state threading, reset/donor-swap controls) lands
-            # with Stage 2. Until then, the trainable path is _compute_sequence_loss_v32 and
-            # the Stage-1 battery uses v4_fact_probe_step; failing here beats silently
-            # sampling with an absent semantic bank.
-            raise NotImplementedError("sample_with_memory does not support memory_v4_dual_bank yet (V4_PLAN.md §5).")
+            if not getattr(self, "memory_v5_sentence_bank", False):
+                # v4 fact-head dual-bank inference never landed on this branch; failing here
+                # beats silently sampling with an absent semantic bank.
+                raise NotImplementedError("sample_with_memory supports the v5 sentence bank only on this branch.")
+            if semantic_state is None:
+                raise ValueError(
+                    "v5 sentence-bank models require `semantic_state` (start from memory_semantic.init_state(batch))."
+                )
+        elif semantic_state is not None or v5_prev_tokens is not None:
+            raise ValueError("semantic_state / v5_prev_* were provided but this model has no semantic bank.")
         assert max_decode_steps <= self.causal_token_len
         if write_mode is None:
             write_mode = "normal" if allow_write else "frozen"
@@ -4155,6 +4188,9 @@ class Pi0(_model.BaseModel):
                 v35_anchor_key=v35_anchor_key,
                 v35_anchor_value=v35_anchor_value,
                 v35_anchor_delay_steps=v35_anchor_delay_steps,
+                semantic_state=semantic_state,
+                v5_prev_tokens=v5_prev_tokens,
+                v5_prev_mask=v5_prev_mask,
             )
         if any(
             value is not None

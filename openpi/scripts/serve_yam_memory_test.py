@@ -146,6 +146,7 @@ def test_server_metadata_exposes_v31_config_and_write_source() -> None:
         "rtc_max_delay": 6,
         "rtc_delay_semantics": "inclusive_max",
         "memory_stride_frames": 10,
+            "memory_v5_sentence_bank": False,
         "custom": "kept",
     }
 
@@ -257,3 +258,88 @@ def test_prepare_action_prefix_requires_rtc_enabled_checkpoint() -> None:
             {"observation/state": np.asarray([2.0, 4.0], dtype=np.float32)},
             _prefix(),
         )
+
+
+# ---------------------------------------------------------------------------------------------
+# v5 sentence bank (cluster_v5/README.md §5): the server-side write rule mirrors the training scan.
+
+
+class _FakeV5Write:
+    def __init__(self):
+        self.calls: list[tuple[list[int], bool]] = []
+
+    def __call__(self, tokens, mask, state, commit):
+        commit = bool(np.asarray(commit).reshape(-1)[0])
+        self.calls.append((tokens[0][mask[0]].tolist(), commit))
+        # state = number of commits so far; a non-commit step is a decay (no change here)
+        return (state + 1 if commit else state), np.asarray([commit])
+
+
+def _v5_memory(delay: int = 1) -> tuple[serve_yam_memory.V5SentenceMemory, _FakeV5Write]:
+    write = _FakeV5Write()
+    memory = serve_yam_memory.V5SentenceMemory(
+        init_state=lambda: 0,
+        write_fn=write,
+        sentence_len=6,
+        write_conf=0.9,
+        delay_steps=delay,
+        decode_text=lambda ids: " ".join(str(i) for i in ids),
+    )
+    return memory, write
+
+
+def _span(ids: list[int], conf: float, width: int = 8):
+    tokens = np.zeros((width,), dtype=np.int32)
+    mask = np.zeros((width,), dtype=bool)
+    probs = np.zeros((width,), dtype=np.float32)
+    tokens[: len(ids)] = ids
+    mask[: len(ids)] = True
+    probs[: len(ids)] = conf
+    return tokens, mask, probs
+
+
+def test_v5_sentence_memory_applies_the_delayed_changed_and_confident_rule() -> None:
+    memory, write = _v5_memory(delay=1)
+    produced = [([5, 6], 0.95), ([5, 6], 0.95), ([7, 8], 0.95), ([7, 8], 0.5), ([9, 8], 0.99), ([3, 3], 0.2)]
+    results = [memory.step(*_span(ids, conf)) for ids, conf in produced]
+    # Step t writes the sentence decoded at t-1 iff it changed and was confident: commits at the
+    # 2nd (open), 4th (inspect) and 6th (wait) calls only; the unconfident [3,3] is never written.
+    assert [r["committed"] for r in results] == [False, True, False, True, False, True]
+    assert [r["changed"] for r in results] == [False, True, False, True, False, True]
+    assert memory.bank == ["5 6", "7 8", "9 8"] and memory.commits == 3 and memory.state == 3
+    assert results[0]["sentence"] == "5 6" and results[3]["confidence"] == pytest.approx(0.5)
+    # Every step calls the write function (commit or decay), with the DELAYED sentence.
+    assert [c for _, c in write.calls] == [False, True, False, True, False, True]
+    assert write.calls[1][0] == [5, 6] and write.calls[5][0] == [9, 8]
+    # The read queries condition on the last decoded sentence (the pending one).
+    prev_tokens, prev_mask = memory.query_prev
+    assert prev_tokens[0][prev_mask[0]].tolist() == [3, 3]
+    memory.reset()
+    assert memory.bank == [] and memory.commits == 0 and memory.state == 0 and not memory.query_prev[1].any()
+
+
+def test_v5_sentence_memory_without_delay_writes_the_current_sentence() -> None:
+    memory, write = _v5_memory(delay=0)
+    first = memory.step(*_span([5, 6], 0.95))
+    second = memory.step(*_span([5, 6], 0.95))
+    third = memory.step(*_span([7, 8], 0.95))
+    assert [first["committed"], second["committed"], third["committed"]] == [True, False, True]
+    assert write.calls[0][0] == [5, 6] and write.calls[2][0] == [7, 8]
+    assert memory.bank == ["5 6", "7 8"]
+
+
+def test_server_metadata_exposes_the_v5_sentence_bank() -> None:
+    train_config = types.SimpleNamespace(
+        name="pi05_yam_mem_v5_stageB5a",
+        policy_metadata=None,
+        model=types.SimpleNamespace(
+            memory_architecture="v32_layer8_dual_query",
+            memory_write_source="raw_hidden",
+            memory_query_tokens=8,
+            action_horizon=15,
+            memory_v5_sentence_bank=True,
+        ),
+    )
+    data_config = types.SimpleNamespace(memory_stride_frames=15)
+    metadata = serve_yam_memory._build_server_metadata(train_config, data_config, simulated_delay=None)
+    assert metadata["memory_v5_sentence_bank"] is True and metadata["memory_stride_frames"] == 15

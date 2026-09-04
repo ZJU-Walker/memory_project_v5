@@ -28,6 +28,7 @@ import threading
 import time
 from typing import Any
 
+import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -76,9 +77,79 @@ def _build_server_metadata(train_config: Any, data_config: Any, *, simulated_del
             "rtc_max_delay": simulated_delay,
             "rtc_delay_semantics": "inclusive_max",
             "memory_stride_frames": int(data_config.memory_stride_frames),
+            "memory_v5_sentence_bank": bool(getattr(train_config.model, "memory_v5_sentence_bank", False)),
         }
     )
     return metadata
+
+
+class V5SentenceMemory:
+    """Per-episode carry of the v5 SENTENCE bank at inference (cluster_v5/README.md §5).
+
+    Mirrors the training scan exactly: the sentence WRITTEN at a step is the one decoded at the
+    previous step (one-step delay, A4), it is committed only when it differs from the sentence
+    before it and was decoded with mean token probability >= write_conf; every other valid step
+    is one analytic decay of the bank. The pending (last decoded) sentence is also what the A6
+    read queries condition on. `write_fn(tokens[1, L], mask[1, L], state, commit[1]) -> (state,
+    applied[1])` must apply the commit or the decay, like `Pi0.v5_semantic_write`."""
+
+    def __init__(self, *, init_state, write_fn, sentence_len: int, write_conf: float, delay_steps: int, decode_text):
+        self._init_state = init_state
+        self._write = write_fn
+        self._len = int(sentence_len)
+        self._conf = float(write_conf)
+        self._delay = int(delay_steps)
+        self._decode_text = decode_text
+        self.reset()
+
+    def reset(self) -> None:
+        self.state = self._init_state()
+        self.prev_tokens = np.zeros((1, self._len), dtype=np.int32)
+        self.pending_tokens = np.zeros((1, self._len), dtype=np.int32)
+        self.pending_mask = np.zeros((1, self._len), dtype=bool)
+        self.pending_conf = False
+        self.bank: list[str] = []
+        self.commits = 0
+        self.steps = 0
+
+    @property
+    def query_prev(self) -> tuple[np.ndarray, np.ndarray]:
+        """The last decoded sentence (what the A6 read queries condition on)."""
+        return self.pending_tokens, self.pending_mask
+
+    def step(self, tokens: np.ndarray, mask: np.ndarray, probs: np.ndarray) -> dict:
+        """Apply one memory step with this step's decoded span (1-D arrays over the causal buffer)."""
+        n = min(self._len, int(np.asarray(tokens).shape[0]))
+        produced_tokens = np.zeros((1, self._len), dtype=np.int32)
+        produced_mask = np.zeros((1, self._len), dtype=bool)
+        produced_mask[0, :n] = np.asarray(mask, dtype=bool)[:n]
+        produced_tokens[0, :n] = np.where(produced_mask[0, :n], np.asarray(tokens)[:n], 0)
+        confidence = float(np.mean(np.asarray(probs)[np.asarray(mask, dtype=bool)])) if np.any(mask) else 0.0
+        produced_conf = confidence >= self._conf
+        if self._delay == 1:
+            cur_tokens, cur_mask, cur_conf = self.pending_tokens, self.pending_mask, self.pending_conf
+        else:
+            cur_tokens, cur_mask, cur_conf = produced_tokens, produced_mask, produced_conf
+        has_span = bool(np.any(cur_mask))
+        changed = has_span and bool(np.any(cur_tokens != self.prev_tokens))
+        commit = changed and bool(cur_conf)
+        self.state, applied = self._write(cur_tokens, cur_mask, self.state, np.asarray([commit]))
+        applied = bool(np.asarray(applied).reshape(-1)[0])
+        self.prev_tokens = cur_tokens
+        if self._delay == 1:
+            self.pending_tokens, self.pending_mask, self.pending_conf = produced_tokens, produced_mask, produced_conf
+        if applied:
+            self.bank.append(self._decode_text(cur_tokens[0][cur_mask[0]].tolist()))
+            self.commits += 1
+        self.steps += 1
+        return {
+            "sentence": self._decode_text(produced_tokens[0][produced_mask[0]].tolist()),
+            "confidence": confidence,
+            "changed": changed,
+            "committed": applied,
+            "bank": list(self.bank),
+            "writes": self.commits,
+        }
 
 
 class MemoryPolicy(_policy.Policy):
@@ -109,12 +180,40 @@ class MemoryPolicy(_policy.Policy):
         self._raw_action_dim = raw_action_dim
         self._simulated_delay = simulated_delay
         self._sample = nnx_utils.module_jit(
-            model.sample_with_memory, static_argnames=("stop_token", "max_decode_steps")
+            model.sample_with_memory, static_argnames=("stop_token", "max_decode_steps", "write_mode")
         )
         self._init_state = lambda: model.memory.init_state(1)
         self._lock = threading.Lock()
         self._memory_state = self._init_state()
         self._writes = 0
+        # v5 sentence bank (cluster_v5/README.md): the semantic bank is read by sample_with_memory
+        # and written here with the training write rule; the visual bank is frozen (its
+        # injection is off in every v5 stage >= A4).
+        self._v5: V5SentenceMemory | None = None
+        if getattr(model, "memory_v5_sentence_bank", False):
+
+            @nnx.jit
+            def _v5_write(model, tokens, mask, state, commit):
+                encoded = model.v5_encode_sentence(tokens, mask)
+                keys, values = model.v5_sentence_intent(encoded)
+                new_state, aux = model.v5_semantic_write(state, keys, values, commit)
+                return new_state, aux["commit_applied"][:, 0]
+
+            def write_fn(tokens, mask, state, commit):
+                new_state, applied = _v5_write(
+                    model, jnp.asarray(tokens, dtype=jnp.int32), jnp.asarray(mask), state, jnp.asarray(commit)
+                )
+                jax.block_until_ready(new_state)
+                return new_state, np.asarray(applied)
+
+            self._v5 = V5SentenceMemory(
+                init_state=lambda: model.memory_semantic.init_state(1),
+                write_fn=write_fn,
+                sentence_len=int(model.memory_v5_sentence_len),
+                write_conf=float(model.memory_v5_write_conf),
+                delay_steps=int(getattr(model, "memory_v5_write_delay_steps", 0)),
+                decode_text=lambda ids: decode_tokenizer.decode(ids).strip(),
+            )
 
     @staticmethod
     def _integer_scalar(value: Any, *, name: str) -> int:
@@ -189,6 +288,8 @@ class MemoryPolicy(_policy.Policy):
             with self._lock:
                 self._memory_state = self._init_state()
                 self._writes = 0
+                if self._v5 is not None:
+                    self._v5.reset()
             logging.info("memory reset")
             if "observation/image" not in inputs:  # bare reset ping
                 return {"reset": True, "writes": 0}
@@ -202,6 +303,15 @@ class MemoryPolicy(_policy.Policy):
         start_time = time.monotonic()
         with self._lock:
             self._rng, sample_rng = jax.random.split(self._rng)
+            v5_kwargs = {}
+            if self._v5 is not None:
+                prev_tokens, prev_mask = self._v5.query_prev
+                v5_kwargs = {
+                    "semantic_state": self._v5.state,
+                    "v5_prev_tokens": jnp.asarray(prev_tokens, dtype=jnp.int32),
+                    "v5_prev_mask": jnp.asarray(prev_mask),
+                    "write_mode": "frozen",
+                }
             actions, new_state, aux = self._sample(
                 sample_rng,
                 observation,
@@ -209,24 +319,38 @@ class MemoryPolicy(_policy.Policy):
                 stop_token=self._stop_token,
                 max_decode_steps=self._max_decode_steps,
                 action_prefix=action_prefix,
+                **v5_kwargs,
             )
             jax.block_until_ready(new_state)
             self._memory_state = new_state
-            self._writes += 1
-            writes = self._writes
+            tokens = np.asarray(aux["tokens"])[0]
+            mask = np.asarray(aux["token_mask"])[0]
+            v5_info = None
+            if self._v5 is not None:
+                v5_info = self._v5.step(tokens, mask, np.asarray(aux["token_prob"])[0])
+                writes = v5_info["writes"]
+            else:
+                self._writes += 1
+                writes = self._writes
         model_time = time.monotonic() - start_time
 
-        tokens = np.asarray(aux["tokens"])[0]
-        mask = np.asarray(aux["token_mask"])[0]
         subtask = self._decode_tokenizer.decode(tokens[mask].tolist()).strip()
 
         outputs = {"state": inputs["state"], "actions": actions}
         outputs = jax.tree.map(lambda x: np.asarray(x[0, ...]), outputs)
         outputs = self._output_transform(outputs)
         outputs["subtask"] = subtask
-        outputs["surprise"] = float(aux["surprise"][0])
         outputs["writes"] = writes
-        outputs["gates"] = {k: float(np.asarray(aux[k]).mean()) for k in ("theta", "eta", "alpha")}
+        if v5_info is not None:
+            outputs["subtask_confidence"] = v5_info["confidence"]
+            outputs["bank"] = v5_info["bank"]
+            outputs["memory"] = {"changed": v5_info["changed"], "committed": v5_info["committed"]}
+            # legacy client fields (v3 clients read them): no surprise/gates in the sentence bank
+            outputs["surprise"] = 0.0
+            outputs["gates"] = {}
+        else:
+            outputs["surprise"] = float(aux["surprise"][0])
+            outputs["gates"] = {k: float(np.asarray(aux[k]).mean()) for k in ("theta", "eta", "alpha")}
         outputs["policy_timing"] = {"infer_ms": model_time * 1000}
         return outputs
 
@@ -241,9 +365,9 @@ def create_policy(args: Args) -> MemoryPolicy:
     data_config = train_config.data.create(train_config.assets_dirs, train_config.model)
     norm_stats = _checkpoints.load_norm_stats(checkpoint_dir / "assets", data_config.asset_id)
 
-    gate = np.asarray(model.memory_gate.value)
     memory_architecture = str(getattr(train_config.model, "memory_architecture", "v3_v31"))
     memory_write_source = str(getattr(train_config.model, "memory_write_source", "raw_hidden"))
+    gate = np.asarray(model.memory_gate.value) if hasattr(model, "memory_gate") else np.zeros((1,))
     logging.info(
         "config=%s | memory_architecture=%s | memory_write_source=%s | memory_layer=%d | "
         "memory_gate norm %.4f max|g| %.5f (0 = memory content unused)",
@@ -254,6 +378,18 @@ def create_policy(args: Args) -> MemoryPolicy:
         np.linalg.norm(gate),
         np.abs(gate).max(),
     )
+    max_decode_steps = args.max_decode_steps
+    if getattr(train_config.model, "memory_v5_sentence_bank", False):
+        # v5 sentences ("inspect both bins: banana left, grey pepper box right") need ~12 tokens;
+        # the training scan decodes up to 24.
+        max_decode_steps = max(max_decode_steps, 24)
+        logging.info(
+            "v5 sentence bank: delay=%d write_conf=%.2f sentence_len=%d query_prev_sentence=%s (visual bank frozen)",
+            int(getattr(train_config.model, "memory_v5_write_delay_steps", 0)),
+            float(train_config.model.memory_v5_write_conf),
+            int(train_config.model.memory_v5_sentence_len),
+            bool(getattr(train_config.model, "memory_v5_query_prev_sentence", False)),
+        )
 
     out_norm_stats = dict(norm_stats)
 
@@ -267,7 +403,7 @@ def create_policy(args: Args) -> MemoryPolicy:
         model,
         decode_tokenizer=pg,
         stop_token=stop_token,
-        max_decode_steps=args.max_decode_steps,
+        max_decode_steps=max_decode_steps,
         action_horizon=train_config.model.action_horizon,
         action_dim=train_config.model.action_dim,
         raw_action_dim=int(np.asarray(norm_stats["actions"].mean).shape[-1]),

@@ -724,3 +724,47 @@ def test_v5_a6_config_validation():
         pi0_config.Pi0Config(**_v5_kwargs(memory_v5_query_standardize=True))
     with pytest.raises(ValueError, match="memory_v5_query_prev_sentence needs"):
         pi0_config.Pi0Config(**_v5_kwargs(memory_v5_query_prev_sentence=True))
+
+
+def test_v5_sample_with_memory_reads_the_semantic_bank(tiny_v5_a6):
+    """Inference path for the robot server: sample_with_memory takes the semantic bank (and the
+    previous sentence for the A6 queries), returns per-token probabilities, and a written bank
+    changes what is decoded/denoised versus a blank one. The semantic bank is not written here."""
+    from openpi.models.pi0_v35_test import _single_observation
+
+    observation = _single_observation()
+    visual = tiny_v5_a6.memory.init_state(1)
+    blank = tiny_v5_a6.memory_semantic.init_state(1)
+    tokens = jnp.asarray([[5, 6]], dtype=jnp.int32)
+    mask = jnp.ones((1, 2), dtype=bool)
+    keys, values = tiny_v5_a6.v5_sentence_intent(tiny_v5_a6.v5_encode_sentence(tokens, mask))
+    written, _ = tiny_v5_a6.v5_semantic_write(blank, keys, values, jnp.ones((1,), dtype=bool))
+    kwargs = {
+        "stop_token": 1,
+        "max_decode_steps": 2,
+        "num_steps": 1,
+        "noise": jnp.zeros((1, 4, 2), dtype=jnp.float32),
+        "write_mode": "frozen",
+        "v5_prev_tokens": tokens,
+        "v5_prev_mask": mask,
+    }
+    actions_blank, state_blank, aux_blank = tiny_v5_a6.sample_with_memory(
+        jax.random.key(56), observation, visual, semantic_state=blank, **kwargs
+    )
+    actions_written, state_written, aux_written = tiny_v5_a6.sample_with_memory(
+        jax.random.key(56), observation, visual, semantic_state=written, **kwargs
+    )
+    assert aux_blank["token_prob"].shape == (1, tiny_v5_a6.causal_token_len)
+    probs = np.asarray(aux_written["token_prob"])[np.asarray(aux_written["token_mask"])]
+    assert probs.size >= 1 and np.all((probs > 0.0) & (probs <= 1.0))
+    assert aux_written["sem_queries"].shape == (1, 3, 8)
+    jax.tree.map(np.testing.assert_array_equal, state_blank, visual)  # visual bank frozen
+    # The bank is read: the decoded sentence / its token probabilities change with the content.
+    # (The tiny stand-in's action head does not attend, so the actions are not the witness.)
+    assert not (
+        np.array_equal(np.asarray(aux_blank["tokens"]), np.asarray(aux_written["tokens"]))
+        and np.allclose(np.asarray(aux_blank["token_prob"]), np.asarray(aux_written["token_prob"]))
+    )
+    del actions_blank, actions_written
+    with pytest.raises(ValueError, match="semantic_state"):
+        tiny_v5_a6.sample_with_memory(jax.random.key(56), observation, visual, **kwargs)

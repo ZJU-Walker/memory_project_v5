@@ -476,3 +476,17 @@ build no fallback.
   side-flip 999 -> verdict -> B6a smoke -> r1 -> keep_999 -> videos -> batteries. A5 -> B5a keeps running on the H200 as
   the baseline; B6a vs B5a is the comparison.
 
+* 2026-09-04 01:40 — **v5 robot serving path (user 01:16: "let it run so I can test them on real robot tomorrow").**
+  `Pi0.sample_with_memory` now accepts the v5 sentence bank (`semantic_state`, plus `v5_prev_tokens/mask` for the A6
+  queries), reads it through the same `_v32_prepare_memory_prefix` path as training, returns `aux["token_prob"]`
+  (per-token argmax probabilities of the greedy sentence decode) and never writes the semantic bank itself.
+  `scripts/serve_yam_memory.py` gains `V5SentenceMemory`: the per-episode carry (bank state, previous/pending sentence)
+  that applies the TRAINING write rule after every request — one-step delay, changed-and-confident (>= 0.9), one analytic
+  decay otherwise — with the model's `v5_encode_sentence`/`v5_sentence_intent`/`v5_semantic_write`; the visual bank is
+  frozen (its injection is off in every stage >= A4); `reset_memory` resets the bank. Responses add `subtask_confidence`,
+  `bank` (committed sentences) and `memory.{changed,committed}`; `surprise`/`gates` stay for old clients. Tests: the
+  delayed rule on a fake bank (commits at the 2nd/4th/6th of six calls), the undelayed variant, metadata, and a tiny-model
+  `sample_with_memory` with a written vs blank bank (the decoded tokens/probabilities differ; the visual state is
+  untouched). `scripts/v5_serve_smoke.py` = in-process policy smoke with synthetic observations. The hgx-1 GPU sentinel
+  frees the 1-GPU job's placeholder whenever a policy server or the smoke runs.
+
