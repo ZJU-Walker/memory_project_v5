@@ -45,7 +45,7 @@ while true; do
     fi
   fi
   # The robot policy server (or its serving smoke) runs in the 1-GPU job: free that GPU for it.
-  if pgrep -f "serve_yam_memor[y].py|v5_serve_smok[e].py" >/dev/null; then
+  if pgrep -f "serve_yam_memor[y].py|v5_serve_smok[e].py|serve_v5_hgx[1].sh|run_serve_smoke_hgx[1].sh" >/dev/null; then
     ph=$(pgrep -f "gpu_placeholder_marker_17192955_g0" || true)
     [ -n "$ph" ] && { kill $ph 2>/dev/null; echo "$(date '+%m/%d %H:%M') policy server present: killed 1-GPU-job placeholder $ph" >> $LOGDIR/sentinel_hgx1.log; }
   elif ! pgrep -f "srun --jobid=17192955" >/dev/null || pgrep -f "gpu_placeholder_marker_17192955_g0" >/dev/null; then
