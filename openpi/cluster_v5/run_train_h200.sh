@@ -31,7 +31,7 @@ if [ -d "$ckdir" ]; then
   if ls "$ckdir" 2>/dev/null | grep -qE '^[0-9]+$'; then mode=resume; extra=(--resume); else mode=overwrite; extra=(--overwrite); fi
 fi
 # Kill only THIS job's placeholder: the legacy marker (H200 job 17207774, no suffix) or gpu_placeholder_marker_<JOB>.
-ph=$(pgrep -f "gpu_placeholder_marker_${JOB}\b" || true)
+ph=$(pgrep -f "gpu_placeholder_marker_${JOB}" || true)  # prefix: the sentinel names them gpu_placeholder_marker_<job>_g<k>
 [ "$JOB" = "17207774" ] && ph="$ph $(pgrep -f "gpu_placeholder_marker[^_]" || true)"
 ph=$(echo $ph)
 [ -n "$ph" ] && { kill $ph 2>/dev/null; sleep 5; echo "killed placeholder pids: $ph"; }
