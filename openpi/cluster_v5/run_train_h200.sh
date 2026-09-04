@@ -30,7 +30,10 @@ mode=fresh; extra=()
 if [ -d "$ckdir" ]; then
   if ls "$ckdir" 2>/dev/null | grep -qE '^[0-9]+$'; then mode=resume; extra=(--resume); else mode=overwrite; extra=(--overwrite); fi
 fi
-ph=$(pgrep -f "gpu_placeholder_marke[r]" || true)
+# Kill only THIS job's placeholder: the legacy marker (H200 job 17207774, no suffix) or gpu_placeholder_marker_<JOB>.
+ph=$(pgrep -f "gpu_placeholder_marker_${JOB}\b" || true)
+[ "$JOB" = "17207774" ] && ph="$ph $(pgrep -f "gpu_placeholder_marker[^_]" || true)"
+ph=$(echo $ph)
 [ -n "$ph" ] && { kill $ph 2>/dev/null; sleep 5; echo "killed placeholder pids: $ph"; }
 job=$(grep -oE 'job_[0-9]+' /proc/self/cgroup | sort -u | tr '\n' ' ')
 echo "launch $(date +%m/%d\ %H:%M) host=$(hostname) job=$job step-of=$JOB gpus=$gpus config=$config exp=$exp batch=$batch accum=$accum mode=$mode root=$root extra=$*" >> "$diag/train_${exp}_status.log"
