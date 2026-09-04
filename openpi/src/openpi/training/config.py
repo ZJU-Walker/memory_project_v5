@@ -2984,13 +2984,16 @@ _CONFIGS = [
                             source_cast_dtype="float32",
                         ),
                         v4_graft_sources=(),
-                        num_train_steps=1_000,
+                        # 4xH100 recipe (user 2026-09-03 23:44 "increase the batch size and don't need 1000 steps"):
+                        # the launcher runs global batch 8 (2 windows/GPU, FSDP 4); 500 updates = 4000 windows,
+                        # twice A5's 2000, in about half the wall time. Final checkpoint = 499.
+                        num_train_steps=500,
                         save_interval=250,
                         keep_period=250,
                         num_workers=12,
                         fsdp_devices=1,
                     ),
-                    # B6a = A6 weights (ckpt-999), own sentences, half learning rate (the A5 -> B5a pattern).
+                    # B6a = A6 weights (ckpt-499), own sentences, half learning rate (the A5 -> B5a pattern).
                     TrainConfig(
                         name="pi05_yam_mem_v5_stageB6a",
                         v4_protocol=True,
@@ -3024,7 +3027,7 @@ _CONFIGS = [
                             str(
                                 _project_paths.project_path(
                                     _project_paths.V5_CHECKPOINTS_DIR
-                                    / "pi05_yam_mem_v5_stageA6/v5_stageA6_20260903_r1/999/params"
+                                    / "pi05_yam_mem_v5_stageA6/v5_stageA6_20260903_r1/499/params"
                                 )
                             ),
                             matched_allowlist=(r".+",),
@@ -3032,7 +3035,7 @@ _CONFIGS = [
                             source_cast_dtype="float32",
                         ),
                         v4_graft_sources=(),
-                        num_train_steps=1_000,
+                        num_train_steps=500,
                         save_interval=250,
                         keep_period=250,
                         num_workers=12,
