@@ -535,3 +535,5 @@ build no fallback.
   next to the user's Qwen server), warmup 37 s + 15.5 s, `client_memory_v5.py --dry-run` from the login node: contract
   OK, 40 random-observation steps, one commit (`open both lids`), RTC replan exercised. Server left running for the trial.
 
+
+- 09/04 11:24 — `gpu_placeholder_hgx2.sh` fix (commit 3826772): its "already running" check matched job 17248791's per-job placeholder, so after the B5a continuation ended (exit 0, 11:12, 3000 updates) job 17207774's H200 sat idle for ~12 min. Check now `gpu_placeholder_marker[^_]` (legacy marker only); placeholder relaunched (srun PID 3251180). Both H200s: 132.7 GB, 100 % / 80 % util. B6a continuation on the 4×H100: step 899/3000 at 11:27, ~10–12 s/update (ends ≈17:30–18:30; job 17178887 expires 22:46). B6a server (keep_499) stays up on 10.79.12.252:8000 (job 17192955).
