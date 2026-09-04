@@ -8,7 +8,8 @@ JOB="${JOB:-17207774}"
 HOLD_GB="${HOLD_GB:-120}"          # H200 = 143 GB; leave room for the user's 1 GB keep-alive + matmul buffers
 VENV="${VENV:-/iris/u/kewalk/memory_project_v4/openpi/.venv}"   # v4 venv: already page-cached on hgx-2
 LOG=/iris/u/kewalk/memory_project_v5/v5/tools/logs/placeholder_hgx2.log
-if pgrep -f "gpu_placeholder_marke[r]" >/dev/null; then echo "placeholder already running: $(pgrep -f 'gpu_placeholder_marke[r]' | tr '\n' ' ')"; exit 0; fi
+# Only THIS job's placeholder counts (marker without a job suffix); other jobs use gpu_placeholder_job.sh.
+if pgrep -f "gpu_placeholder_marker[^_]" >/dev/null; then echo "placeholder already running: $(pgrep -f 'gpu_placeholder_marker[^_]' | tr '\n' ' ')"; exit 0; fi
 nohup setsid srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=1 --gres=gpu:1 \
   env CUDA_VISIBLE_DEVICES=0 XLA_PYTHON_CLIENT_PREALLOCATE=false XLA_PYTHON_CLIENT_MEM_FRACTION=0.95 \
   "$VENV/bin/python" -c "
