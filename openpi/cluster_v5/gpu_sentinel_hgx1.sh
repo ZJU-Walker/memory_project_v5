@@ -48,11 +48,12 @@ while true; do
   # holds a busy placeholder; GPU 0 only while no eval python runs (the beans evaluations take GPU 0). The job's
   # batch payload is the user's 1 GB keep-alive (train_hs.sh) and is never touched. The 1-GPU serving job 17192955
   # is gone.
-  if ! pgrep -f "train.py pi05_yam_mem_v[4]" >/dev/null; then  # only once the v4 step there is gone
-    if ! pgrep -f "v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null; then
-      launch 17267129 0 2 64
-    fi
-    launch 17267129 1 2 64
+  # 16:22 (user: "use my openpi_trossen repo to keep training"): the placeholder on job 17267129 is a REAL 2-GPU
+  # pi0.5 training from openpi_trossen (cluster_v5/placeholder_train_trossen.sh, marker gpu_placeholder_marker_17267129);
+  # it is launched only while no v4 step and no eval python is running there (the eval runner kills it first).
+  if ! pgrep -f "train.py pi05_yam_mem_v[4]|v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null \
+     && ! pgrep -f "gpu_placeholder_marker_1726712[9]" >/dev/null; then
+    JOB=17267129 bash /iris/u/kewalk/memory_project_v5/openpi/cluster_v5/gpu_placeholder_job.sh >> $LOGDIR/sentinel_hgx1.log 2>&1
   fi
   sleep 60
 done
