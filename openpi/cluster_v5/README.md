@@ -570,3 +570,14 @@ build no fallback.
      class by sha256 rank): 2 final_test + 2 development per class → 48 / 6 / 6.
   4. Queue `cluster_v5/queue_beans_hgx1.sh`: A smoke → A r1 → keep_499 → B smoke → B r1 → keep_499 → continue B to 3000.
   Deployment note: stride 5 means the robot client replans every 167 ms (about 150 ms per call on the H100).
+  15:07 — conversion complete on iris-hgx-1 (60 episodes, 53 999 frames, 38 GB; single-source mode writes only
+  `episode_prompts.json`, so `beans_build_v5_manifest_sidecar.py --raw-dir` re-identifies episodes by natural demo
+  order, verified by frame count and task set). Manifest `cluster_v5/beans/beans_episode_manifest_v1.json`
+  (sha 40d00bc4…, dev = demo11/12/14/17/21/51, final_test = demo16/25/30/31/38/46) and sidecar
+  `beans_v5_subtask_labels_v1.json` (sha d4581a3e…) pinned in the configs (commit 980dbf7). Launched on iris-hgx-1:
+  `cluster_v5/launch_beans_hgx1.sh` = norm stats (CPU, 15k random frames; whole dataset incl. dev/test, a minor
+  state/action-statistics leak accepted for time) → `queue_beans_hgx1.sh` (A smoke → A r1 → B smoke → B r1 → B
+  continuation). Evaluations to run on the H200 (`cluster_v5/run_beans_evals_hgx2.sh <cfg> <exp> <step>`): dev-episode
+  self/oracle videos (`v5_heldout_video.py --manifest/--sidecar`, exact-sentence decision scoring) and the
+  **count-flip battery** `scripts/v5_count_flip_eval.py` (go-sentence count argmin-CE over the 3 variants; normal /
+  flip (all counts in the prefill + in-window blink sentences cyclically shifted) / blank; history-only subset).
