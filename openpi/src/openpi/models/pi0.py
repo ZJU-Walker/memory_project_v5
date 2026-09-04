@@ -378,14 +378,19 @@ class MemoryQueryConditioner(nnx.Module):
         context: at.Float[at.Array, "b n d"],
         context_mask: at.Bool[at.Array, "b n"],
     ) -> at.Float[at.Array, "b q d"]:
-        if base_queries.shape != (self.num_queries, self.width):
-            raise ValueError(
-                f"base queries must have shape {(self.num_queries, self.width)}; got {base_queries.shape}."
-            )
         if context.ndim != 3 or context.shape[-1] != self.width or context.shape[:2] != context_mask.shape:
             raise ValueError(f"context/mask mismatch: {context.shape} vs {context_mask.shape}.")
         batch = context.shape[0]
-        queries = jnp.broadcast_to(base_queries[None], (batch, self.num_queries, self.width))
+        if base_queries.shape == (self.num_queries, self.width):
+            queries = jnp.broadcast_to(base_queries[None], (batch, self.num_queries, self.width))
+        elif base_queries.shape == (batch, self.num_queries, self.width):
+            # v5 A6: per-sample base queries (the learned bank shifted by the previous sentence).
+            queries = base_queries
+        else:
+            raise ValueError(
+                f"base queries must have shape {(self.num_queries, self.width)} or "
+                f"{(batch, self.num_queries, self.width)}; got {base_queries.shape}."
+            )
         q = self.query_proj(queries).reshape(batch, self.num_queries, self.num_heads, self.head_dim)
         k = self.key_proj(context).reshape(batch, context.shape[1], self.num_heads, self.head_dim)
         v = self.value_proj(context).reshape(batch, context.shape[1], self.num_heads, self.head_dim)
@@ -680,6 +685,29 @@ class Pi0(_model.BaseModel):
                     self.memory_sem_query_proj = nnx.Linear(
                         paligemma_config.width, config.memory_semantic.d_key, use_bias=False, rngs=rngs
                     )
+                    # A6 read-side fixes (Pi0Config.memory_v5_query_*).
+                    self.memory_v5_query_standardize = bool(config.memory_v5_query_standardize)
+                    self.memory_v5_query_prev_sentence = bool(config.memory_v5_query_prev_sentence)
+                    if config.memory_v5_query_standardize:
+                        # Explicit instruction term: the L2-normalised standardized mean of the
+                        # instruction rows shifts the base queries through an IDENTITY-initialised
+                        # map, so the queries depend on the instruction from step 0 by construction.
+                        # (The conditioner's own output projection is zero-initialised and A4's
+                        # training never opened it: queries were identical across instructions.)
+                        self.memory_sem_inst_query_proj = nnx.Linear(
+                            paligemma_config.width, paligemma_config.width, use_bias=False, rngs=rngs
+                        )
+                        self.memory_sem_inst_query_proj.kernel.value = jnp.eye(
+                            paligemma_config.width, dtype=self.memory_sem_inst_query_proj.kernel.value.dtype
+                        )
+                    if config.memory_v5_query_prev_sentence:
+                        # Zero-initialised: the queries start exactly where the A5 model left them.
+                        self.memory_sem_prev_query_proj = nnx.Linear(
+                            paligemma_config.width, paligemma_config.width, use_bias=False, rngs=rngs
+                        )
+                        self.memory_sem_prev_query_proj.kernel.value = jnp.zeros_like(
+                            self.memory_sem_prev_query_proj.kernel.value
+                        )
                     sem_slots = config.memory_v5_read_queries
                 else:
                     # Learned key-space addresses, one per fact slot (L2-normalized at use). Fixed
@@ -1084,18 +1112,24 @@ class Pi0(_model.BaseModel):
         if getattr(self, "memory_v5_pooling", "mean") != "standardized_attention":
             pooled = jnp.sum(hidden * weight, axis=1) / count
             return _memory.l2_normalize(pooled)
-        ref_tokens, ref_mask = self.v5_reference_token_rows(tokens.shape[1])
-        ref_hidden = self._v5_token_states(ref_tokens, ref_mask)
-        ref_weight = ref_mask.astype(jnp.float32)[..., None]
-        ref_count = jnp.maximum(jnp.sum(ref_weight), 1.0)
-        mu = jnp.sum(ref_hidden * ref_weight, axis=(0, 1)) / ref_count
-        var = jnp.sum(jnp.square(ref_hidden - mu) * ref_weight, axis=(0, 1)) / ref_count
-        sd = jnp.sqrt(var + 1e-6)
+        mu, sd = self._v5_reference_stats(tokens.shape[1])
         standardized = (hidden - mu) / sd * weight
         pooled_mean = jnp.sum(standardized, axis=1) / count
         attended = self.memory_sem_sentence_pool(standardized, source_valid=token_mask)
         pooled = jnp.concatenate([pooled_mean, attended.reshape(attended.shape[0], -1)], axis=-1)
         return _memory.l2_normalize(pooled)
+
+    def _v5_reference_stats(self, length: int) -> tuple[at.Float[at.Array, " emb"], at.Float[at.Array, " emb"]]:
+        """Per-feature mean/std of the layer-8 token states of the static reference sentences,
+        encoded by the CURRENT blocks (stop-gradient): the standardization used by the r2 sentence
+        encoder and, since A6, by the read queries."""
+        ref_tokens, ref_mask = self.v5_reference_token_rows(length)
+        ref_hidden = self._v5_token_states(ref_tokens, ref_mask)
+        ref_weight = ref_mask.astype(jnp.float32)[..., None]
+        ref_count = jnp.maximum(jnp.sum(ref_weight), 1.0)
+        mu = jnp.sum(ref_hidden * ref_weight, axis=(0, 1)) / ref_count
+        var = jnp.sum(jnp.square(ref_hidden - mu) * ref_weight, axis=(0, 1)) / ref_count
+        return mu, jnp.sqrt(var + 1e-6)
 
     def v5_sentence_intent(
         self, encoded: at.Float[at.Array, "b emb"]
@@ -1107,12 +1141,39 @@ class Pi0(_model.BaseModel):
         return key[:, None, :], value[:, None, :]
 
     def v5_semantic_queries(
-        self, h8_text: at.Float[at.Array, "b n emb"], context_mask: at.Bool[at.Array, "b n"]
+        self,
+        h8_text: at.Float[at.Array, "b n emb"],
+        context_mask: at.Bool[at.Array, "b n"],
+        prev_tokens: at.Int[at.Array, "b s"] | None = None,
+        prev_mask: at.Bool[at.Array, "b s"] | None = None,
     ) -> at.Float[at.Array, "b r dk"]:
-        """R read queries from the current layer-8 instruction context (unit-norm key space)."""
-        queries = self.memory_sem_read_conditioner(
-            self.memory_sem_read_query_bank.value, h8_text.astype(jnp.float32), context_mask
-        )
+        """R read queries from the current layer-8 instruction context (unit-norm key space).
+
+        A6: with `memory_v5_query_standardize` the instruction rows are standardized per feature
+        against the reference sentences first (without it the 2026-09-03 probe measured cosine
+        1.000 between the queries of different instructions); with `memory_v5_query_prev_sentence`
+        the learned base queries are shifted by a zero-initialised projection of the previous
+        decoded sentence (rows with no previous sentence get no shift)."""
+        h8_text = h8_text.astype(jnp.float32)
+        base = self.memory_sem_read_query_bank.value
+        if getattr(self, "memory_v5_query_standardize", False):
+            weight = context_mask.astype(jnp.float32)[..., None]
+            mu, sd = self._v5_reference_stats(self.memory_v5_sentence_len)
+            h8_text = (h8_text - mu) / sd * weight
+            # Explicit instruction term (identity-initialised map of the unit-norm standardized mean).
+            inst = jnp.sum(h8_text, axis=1) / jnp.maximum(jnp.sum(weight, axis=1), 1.0)
+            inst = _memory.l2_normalize(inst) * jnp.any(context_mask, axis=-1).astype(jnp.float32)[:, None]
+            base = base[None] + self.memory_sem_inst_query_proj(inst).astype(jnp.float32)[:, None, :]
+        if getattr(self, "memory_v5_query_prev_sentence", False) and prev_tokens is not None:
+            if prev_mask is None:
+                raise ValueError("prev_tokens needs prev_mask.")
+            width = base.shape[-1]
+            has_prev = jnp.any(prev_mask, axis=-1)
+            prev_encoded = self.v5_encode_sentence(prev_tokens, prev_mask)[:, :width]
+            shift = self.memory_sem_prev_query_proj(prev_encoded.astype(jnp.float32)).astype(jnp.float32)
+            shift = shift * has_prev.astype(jnp.float32)[:, None]
+            base = (base if base.ndim == 3 else base[None]) + shift[:, None, :]
+        queries = self.memory_sem_read_conditioner(base, h8_text, context_mask)
         return _memory.l2_normalize(self.memory_sem_query_proj(queries.astype(jnp.float32)).astype(jnp.float32))
 
     def v5_semantic_read(
@@ -1120,8 +1181,10 @@ class Pi0(_model.BaseModel):
         state: _memory.MemoryState,
         h8_text: at.Float[at.Array, "b n emb"],
         context_mask: at.Bool[at.Array, "b n"],
+        prev_tokens: at.Int[at.Array, "b s"] | None = None,
+        prev_mask: at.Bool[at.Array, "b s"] | None = None,
     ) -> tuple[at.Float[at.Array, "b r dv"], at.Float[at.Array, "b r dk"]]:
-        queries = self.v5_semantic_queries(h8_text, context_mask)
+        queries = self.v5_semantic_queries(h8_text, context_mask, prev_tokens, prev_mask)
         return self.memory_semantic.read_key(state, queries), queries
 
     def v5_semantic_write(
@@ -1240,6 +1303,8 @@ class Pi0(_model.BaseModel):
         v35_oracle_direction: at.Float[at.Array, "b d"] | None = None,
         v35_oracle_injected_rms: float | at.Float[at.Array, " b"] | None = None,
         semantic_state: _memory.MemoryState | None = None,
+        v5_prev_tokens: at.Array | None = None,
+        v5_prev_mask: at.Array | None = None,
     ) -> dict[str, at.Array | _gemma.KVCache]:
         """Run only blocks 0..memory_layer and materialize the dual-query interface.
 
@@ -1366,7 +1431,11 @@ class Pi0(_model.BaseModel):
                 if state_token_mask is not None:
                     sem_context_mask = sem_context_mask & ~state_token_mask
                 sem_retrieved, sem_queries = self.v5_semantic_read(
-                    semantic_state, h8_all[:, sem_num_img:].astype(jnp.float32), sem_context_mask
+                    semantic_state,
+                    h8_all[:, sem_num_img:].astype(jnp.float32),
+                    sem_context_mask,
+                    v5_prev_tokens,
+                    v5_prev_mask,
                 )
                 sem_extra["sem_queries"] = sem_queries
             else:
@@ -1451,6 +1520,8 @@ class Pi0(_model.BaseModel):
         v35_oracle_direction: at.Float[at.Array, "b d"] | None = None,
         v35_oracle_injected_rms: float | at.Float[at.Array, " b"] | None = None,
         semantic_state: _memory.MemoryState | None = None,
+        v5_prev_tokens: at.Array | None = None,
+        v5_prev_mask: at.Array | None = None,
     ) -> dict[str, at.Array | _gemma.KVCache]:
         """Run blocks 0..8, form q/z, inject the memory reads, then run blocks 9..17 once.
 
@@ -1470,6 +1541,8 @@ class Pi0(_model.BaseModel):
             v35_oracle_direction=v35_oracle_direction,
             v35_oracle_injected_rms=v35_oracle_injected_rms,
             semantic_state=semantic_state,
+            v5_prev_tokens=v5_prev_tokens,
+            v5_prev_mask=v5_prev_mask,
         )
         batch, prefix_len = prefix_mask.shape
         mem_len = self._memory_token_total
@@ -4695,6 +4768,14 @@ class Pi0(_model.BaseModel):
                     # Read-side only, like the semantic form: the carried visual state and
                     # its writes below are untouched.
                     read_state = counterfactual(state, self.memory.init_state(b))
+            v5_read_kwargs = {}
+            if v5_on and getattr(self, "memory_v5_query_prev_sentence", False):
+                # A6: the last decoded sentence (the write delay's pending sentence, or the previous
+                # sentence without delay) conditions the read queries. Sentinel/pad rows are masked.
+                if getattr(self, "memory_v5_write_delay_steps", 0) == 1:
+                    v5_read_kwargs = {"v5_prev_tokens": pending_sentence, "v5_prev_mask": pending_span}
+                else:
+                    v5_read_kwargs = {"v5_prev_tokens": jnp.maximum(prev_sentence, 0), "v5_prev_mask": prev_sentence > 0}
             prepared = self._v32_prepare_memory_prefix(
                 masked_prefix_tokens,
                 prefix_mask,
@@ -4703,6 +4784,7 @@ class Pi0(_model.BaseModel):
                 top_token_count=top_tokens,
                 state_token_mask=state_token_mask,
                 semantic_state=read_sem_state,
+                **v5_read_kwargs,
             )
             if dual_view:
                 # Plan 5.2 gold-standard variant: memory-state evolution from the FULL view
@@ -4716,6 +4798,7 @@ class Pi0(_model.BaseModel):
                     top_token_count=top_tokens,
                     state_token_mask=state_token_mask,
                     semantic_state=sem_state if v4_on else None,
+                    **v5_read_kwargs,
                 )
                 write_tokens = full_prepared["write_tokens"]
             else:

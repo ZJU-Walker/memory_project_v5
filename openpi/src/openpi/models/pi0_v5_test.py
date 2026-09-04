@@ -72,6 +72,7 @@ class _TinyV5Seq(_TinyV35):
 
     _v5_token_states = pi0.Pi0._v5_token_states
     v5_reference_token_rows = pi0.Pi0.v5_reference_token_rows
+    _v5_reference_stats = pi0.Pi0._v5_reference_stats
 
     def __init__(self, rngs: nnx.Rngs, *, oracle_writes: bool = True, write_conf: float = 0.9, pooling: str = "mean"):
         super().__init__(rngs)
@@ -617,3 +618,109 @@ def test_v5_a5_config_validation():
                 memory_v5_bank_waiting_tokens=(9, 1),
             )
         )
+
+
+# ---------------------------------------------------------------------------------------------
+# A6 (cluster_v5/README.md §8, 2026-09-03 23:05): standardized, previous-sentence-conditioned read queries.
+
+
+@pytest.fixture(scope="module")
+def tiny_v5_a6():
+    original_vocab = gemma.PALIGEMMA_VOCAB_SIZE
+    try:
+        gemma.PALIGEMMA_VOCAB_SIZE = 128
+        model = _TinyV5Seq(nnx.Rngs(12), pooling="standardized_attention")
+        model.memory_v5_write_delay_steps = 1
+        model.memory_v5_prefill_history = True
+        model.memory_v5_prefill_max = 2
+        model.memory_v4_visual_injection = False
+        model.memory_v5_query_standardize = True
+        model.memory_v5_query_prev_sentence = True
+        model.memory_sem_inst_query_proj = nnx.Linear(64, 64, use_bias=False, rngs=nnx.Rngs(14))
+        model.memory_sem_inst_query_proj.kernel.value = jnp.eye(64, dtype=jnp.float32)
+        model.memory_sem_prev_query_proj = nnx.Linear(64, 64, use_bias=False, rngs=nnx.Rngs(13))
+        model.memory_sem_prev_query_proj.kernel.value = jnp.zeros_like(model.memory_sem_prev_query_proj.kernel.value)
+        yield model
+    finally:
+        gemma.PALIGEMMA_VOCAB_SIZE = original_vocab
+
+
+def _instruction_states(model, tokens):
+    tokens = jnp.asarray(tokens, dtype=jnp.int32)
+    mask = tokens > 0
+    return model._v5_token_states(tokens, mask), mask
+
+
+def test_v5_a6_standardized_queries_depend_on_the_instruction(tiny_v5_a6):
+    h_a, m_a = _instruction_states(tiny_v5_a6, [[5, 6, 7, 0]])
+    h_b, m_b = _instruction_states(tiny_v5_a6, [[9, 3, 7, 0]])
+    q_a = np.asarray(tiny_v5_a6.v5_semantic_queries(h_a, m_a))
+    q_b = np.asarray(tiny_v5_a6.v5_semantic_queries(h_b, m_b))
+    assert q_a.shape == (1, 3, 8)
+    np.testing.assert_allclose(np.linalg.norm(q_a, axis=-1), 1.0, atol=1e-5)
+    assert np.max(np.sum(q_a * q_b, axis=-1)) < 0.999  # different instructions, different queries
+    # Determinism, and the standardization actually changes the queries.
+    np.testing.assert_allclose(q_a, np.asarray(tiny_v5_a6.v5_semantic_queries(h_a, m_a)))
+    tiny_v5_a6.memory_v5_query_standardize = False
+    try:
+        q_raw = np.asarray(tiny_v5_a6.v5_semantic_queries(h_a, m_a))
+    finally:
+        tiny_v5_a6.memory_v5_query_standardize = True
+    assert not np.allclose(q_raw, q_a)
+
+
+def test_v5_a6_previous_sentence_shift_is_zero_at_init_then_active(tiny_v5_a6):
+    h, m = _instruction_states(tiny_v5_a6, [[5, 6, 7, 0]])
+    prev_tokens = jnp.asarray([[7, 8]], dtype=jnp.int32)
+    prev_mask = jnp.asarray([[True, True]])
+    base = np.asarray(tiny_v5_a6.v5_semantic_queries(h, m))
+    with_prev = np.asarray(tiny_v5_a6.v5_semantic_queries(h, m, prev_tokens, prev_mask))
+    np.testing.assert_allclose(with_prev, base, atol=1e-6)  # zero-init projection: exact no-op
+    kernel = tiny_v5_a6.memory_sem_prev_query_proj.kernel
+    original = kernel.value
+    kernel.value = jax.random.normal(jax.random.key(3), original.shape, dtype=jnp.float32) * 0.5
+    try:
+        active = np.asarray(tiny_v5_a6.v5_semantic_queries(h, m, prev_tokens, prev_mask))
+        masked = np.asarray(tiny_v5_a6.v5_semantic_queries(h, m, prev_tokens, jnp.zeros_like(prev_mask)))
+    finally:
+        kernel.value = original
+    assert not np.allclose(active, base)  # the previous sentence now changes the question
+    np.testing.assert_allclose(masked, base, atol=1e-6)  # no previous sentence: no shift
+
+
+def test_v5_a6_sequence_has_finite_gradients_and_trains_the_query_shift(tiny_v5_a6):
+    observation = _with_prefill(_v4_sequence_observation(), sentences=[[5, 6]], gaps=[0], pending=[7, 8])
+    actions = _actions()
+    losses = tiny_v5_a6._compute_sequence_loss_v32(jax.random.key(54), observation, actions, train=False)
+    for key, value in losses.items():
+        assert np.all(np.isfinite(np.asarray(value))), key
+
+    def total_loss(model):
+        out = model._compute_sequence_loss_v32(jax.random.key(54), observation, actions, train=False)
+        return jnp.sum(out["v4_decision_ce_steps"]) + jnp.sum(out["v5_qk_cos_sum"])
+
+    grads = nnx.grad(total_loss)(tiny_v5_a6)
+    bad = [
+        "/".join(str(k) for k in path)
+        for path, leaf in jax.tree_util.tree_leaves_with_path(grads)
+        if not bool(jnp.all(jnp.isfinite(jnp.asarray(leaf))))
+    ]
+    assert not bad, bad[:10]
+    assert float(jnp.max(jnp.abs(grads["memory_sem_prev_query_proj"]["kernel"].value))) > 0.0
+
+
+def test_v5_a6_config_validation():
+    ok = pi0_config.Pi0Config(
+        **_v5_kwargs(
+            memory_v5_oracle_writes=True,
+            memory_v5_pooling="standardized_attention",
+            memory_v5_reference_tokens=((1, 2, 3), (4,)),
+            memory_v5_query_standardize=True,
+            memory_v5_query_prev_sentence=True,
+        )
+    )
+    assert ok.memory_v5_query_prev_sentence
+    with pytest.raises(ValueError, match="memory_v5_query_standardize needs"):
+        pi0_config.Pi0Config(**_v5_kwargs(memory_v5_query_standardize=True))
+    with pytest.raises(ValueError, match="memory_v5_query_prev_sentence needs"):
+        pi0_config.Pi0Config(**_v5_kwargs(memory_v5_query_prev_sentence=True))

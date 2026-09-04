@@ -451,3 +451,28 @@ build no fallback.
   verdict (first-step normal ≥ 0.9 & flip follows ≥ 0.9) → B5a smoke → r1 → keep_999 → videos → batteries → placeholder.
   Not built (optional): stability-gated writes (commit only after 2–3 identical consecutive steps).
 
+* 2026-09-03 23:05 — **Probe: the read QUERIES had collapsed.** `scripts/v5_probe_query_drift.py` on A4-999 (H100), 5 dev
+  episodes: cosine between the 8 query keys at step t and step 0 = 1.000 (min 0.998); with vs without images 1.000; between
+  episodes with the same prompt 1.000; between DIFFERENT prompts ("find the banana" vs "find the grey pepper box") 1.000
+  (`v5/diagnostics/probe_query_drift_A4_999.json`). Cause: `MemoryQueryConditioner` returns base_queries + zero-init
+  output_proj(attended); A4's training never opened that projection (the decoder extracts the prompted object's side
+  from the injected inspect-sentence vector by attention, so nothing pushed the queries), and the instruction rows are
+  98 % one shared direction anyway. The bank was therefore read with a FIXED key: a decayed bag of every stored sentence,
+  not content addressing; the 8 heads did nothing. Reading still works for 5 sentences (48/48) via the decoder.
+* 2026-09-03 23:50 — **A6 read-side fix built (user 23:12 "do it"), all 36 tests green, A6 -> B6a chain armed on the H100.**
+  `memory_v5_query_standardize`: instruction rows standardized against the reference sentences (`_v5_reference_stats`,
+  shared with the r2 encoder) and an explicit instruction term — the unit-norm standardized mean through an
+  IDENTITY-initialised `memory_sem_inst_query_proj` — shifts the base queries, so the queries depend on the instruction
+  from step 0 by construction (tiny test: cos < 0.999 between instructions; the zero-init conditioner path alone gave
+  1.000 even on the tiny model). `memory_v5_query_prev_sentence`: the last decoded sentence (the delay's pending
+  sentence; label in A, own in B) encoded by the frozen standardized encoder shifts the base queries through a ZERO-init
+  `memory_sem_prev_query_proj` (exact no-op at init, masked when there is no previous sentence) — "given I was doing X,
+  what is relevant". Threaded through `_v32_prepare_memory_{interface,prefix}(v5_prev_tokens, v5_prev_mask)`, the scan
+  (pending carry), the batteries and `v5_heldout_video.py`. `MemoryQueryConditioner` accepts per-sample base queries.
+  Configs: A6 = A5 + both flags, warm start from A5-999 (cast audited loader; only the two new projections fresh);
+  B6a = A6-999, own sentences, half LR. Chain: `cluster_v5/copy_a5_999_to_nfs.sh` (login node: A5-999 -> NFS when
+  protected) then `cluster_v5/queue_a6_hgx1.sh` ON iris-hgx-1 (job 17192955, XLA mem fraction 0.7 because the user's
+  Qwen action-expert server holds 11 GB there; the H200's A5 run uses 22 GB so it fits): A6 smoke -> r1 -> keep_999 ->
+  side-flip 999 -> verdict -> B6a smoke -> r1 -> keep_999 -> videos -> batteries. A5 -> B5a keeps running on the H200 as
+  the baseline; B6a vs B5a is the comparison.
+

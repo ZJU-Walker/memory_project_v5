@@ -65,7 +65,7 @@ def make_decode_fn(model, max_decode_steps: int):
     decode the subtask sentence against the memory-extended cache, return tokens / per-token probs."""
 
     @nnx.jit
-    def decode(model, observation, state_token_mask, sem_state):
+    def decode(model, observation, state_token_mask, sem_state, prev_tokens, prev_mask):
         preprocessed = _model.preprocess_observation(None, observation, train=False)
         batch = preprocessed.state.shape[0]
         prefix_tokens, prefix_mask, prefix_ar = model.embed_prefix(preprocessed)
@@ -82,6 +82,8 @@ def make_decode_fn(model, max_decode_steps: int):
             top_token_count=top_tokens,
             state_token_mask=state_token_mask,
             semantic_state=sem_state,
+            v5_prev_tokens=prev_tokens,
+            v5_prev_mask=prev_mask,
         )
         kv_cache = prepared["cache"]
         final_prefix = prepared["final_prefix"]
@@ -255,7 +257,11 @@ def main() -> None:
                 tokenized_prompt_mask=jnp.asarray(seq_obs.tokenized_prompt_mask[:, t]),
             )
             state_token_mask = jnp.asarray(seq_obs.token_state_mask[:, t])
-            gen_tokens, gen_mask, gen_prob, sem_rms, sem_queries = decode(model, observation, state_token_mask, sem_state)
+            # A6: the last decoded sentence (the delay's pending sentence) conditions the read queries.
+            gen_tokens, gen_mask, gen_prob, sem_rms, sem_queries = decode(
+                model, observation, state_token_mask, sem_state,
+                jnp.asarray(pending[0], dtype=jnp.int32), jnp.asarray(pending[1][None]),
+            )
             gen_tokens = np.asarray(gen_tokens)[0]
             gen_mask = np.asarray(gen_mask)[0]
             gen_prob = np.asarray(gen_prob)[0]

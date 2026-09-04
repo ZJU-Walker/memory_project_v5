@@ -334,6 +334,16 @@ class Pi0Config(_model.BaseModelConfig):
     # start). Sentences are written EXACTLY as labelled/decoded (no waiting-sentence rewrite).
     memory_v5_prefill_history: bool = False
     memory_v5_prefill_max: int = 6
+    # A6 (README §8, 2026-09-03 23:05 probe): the read queries had collapsed -- cosine 1.000 between
+    # frames, with/without images AND between different instructions -- because the instruction-row
+    # layer-8 states are 98 % one shared direction (the same anisotropy the r2 encoder fixed on the
+    # write side). `memory_v5_query_standardize` standardizes those rows per feature against the
+    # reference sentences before the query conditioner; `memory_v5_query_prev_sentence` shifts the
+    # learned base queries by a zero-initialised projection of the model's LAST decoded sentence
+    # (the pending sentence of the write delay) so the question asked of the bank depends on the
+    # phase ("given I was doing X, what is relevant"), not only on the instruction.
+    memory_v5_query_standardize: bool = False
+    memory_v5_query_prev_sentence: bool = False
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -569,6 +579,10 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("memory_v5_prefill_max must be >= 1 with memory_v5_prefill_history.")
                     if self.memory_v5_prefill_history and self.memory_v5_bank_waiting_prefix:
                         raise ValueError("memory_v5_prefill_history writes sentences exactly; drop the waiting rewrite.")
+                    if self.memory_v5_query_standardize and not self.memory_v5_reference_tokens:
+                        raise ValueError("memory_v5_query_standardize needs memory_v5_reference_tokens.")
+                    if self.memory_v5_query_prev_sentence and self.memory_v5_pooling != "standardized_attention":
+                        raise ValueError("memory_v5_query_prev_sentence needs the standardized_attention encoder.")
                     if self.memory_v5_pooling not in ("mean", "standardized_attention"):
                         raise ValueError("memory_v5_pooling must be 'mean' or 'standardized_attention'.")
                     if self.memory_v5_pooling == "standardized_attention":

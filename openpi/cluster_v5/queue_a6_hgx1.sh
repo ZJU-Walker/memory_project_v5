@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Run ON iris-hgx-1 (user 2026-09-03 23:12 "do it"; the H100 of job 17192955 shares the GPU with the user's Qwen
+# action-expert server, ~11 GB, so the memory fraction is capped). NFS worktree root (no staged copy on this node).
+#   wait for the A5-999 params on NFS -> A6 smoke -> A6 r1 (1000, warm start from A5-999) -> keep_999
+#   -> side-flip battery (semantic, 999) -> verdict -> B6a smoke -> B6a r1 (own sentences, from A6-999) -> keep_999
+#   -> videos (self, oracle) -> batteries.
+export HOME=/iris/u/kewalk
+export JOB=17192955
+export XLA_PYTHON_CLIENT_MEM_FRACTION=0.7
+diag=/iris/u/kewalk/memory_project_v5/v5/diagnostics
+cv5=/iris/u/kewalk/memory_project_v5/openpi/cluster_v5
+ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
+a6cfg=pi05_yam_mem_v5_stageA6; a6exp=v5_stageA6_20260903_r1; a6smoke=v5_stageA6_20260903_smoke
+bcfg=pi05_yam_mem_v5_stageB6a; bexp=v5_stageB6a_20260903_r1; bsmoke=v5_stageB6a_20260903_smoke
+log=$diag/queue_a6_hgx1.log
+echo "queue A6->B6a armed on $(hostname) $(date '+%m/%d %H:%M') code=$(git -C /iris/u/kewalk/memory_project_v5 rev-parse --short HEAD)" >> $log
+until [ -e $ckroot/pi05_yam_mem_v5_stageA5/v5_stageA5_20260903_r1/999/.copied ]; do sleep 60; done
+echo "A5-999 params on NFS at $(date '+%m/%d %H:%M'); A6 smoke" >> $log
+bash $cv5/run_train_h200.sh $a6cfg $a6smoke --num-train-steps 20 --save-interval 10 --keep-period 10
+code=$(grep "^exit=" $diag/train_${a6smoke}_status.log | tail -1); echo "A6 smoke $code $(date '+%m/%d %H:%M')" >> $log
+if ! echo "$code" | grep -q "exit=0"; then echo "A6 smoke failed (stop)" >> $log; exit 1; fi
+bash $cv5/run_train_h200.sh $a6cfg $a6exp
+code=$(grep "^exit=" $diag/train_${a6exp}_status.log | tail -1); echo "A6 r1 $code $(date '+%m/%d %H:%M')" >> $log
+if ! echo "$code" | grep -q "exit=0"; then echo "A6 r1 failed (stop)" >> $log; exit 1; fi
+cp -r $ckroot/$a6cfg/$a6exp/999 $ckroot/$a6cfg/$a6exp/keep_999 && echo "A6 ckpt-999 protected as keep_999" >> $log
+STEPS="999" bash $cv5/run_batteries_h200.sh $a6cfg $a6exp >> $diag/chain_${a6exp}.log 2>&1
+sf=$diag/side_flip_${a6exp}_999_semantic/side_flip_eval.json
+verdict=$(python3 - "$sf" <<'PY'
+import json, sys
+try:
+    s = json.load(open(sys.argv[1]))["summary_first_decision_step"]
+    acc, fol, reset = s["normal_side_accuracy"], s.get("flip_follows_content_rate", -1.0), s["reset_side_accuracy"]
+    print(("PASS" if acc >= 0.9 and fol >= 0.9 else "FAIL") + f" first-step normal_acc={acc:.3f} flip_follows_content={fol:.3f} reset_acc={reset:.3f} excluded_history_decided={s.get('excluded_history_decided')}")
+except Exception as e:
+    print(f"FAIL (battery unreadable: {e})")
+PY
+)
+echo "A6 ckpt-999 verdict: $verdict $(date '+%m/%d %H:%M')" >> $log
+if ! echo "$verdict" | grep -q "^PASS"; then echo "A6 failed the bar (stop)" >> $log; exit 1; fi
+bash $cv5/run_train_h200.sh $bcfg $bsmoke --num-train-steps 20 --save-interval 10 --keep-period 10
+code=$(grep "^exit=" $diag/train_${bsmoke}_status.log | tail -1); echo "B6a smoke $code $(date '+%m/%d %H:%M')" >> $log
+if ! echo "$code" | grep -q "exit=0"; then echo "B6a smoke failed (stop)" >> $log; exit 1; fi
+bash $cv5/run_train_h200.sh $bcfg $bexp
+code=$(grep "^exit=" $diag/train_${bexp}_status.log | tail -1); echo "B6a r1 $code $(date '+%m/%d %H:%M')" >> $log
+if ! echo "$code" | grep -q "exit=0"; then echo "B6a r1 failed (stop)" >> $log; exit 1; fi
+cp -r $ckroot/$bcfg/$bexp/999 $ckroot/$bcfg/$bexp/keep_999 && echo "B6a ckpt-999 protected as keep_999" >> $log
+bash $cv5/run_videos_hgx2.sh $bcfg $bexp 999 >> $diag/chain_${bexp}.log 2>&1
+echo "B6a videos done $(date '+%m/%d %H:%M')" >> $log
+bash $cv5/run_batteries_h200.sh $bcfg $bexp >> $diag/chain_${bexp}.log 2>&1
+echo "B6a batteries done $(date '+%m/%d %H:%M')" >> $log
