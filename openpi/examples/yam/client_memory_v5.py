@@ -41,6 +41,10 @@ from openpi_client import websocket_client_policy as _websocket_client_policy
 import tyro
 
 PROMPTS = ("find the banana", "find the grey pepper box")
+# 0902 bean-scoop task (cluster_v5/README.md §8, 2026-09-04): one constant training prompt; the beans models
+# train at memory stride 5, so run the client with --steps-between-inference 5.
+BEANS_PROMPT = "scoop the beans into the tray as many times as the green light blinked"
+ALL_PROMPTS = (*PROMPTS, BEANS_PROMPT)
 
 # Per-arm DOF: 6 arm joints + 1 gripper. Bimanual state/action is concat(left, right) -> 14.
 BIMANUAL_DOF = 14
@@ -253,8 +257,8 @@ def validate_v5_metadata(metadata: dict, args: Args) -> None:
             f"server memory_stride_frames is {training_stride!r}, but the client replans every "
             f"{args.steps_between_inference} steps (v5 trained at 15)"
         )
-    if args.prompt not in PROMPTS:
-        raise ValueError(f"prompt {args.prompt!r} is not a training prompt; use one of {PROMPTS}")
+    if args.prompt not in ALL_PROMPTS:
+        raise ValueError(f"prompt {args.prompt!r} is not a training prompt; use one of {ALL_PROMPTS}")
 
 
 def _run_dry(ws_client, policy, args: Args) -> None:
