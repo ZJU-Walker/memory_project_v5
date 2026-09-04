@@ -56,6 +56,9 @@ class Args:
     config: str = "pi05_yam_mem_v3"
     port: int = 8000
     max_decode_steps: int = 10
+    # Run synthetic requests before serving so the JIT compile (minutes) happens here, not on the
+    # robot's first request; the memory is reset afterwards (ported from v4).
+    warmup: bool = True
 
 
 def _build_server_metadata(train_config: Any, data_config: Any, *, simulated_delay: int | None) -> dict[str, Any]:
@@ -424,8 +427,53 @@ def create_policy(args: Args) -> MemoryPolicy:
     )
 
 
+def _warmup(policy: MemoryPolicy, *, prompt: str, raw_action_dim: int, action_horizon: int) -> None:
+    """Compile every request shape the robot client uses (plain and RTC-prefixed), then reset."""
+    rng = np.random.default_rng(0)
+    example = {
+        "observation/state": rng.random(raw_action_dim).astype(np.float32),
+        "observation/image": rng.integers(256, size=(480, 640, 3), dtype=np.uint8),
+        "observation/left_wrist_image": rng.integers(256, size=(480, 640, 3), dtype=np.uint8),
+        "observation/right_wrist_image": rng.integers(256, size=(480, 640, 3), dtype=np.uint8),
+        "prompt": prompt,
+    }
+    started = time.monotonic()
+    first = policy.infer(dict(example))
+    logging.info(
+        "warmup: plain request compiled + ran in %.1f s (subtask %r)", time.monotonic() - started, first["subtask"]
+    )
+    if policy._simulated_delay is not None:  # noqa: SLF001
+        started = time.monotonic()
+        policy.infer(
+            {
+                **example,
+                "action_prefix": {
+                    "actions": np.asarray(first["actions"], dtype=np.float32)[:action_horizon],
+                    "delay": policy._simulated_delay,  # noqa: SLF001
+                    "prefix_length": min(action_horizon, policy._simulated_delay + 10),  # noqa: SLF001
+                },
+            }
+        )
+        logging.info("warmup: RTC-prefixed request compiled + ran in %.1f s", time.monotonic() - started)
+    policy.infer({"reset_memory": True})
+    logging.info("warmup done; memory reset")
+
+
 def main(args: Args) -> None:
     policy = create_policy(args)
+    if args.warmup:
+        train_config = _config.get_config(args.config)
+        prompt = (
+            "find the banana"
+            if getattr(train_config.model, "memory_v35_enabled", False)
+            else "find the bin with banana"
+        )
+        _warmup(
+            policy,
+            prompt=prompt,
+            raw_action_dim=policy._raw_action_dim,  # noqa: SLF001
+            action_horizon=policy._action_horizon,  # noqa: SLF001
+        )
 
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
