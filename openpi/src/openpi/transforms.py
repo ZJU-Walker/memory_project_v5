@@ -367,10 +367,15 @@ class MemoryEpisodeInfo(DataTransformFn):
     # v4: [num_episodes, real_fact_slots] int32 per-slot fact targets from the derived sidecar
     # (data_loader._load_v4_fact_labels). Consumed by MemoryV4FactLabels.
     episode_fact_targets: np.ndarray | None = None
+    # v5 generic task mode: one int32 class id per episode from the generic manifest (e.g. the
+    # bean-scoop target count); becomes `seq_memory_cell` through MemoryV5GenericFields.
+    episode_memory_cell: np.ndarray | None = None
 
     def __call__(self, data: DataDict) -> DataDict:
         episode = int(np.asarray(data["episode_index"]).item())
         out = {**data, "episode_length": np.int32(self.episode_length[episode])}
+        if self.episode_memory_cell is not None:
+            out["episode_memory_cell"] = np.int32(self.episode_memory_cell[episode])
         if self.episode_side is not None:
             out["quiz_side"] = np.int32(self.episode_side[episode])
             out["reveal_frame"] = np.int32(self.episode_reveal[episode])
@@ -1028,6 +1033,54 @@ class MemoryV34Labels(DataTransformFn):
             memory_required_segment = bool(np.any(shifted_waiting & step_mask[: len(shifted_waiting)]))
             drawn = memory_required_segment and (np.random.random() < self.state_mask_prob)
             data["seq_state_masked"] = np.bool_(drawn)
+        return data
+
+
+@dataclasses.dataclass(frozen=True)
+class MemoryV5GenericFields(DataTransformFn):
+    """v5 generic task mode (DataConfig.memory_v5_generic_task): the v3.5 per-step fields a
+    memory_v35_enabled model requires, with neutral values, for a task that has no left/right
+    phase schema. Runs after MemoryV34Labels (needs its evidence/waiting masks) and replaces
+    both the v3.5 window selectors and MemoryV4FactLabels:
+
+      * seq_write_mask = every valid step (the blind visual bank commits every step, Stage 4c);
+      * seq_decision_mask = valid steps whose observation lies in a memory_required_subtasks
+        phase (decision telemetry only: the v5 sentence CE grades every step);
+      * seq_read_state_valid / seq_read_credit_reachable = every valid step (the A5 history
+        prefill puts the pre-window sentences in the bank, so no step reads a blank bank except
+        at the episode's frame 0, which is never a decision);
+      * seq_use_pressure_mask = seq_decision_mask; seq_decay_gap_before = 0 (dense layout);
+      * seq_memory_cell = the manifest class id (episode_memory_cell), seq_side_label stays as
+        MemoryV34Labels left it (-1: no side);
+      * seq_fact_labels = all `unknown`, seq_fact_observable = all False (no fact head in v5).
+    """
+
+    num_fact_slots: int
+    num_fact_targets: int
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "seq_waiting_mask" not in data or "seq_step_mask" not in data:
+            raise ValueError("MemoryV5GenericFields must run after MemoryV34Labels on a sequence item.")
+        if "_v35_enabled" in data or "seq_occlusion_mask" in data:
+            raise ValueError("MemoryV5GenericFields cannot be combined with a v3.5 memory window.")
+        step_mask = np.asarray(data["seq_step_mask"], dtype=bool)
+        waiting_mask = np.asarray(data["seq_waiting_mask"], dtype=bool)
+        if waiting_mask.shape != step_mask.shape:
+            raise ValueError(f"seq_waiting_mask {waiting_mask.shape} must match seq_step_mask {step_mask.shape}.")
+        num_steps = step_mask.shape[0]
+        decision_mask = waiting_mask & step_mask
+        data["seq_write_mask"] = step_mask.copy()
+        data["seq_decision_mask"] = decision_mask
+        data["seq_read_state_valid"] = step_mask.copy()
+        data["seq_read_credit_reachable"] = step_mask.copy()
+        data["seq_use_pressure_mask"] = decision_mask.copy()
+        data["seq_decay_gap_before"] = np.zeros(num_steps, dtype=np.int32)
+        data["seq_memory_cell"] = np.int32(data.pop("episode_memory_cell", -1))
+        if "seq_side_label" not in data:
+            data["seq_side_label"] = np.int32(-1)
+        unknown = np.int32(self.num_fact_targets - 1)
+        data["seq_fact_labels"] = np.full(self.num_fact_slots, unknown, dtype=np.int32)
+        data["seq_fact_observable"] = np.zeros((num_steps, self.num_fact_slots), dtype=bool)
         return data
 
 

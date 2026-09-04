@@ -163,6 +163,10 @@ def main() -> None:
         "blank: never commit (the semantic bank stays empty). Decode targets/overlays are unchanged.",
     )
     parser.add_argument("--output-dir", type=pathlib.Path, required=True)
+    parser.add_argument("--manifest", type=pathlib.Path, default=None,
+                        help="episode manifest (default: the frozen v36 bins manifest); v5 generic manifests work too")
+    parser.add_argument("--sidecar", type=pathlib.Path, default=None,
+                        help="v5 sentence sidecar (default: the bins sidecar)")
     parser.add_argument("--max-decode-steps", type=int, default=24)
     parser.add_argument("--fps", type=float, default=30.0)
     args = parser.parse_args()
@@ -181,10 +185,11 @@ def main() -> None:
     sp = sentencepiece.SentencePieceProcessor(
         model_file=str(project_paths.project_path("v35/cache/openpi/big_vision/paligemma_tokenizer.model"))
     )
-    manifest_path = project_paths.project_path(project_paths.V35_FROZEN_MANIFEST)
+    manifest_path = args.manifest or project_paths.project_path(project_paths.V35_FROZEN_MANIFEST)
     manifest = json.loads(manifest_path.read_text())
-    sidecar = json.loads(project_paths.project_path(project_paths.V5_SUBTASK_LABELS).read_text())
-    episodes = sorted([e for e in manifest["episodes"] if e.get("include")], key=lambda e: e["episode_index"])
+    sidecar_path = args.sidecar or project_paths.project_path(project_paths.V5_SUBTASK_LABELS)
+    sidecar = json.loads(sidecar_path.read_text())
+    episodes = sorted([e for e in manifest["episodes"] if e.get("include", True)], key=lambda e: e["episode_index"])
     episode = episodes[args.episode_index]
     assert episode["episode_index"] == args.episode_index
     start = sum(int(e["expected_num_frames"]) for e in episodes[: args.episode_index])
@@ -193,11 +198,16 @@ def main() -> None:
     frame_sentence = np.empty(length, dtype=object)
     for seg in segments:
         frame_sentence[seg["start"] : seg["end"] + 1] = seg["sentence"]
-    raw_root = pathlib.Path(manifest["raw_root"])
-    if not raw_root.is_absolute():
-        raw_root = manifest_path.parent / raw_root
-    video_path = (raw_root / episode["raw_dir"] / "top_camera_rgb.mp4").resolve()
-    print(f"episode {args.episode_index} {episode['stable_id']} prompt={episode['prompt']!r} side={episode['target_side']} "
+    raw_dir = pathlib.Path(episode["raw_dir"])
+    if not raw_dir.is_absolute():
+        raw_root = pathlib.Path(manifest.get("raw_root", "."))
+        if not raw_root.is_absolute():
+            raw_root = manifest_path.parent / raw_root
+        raw_dir = raw_root / raw_dir
+    video_path = (raw_dir / "top_camera_rgb.mp4").resolve()
+    # bins: target_side names the answer; generic manifests carry a class label instead (e.g. "x=3").
+    episode_target = episode.get("target_side") or episode.get("class") or ""
+    print(f"episode {args.episode_index} {episode['stable_id']} prompt={episode['prompt']!r} target={episode_target} "
           f"frames={length} start={start} video={video_path} (setup {time.time() - t0:.0f}s)", flush=True)
 
     stride = data_config.memory_stride_frames
@@ -325,18 +335,25 @@ def main() -> None:
     def side(s):
         return "left" if " left" in f" {s}" else "right" if " right" in f" {s}" else None
     first = decisions[0] if decisions else None
+    target_side = episode.get("target_side")
+    # Generic tasks (no side words): a decision step is correct when the decoded sentence equals
+    # its lookahead-shifted label exactly; bins keep the side-word criterion.
+    def decision_ok(r):
+        return (side(r.pred) == target_side) if target_side else (r.pred == r.gt_target)
     summary = {
         "episode_index": args.episode_index,
         "stable_id": episode["stable_id"],
         "prompt": episode["prompt"],
-        "target_side": episode["target_side"],
+        "target_side": target_side,
+        "target": episode_target,
         "write_mode": args.write_mode,
         "intervention": args.intervention,
         "steps": len(records),
         "decision_steps": len(decisions),
-        "decision_side_correct": sum(1 for r in decisions if side(r.pred) == episode["target_side"]),
+        "decision_side_correct": sum(1 for r in decisions if decision_ok(r)),
+        "decision_exact": sum(1 for r in decisions if r.pred == r.gt_target),
         "first_decision_pred": first.pred if first else None,
-        "first_decision_correct": (side(first.pred) == episode["target_side"]) if first else None,
+        "first_decision_correct": decision_ok(first) if first else None,
         "evidence_pred_exact": sum(1 for r in records if r.evidence and r.pred == r.gt_target),
         "evidence_steps": sum(1 for r in records if r.evidence),
         "writes": sum(1 for r in records if r.written),
@@ -345,7 +362,8 @@ def main() -> None:
     }
     tag = f"ep{args.episode_index:02d}_{args.write_mode}" + ("" if args.intervention == "none" else f"_{args.intervention}")
     (args.output_dir / f"{tag}.json").write_text(json.dumps(summary, indent=2) + "\n")
-    print(f"decision steps {summary['decision_side_correct']}/{summary['decision_steps']} name the true side; "
+    print(f"decision steps {summary['decision_side_correct']}/{summary['decision_steps']} correct "
+          f"({'true side' if target_side else 'exact sentence'}); "
           f"first decision: {summary['first_decision_pred']!r} ({'OK' if summary['first_decision_correct'] else 'WRONG'}); "
           f"inspect sentence exact {summary['evidence_pred_exact']}/{summary['evidence_steps']}; writes={summary['writes']}", flush=True)
 

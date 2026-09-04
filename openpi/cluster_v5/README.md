@@ -540,3 +540,33 @@ build no fallback.
 - 09/04 11:35 — B5a final checkpoint 2999 (3000-update continuation) copied hgx-2 `/scr` → NFS `v5/checkpoints/pi05_yam_mem_v5_stageB5a/v5_stageB5a_20260903_r1/keep_2999` (params+assets, 9.8 GB, 186 s, `.copied` marker; script `cluster_v5/copy_b5a_step_to_nfs.sh`, `STEP=<n>`). Untested on the battery — keep_999 is the judged B5a ckpt.
 - 09/04 12:08 — Robot server switched to B6a ckpt **1000** (untested on the battery; user's choice) on iris-hgx-1 10.79.12.252:8000 (pid 4110223, log `v5/diagnostics/server_v5_20260904_1206.log`, warmup 36.9 s + 15.3 s, client dry-run OK). GPU holds only: train_hs.py keep-alive 1 GB, user's Qwen action-expert server 11 GB (pid 548942), our server 49 GB. No placeholder.
 - 09/04 12:45 — **Code published.** Branch `v5` pushed as `main` of the new GitHub repo `ZJU-Walker/memory_project_v5` (remote `v5origin`; `origin` still = the v4 repo), tag `v5-b6a-robot-20260904` = the B6a policy code as deployed (commit 9f3338b). Deployment launchers now tracked in `cluster_v5/deploy/`, the architecture brief in `cluster_v5/docs/`. Checkpoints/data stay on NFS (ignored `v5/`, `data/`). Push from the login node needs `GIT_SSH_COMMAND="ssh -i /iris/u/kewalk/.ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=/iris/u/kewalk/.ssh/known_hosts"`.
+
+* 2026-09-04 14:30 — **Bean-scoop task (user 13:38 "train a model on that data, use our 4xH100"; plan approved 13:54:
+  "stop b6, working on this, warm start from b6a"). B6a continuation stopped at step 1550 (keep_499/1000 kept).**
+  Data: 60 demos `/iris/u/kewalk/memory_project/data/0902_bean_scoop` labelled by the sibling session
+  (`BEANS_LABELS.md`, 11 sentences, 5 phases, x = 1/2/3 blinks in 19/23/18 episodes). Pipeline built this afternoon:
+  1. LeRobot conversion with the existing `examples/yam/convert_yam_data_to_lerobot.py` (single source, constant prompt
+     "scoop the beans into the tray as many times as the green light blinked", task = sentence) into the v5-private root
+     `v5/data/lerobot/yam/bean_scoop_0902_v5` (`HF_LEROBOT_HOME=v5/data/lerobot`; the v5 `data/` symlink points into the
+     v4 tree, which stays untouched). The login-node run was killed silently at 42/60 (log ends in NUL bytes);
+     `--resume` needs the strict manifest mode, so the conversion was rerun with `--overwrite` on iris-hgx-1
+     (`v5/diagnostics/convert_beans_resume.sh`, log `convert_beans_hgx1.log`).
+  2. **Generic v5 task data mode** `DataConfig.memory_v5_generic_task` (commit below): the bins pipeline hard-wires
+     stride 15, the five-phase left/right schema, stationary waiting cores, occlusion/execute phases and side cells.
+     The generic mode keeps the model untouched and feeds the v3.5 per-step fields with neutral values
+     (`transforms.MemoryV5GenericFields`: write = every valid step, decision = steps in `memory_required_subtasks`,
+     read-valid/credit = every step (prefill), side −1, cell = manifest class, fact labels all-unknown). Loader:
+     `_load_v5_generic_manifest` (schema `openpi.v5.generic-manifest.v1`: stable ids, splits, one class per episode,
+     pinned bytes), no phase tables, no dead zone; `memory_critical_prob` becomes the mass of TRANSITION-anchored slices
+     (starts within `memory_critical_start_pad` frames before a sentence change, balanced per class).
+     `train.py` v4 contract accepts no fact sidecar in generic mode. Tests `src/openpi/training/v5_generic_test.py`
+     (5) + `scripts/v5_prefill_test.py` (7) pass.
+  3. Configs `pi05_yam_mem_v5_beansA` (label writes, warm start from B6a keep_499, every leaf) and `beansB` (own
+     sentences from beans-A-499, half LR): stride **5** (blinks last 6–9 frames; stride 15 sees 52 %), lookahead **0**
+     (a blink onset cannot be anticipated), `prefill_max` 10 (up to 9 distinct sentences before a window), reference
+     sentences = the 11 beans sentences (`V5_BEANS_REFERENCE_SENTENCE_TOKENS`, tokenized like
+     `tokenize_sentence`; the bins row reproduces bit-exactly), decay 0.01 unchanged (tanh-RMS injection renormalises
+     reads; revisit if the count fades), 500 updates each at global batch 8 on the 4xH100. Split (seed 902, per
+     class by sha256 rank): 2 final_test + 2 development per class → 48 / 6 / 6.
+  4. Queue `cluster_v5/queue_beans_hgx1.sh`: A smoke → A r1 → keep_499 → B smoke → B r1 → keep_499 → continue B to 3000.
+  Deployment note: stride 5 means the robot client replans every 167 ms (about 150 ms per call on the H100).

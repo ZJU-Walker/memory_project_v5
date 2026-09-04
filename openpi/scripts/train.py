@@ -195,7 +195,11 @@ def _validate_v4_run(config: _config.TrainConfig) -> None:
     """The v4 contract: dual-bank model, pinned fact sidecar, no EMA, explicit graft sources."""
     if not getattr(config.model, "memory_v4_dual_bank", False):
         raise ValueError("v4_protocol requires a memory_v4_dual_bank model.")
-    if config.data.base_config.memory_v4_fact_labels_sha256 is None:
+    if config.data.base_config.memory_v4_fact_labels_sha256 is None and not getattr(
+        config.data.base_config, "memory_v5_generic_task", False
+    ):
+        # v5 generic task mode has no fact sidecar: the fact fields are emitted neutral
+        # (transforms.MemoryV5GenericFields) and the fact losses are zero.
         raise ValueError("v4 runs require the pinned fact-label sidecar (memory_v4_fact_labels_sha256).")
     if getattr(config.model, "memory_v5_sentence_bank", False) and (
         config.data.base_config.memory_v5_subtask_labels_sha256 is None

@@ -286,6 +286,7 @@ def create_torch_dataset(
                 # v3.4 ladder-probe side label; dropped at repack unless the config carries it.
                 episode_side_label=info["side"],
                 episode_fact_targets=fact_targets_table,
+                episode_memory_cell=info["memory_cell"] if data_config.memory_v5_generic_task else None,
             )
         )
         dataset = TransformedDataset(dataset, seq_transforms)
@@ -1032,6 +1033,105 @@ _V4_FACT_LABELS_SCHEMA_VERSION = "openpi.v4.fact-labels.v1"
 _V5_SUBTASK_LABELS_SCHEMA_VERSION = "openpi.v5.subtask-labels.v1"
 
 
+_V5_GENERIC_MANIFEST_SCHEMA_VERSION = "openpi.v5.generic-manifest.v1"
+
+
+def _load_v5_generic_manifest(
+    data_config: "_config.DataConfig", *, num_episodes: int, episode_lengths: np.ndarray
+) -> dict[str, typing.Any]:
+    """v5 generic task mode: load the plain episode manifest (exact pinned bytes) and return the
+    per-episode tables the sequence loader needs -- stable ids (sidecar keys), the active-split
+    sampling mask, the split names and one class id per episode.
+
+    Manifest form: ``{"schema_version": "openpi.v5.generic-manifest.v1", "split_seed": int,
+    "episodes": [{"episode_index", "stable_id", "split", "class", "expected_num_frames",
+    "include": true, ...}, ...]}``. Included episodes must cover the converted dataset's
+    episode indices exactly; excluded raw episodes are ignored. No phase schema, no sides.
+    """
+    path_value = data_config.memory_episode_manifest_path
+    if path_value is None:
+        raise ValueError("memory_v5_generic_task requires memory_episode_manifest_path.")
+    path = pathlib.Path(path_value)
+    if not path.is_file():
+        raise ValueError(f"v5 generic episode manifest does not exist: {path}")
+    raw_bytes = path.read_bytes()
+    expected_sha256 = data_config.memory_episode_manifest_sha256
+    if expected_sha256 is None:
+        raise ValueError("memory_v5_generic_task requires the exact manifest SHA256.")
+    actual_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise ValueError(f"v5 generic manifest SHA256 mismatch: expected {expected_sha256}, got {actual_sha256}.")
+    payload = json.loads(raw_bytes.decode("utf-8"))
+    if payload.get("schema_version") != _V5_GENERIC_MANIFEST_SCHEMA_VERSION:
+        raise ValueError(f"unsupported v5 generic manifest schema: {payload.get('schema_version')!r}.")
+    if data_config.memory_manifest_split_seed is not None and int(payload.get("split_seed", -1)) != int(
+        data_config.memory_manifest_split_seed
+    ):
+        raise ValueError(
+            f"v5 generic manifest split_seed {payload.get('split_seed')!r} does not match the configured "
+            f"{data_config.memory_manifest_split_seed}."
+        )
+    records = payload.get("episodes")
+    if not isinstance(records, list) or not records:
+        raise ValueError("v5 generic manifest must contain a nonempty episodes list.")
+    stable_ids = [""] * num_episodes
+    splits = [""] * num_episodes
+    classes = [""] * num_episodes
+    seen: set[int] = set()
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("v5 generic manifest episodes must be objects.")
+        if not bool(record.get("include", True)):
+            continue
+        stable_id = str(record.get("stable_id", "")).strip()
+        if not stable_id:
+            raise ValueError("v5 generic manifest episode is missing stable_id.")
+        episode_index = int(record["episode_index"])
+        if not 0 <= episode_index < num_episodes or episode_index in seen:
+            raise ValueError(f"v5 generic manifest episode_index {episode_index} is out of range or duplicated.")
+        seen.add(episode_index)
+        expected_frames = int(record["expected_num_frames"])
+        if expected_frames != int(episode_lengths[episode_index]):
+            raise ValueError(
+                f"v5 generic manifest {stable_id!r} expects {expected_frames} frames, the dataset has "
+                f"{int(episode_lengths[episode_index])}."
+            )
+        split_name = str(record.get("split", "")).strip()
+        if not split_name:
+            raise ValueError(f"v5 generic manifest episode {stable_id!r} is missing its split.")
+        stable_ids[episode_index] = stable_id
+        splits[episode_index] = split_name
+        classes[episode_index] = str(record.get("class", "")).strip()
+    if len(seen) != num_episodes:
+        raise ValueError(
+            f"v5 generic manifest covers {len(seen)} included episodes, the dataset has {num_episodes}."
+        )
+    if len(set(stable_ids)) != num_episodes:
+        raise ValueError("v5 generic manifest stable ids must be unique.")
+    active_split = str(data_config.memory_manifest_split)
+    sampling_allowed = np.asarray([name == active_split for name in splits], dtype=bool)
+    if not np.any(sampling_allowed):
+        raise ValueError(f"v5 generic manifest has no episodes in the active split {active_split!r}.")
+    class_vocab = {name: index for index, name in enumerate(sorted(set(classes)))}
+    memory_cell = np.asarray([class_vocab[name] for name in classes], dtype=np.int32)
+    split_counts = {name: splits.count(name) for name in sorted(set(splits))}
+    logging.info(
+        "v5 generic manifest: %d episodes, split=%s active=%d, splits=%s, classes=%s",
+        num_episodes,
+        active_split,
+        int(sampling_allowed.sum()),
+        split_counts,
+        {name: classes.count(name) for name in class_vocab},
+    )
+    return {
+        "stable_id": tuple(stable_ids),
+        "manifest_split": tuple(splits),
+        "sampling_allowed": sampling_allowed,
+        "memory_cell": memory_cell,
+        "memory_cell_names": tuple(sorted(class_vocab, key=class_vocab.get)),
+    }
+
+
 def _load_v5_subtask_labels(
     data_config: "_config.DataConfig",
     *,
@@ -1226,6 +1326,12 @@ def _episode_info_table(
                 prompts=_load_episode_prompts(dataset),
             )
         )
+    elif data_config.memory_v5_generic_task:
+        # v5 generic task mode: stable ids/splits/classes only; no phase tables at all (no
+        # evidence/memory bounds, no memory-critical windows, no waiting cores). The sampler
+        # handles transition-anchored slices from the task table instead.
+        info.update(_load_v5_generic_manifest(data_config, num_episodes=num_episodes, episode_lengths=length))
+        return info
 
     if data_config.memory_required_subtasks and data_config.evidence_subtasks:
         memory_ids = [i for i, s in dataset_meta.tasks.items() if s in data_config.memory_required_subtasks]
@@ -1688,6 +1794,28 @@ def _sequence_sampling_info(
                     len(delay),
                     np.percentile(delay, [0, 10, 50, 90, 100]).tolist(),
                 )
+    elif data_config.memory_v5_generic_task:
+        # v5 generic task mode: the A5 history prefill carries every sentence written before the
+        # window, so a slice may start anywhere (no dead zone). memory_critical_prob is the mass
+        # of TRANSITION-ANCHORED slices: starts within memory_critical_start_pad frames before a
+        # sentence change of the episode (excluding the change into the very first label), so
+        # the steps where the next sentence must be decided from memory are seen often.
+        dead = np.zeros(len(episode), dtype=bool)
+        in_window = np.zeros(len(episode), dtype=bool)
+        critical_family = np.full(len(episode), -1, dtype=np.int8)
+        anchored = np.zeros(len(episode), dtype=bool)
+        pad = int(data_config.memory_critical_start_pad)
+        for e in range(num_episodes):
+            ep_tasks = np.asarray(info["episode_tasks"][e])
+            changes = np.nonzero(ep_tasks[1:] != ep_tasks[:-1])[0] + 1
+            if len(changes) == 0:
+                continue
+            ep_frames = np.nonzero(episode == e)[0]
+            for change in changes:
+                lo, hi = max(1, int(change) - pad), int(change)
+                anchored[ep_frames[lo : hi + 1]] = True
+        mc_ok = anchored & (frame > 0) & (frame + data_config.memory_min_slice_steps * stride <= length) & allowed
+        in_window = mc_ok  # anchored starts draw their mass from the transition branch only
     else:
         dead = (frame > info["reveal"][episode]) & (frame < info["switch"][episode])
         in_window = np.zeros(len(episode), dtype=bool)
@@ -1755,7 +1883,17 @@ def _sequence_sampling_info(
         weights[slice_ok] = slice_mass / n_slice
 
     n_cells = 0
-    if mc_prob > 0:
+    if mc_prob > 0 and data_config.memory_v5_generic_task:
+        # Equal mass per manifest class (e.g. target count), then per episode, then per start.
+        cell_members: dict[int, list[int]] = {}
+        for e in np.unique(episode[mc_ok]):
+            cell_members.setdefault(int(info["memory_cell"][e]), []).append(int(e))
+        n_cells = len(cell_members)
+        for members in cell_members.values():
+            for e in members:
+                idx = np.nonzero(mc_ok & (episode == e))[0]
+                weights[idx] = critical_mass / n_cells / len(members) / len(idx)
+    elif mc_prob > 0:
         mc_episodes = np.unique(episode[mc_ok])
         if data_config.memory_v35_enabled:
             # Equal marginal mass over natural/skip-O x stable manifest cell, then over
