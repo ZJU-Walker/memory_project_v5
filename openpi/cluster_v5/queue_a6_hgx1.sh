@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Run ON iris-hgx-1 (user 2026-09-03 23:12 "do it"; the H100 of job 17192955 shares the GPU with the user's Qwen
-# action-expert server, ~11 GB, so the memory fraction is capped). NFS worktree root (no staged copy on this node).
+# Run ON iris-hgx-1 (user 2026-09-03 23:12 "do it"). NFS worktree root (no staged copy on this node).
 #   wait for the A5-999 params on NFS -> A6 smoke -> A6 r1 (1000, warm start from A5-999) -> keep_999
 #   -> side-flip battery (semantic, 999) -> verdict -> B6a smoke -> B6a r1 (own sentences, from A6-999) -> keep_999
 #   -> videos (self, oracle) -> batteries.
 export HOME=/iris/u/kewalk
-export JOB=17192955
-export XLA_PYTHON_CLIENT_MEM_FRACTION=0.7
+# 23:30: the user's Qwen action-expert TRAINING in the 4xH100 job 17178887 was stopped at their instruction; A6/B6a
+# train there with FSDP over the 4 GPUs (GPUS=4, same global batch 2); batteries/videos take one GPU of that job.
+export JOB=17178887
+export GPUS=4
 diag=/iris/u/kewalk/memory_project_v5/v5/diagnostics
 cv5=/iris/u/kewalk/memory_project_v5/openpi/cluster_v5
 ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints

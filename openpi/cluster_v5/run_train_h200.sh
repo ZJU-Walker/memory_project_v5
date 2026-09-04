@@ -13,6 +13,8 @@
 set -u
 config="$1"; exp="$2"; shift 2
 batch="${BATCH:-2}"; accum="${ACCUM:-1}"; JOB="${JOB:-17207774}"
+# GPUS=4 (user 2026-09-03 23:30, the 4xH100 job 17178887): FSDP over the job's GPUs, same global batch.
+gpus="${GPUS:-1}"; visible=$(seq -s, 0 $((gpus - 1)))
 nfs_root=/iris/u/kewalk/memory_project_v5
 local_root=/scr/kewalk_v5/memory_project_v5
 # Run from the node-local project copy when it is staged (cluster_v5/stage_local_project_hgx2.sh):
@@ -31,9 +33,9 @@ fi
 ph=$(pgrep -f "gpu_placeholder_marke[r]" || true)
 [ -n "$ph" ] && { kill $ph 2>/dev/null; sleep 5; echo "killed placeholder pids: $ph"; }
 job=$(grep -oE 'job_[0-9]+' /proc/self/cgroup | sort -u | tr '\n' ' ')
-echo "launch $(date +%m/%d\ %H:%M) host=$(hostname) job=$job step-of=$JOB config=$config exp=$exp batch=$batch accum=$accum mode=$mode root=$root extra=$*" >> "$diag/train_${exp}_status.log"
-srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:1 \
-  env CUDA_VISIBLE_DEVICES=0 \
-  cluster_v5/train.sh "$config" --exp-name "$exp" --batch-size "$batch" --gradient-accumulation-steps "$accum" --fsdp-devices 1 \
+echo "launch $(date +%m/%d\ %H:%M) host=$(hostname) job=$job step-of=$JOB gpus=$gpus config=$config exp=$exp batch=$batch accum=$accum mode=$mode root=$root extra=$*" >> "$diag/train_${exp}_status.log"
+srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:"$gpus" \
+  env CUDA_VISIBLE_DEVICES="$visible" \
+  cluster_v5/train.sh "$config" --exp-name "$exp" --batch-size "$batch" --gradient-accumulation-steps "$accum" --fsdp-devices "$gpus" \
   --no-wandb-enabled "${extra[@]}" "$@" >> "$diag/train_${exp}.log" 2>&1
 echo "exit=$? $(date +%m/%d\ %H:%M)" >> "$diag/train_${exp}_status.log"
