@@ -1061,8 +1061,8 @@ V5_BEANS_EVIDENCE_SENTENCES: tuple[str, ...] = V5_BEANS_SENTENCES[1:4]
 V5_BEANS_DECISION_SENTENCES: tuple[str, ...] = V5_BEANS_SENTENCES[4:7] + V5_BEANS_SENTENCES[8:11]
 # Pinned bytes of openpi/cluster_v5/beans/{beans_episode_manifest_v1,beans_v5_subtask_labels_v1}.json
 # (scripts/beans_build_v5_manifest_sidecar.py, 2026-09-04).
-V5_BEANS_MANIFEST_SHA256 = "__BEANS_MANIFEST_SHA256__"
-V5_BEANS_SIDECAR_SHA256 = "__BEANS_SIDECAR_SHA256__"
+V5_BEANS_MANIFEST_SHA256 = "40d00bc458081a830a74c80fc3a002189f6f97bc4cbf86f94f9dd2ba8fb2a94a"
+V5_BEANS_SIDECAR_SHA256 = "d4581a3ec97e184935df4c53a2b9767337bfd23de213fa09d843882802baa0f2"
 
 _CONFIGS = [
     #

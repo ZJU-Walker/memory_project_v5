@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import pathlib
+import re
 
 SCHEMA_MANIFEST = "openpi.v5.generic-manifest.v1"
 SCHEMA_SIDECAR = "openpi.v5.subtask-labels.v1"
@@ -45,17 +46,48 @@ def main() -> None:
     parser.add_argument("--final-test-per-class", type=int, default=2)
     parser.add_argument("--dev-per-class", type=int, default=2)
     parser.add_argument("--dataset-name", default="0902_bean_scoop")
+    parser.add_argument("--raw-dir", type=pathlib.Path, default=None,
+                        help="raw demo root (demo1..demoN); needed when the dataset has no meta/episode_sources.json "
+                             "(single-source conversions): episodes were converted in natural demo order and are "
+                             "re-identified by that order, verified by frame count and task set")
     args = parser.parse_args()
 
     meta = args.lerobot_dir / "meta"
-    sources = json.loads((meta / "episode_sources.json").read_text())
     prompts = json.loads((meta / "episode_prompts.json").read_text())
     lengths = {}
+    episode_tasks = {}
     for line in (meta / "episodes.jsonl").read_text().splitlines():
         if line.strip():
             record = json.loads(line)
             lengths[int(record["episode_index"])] = int(record["length"])
+            episode_tasks[int(record["episode_index"])] = set(record.get("tasks", []))
     labels_manifest = json.loads(args.labels_manifest.read_text())
+    sources_path = meta / "episode_sources.json"
+    if sources_path.exists():
+        sources = json.loads(sources_path.read_text())
+    else:
+        if args.raw_dir is None:
+            raise SystemExit(f"{sources_path} is missing; pass --raw-dir to re-identify episodes by natural demo order")
+
+        def natural_key(path: pathlib.Path):
+            match = re.search(r"(\d+)$", path.name)
+            return (int(match.group(1)) if match else 10**9, path.name)
+
+        demo_dirs = sorted((d for d in args.raw_dir.glob("demo*") if d.is_dir()), key=natural_key)
+        demo_dirs = [d for d in demo_dirs if (d / "subtask_labels.json").exists()]
+        if len(demo_dirs) != len(lengths):
+            raise ValueError(f"{len(demo_dirs)} labelled demo folders vs {len(lengths)} converted episodes")
+        sources = {}
+        for episode_index, demo in enumerate(demo_dirs):
+            entry = labels_manifest[demo.name]
+            tasks = {segment["task"] for segment in entry["segments"]}
+            if int(entry["num_frames"]) != lengths[episode_index] or tasks != episode_tasks[episode_index]:
+                raise ValueError(
+                    f"episode {episode_index} does not match {demo.name} (frames {lengths[episode_index]} vs "
+                    f"{entry['num_frames']}, tasks {sorted(episode_tasks[episode_index])} vs {sorted(tasks)})"
+                )
+            sources[str(episode_index)] = {"stable_id": f"{args.dataset_name}/{demo.name}", "raw_dir": str(demo)}
+        print(f"re-identified {len(sources)} episodes by natural demo order (frame counts and task sets verified)")
 
     episodes = []
     sidecar_episodes: dict[str, dict] = {}

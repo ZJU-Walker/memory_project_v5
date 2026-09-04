@@ -1,0 +1,609 @@
+{
+  "dataset": "0902_bean_scoop",
+  "episodes": [
+    {
+      "class": "x=3",
+      "episode_index": 0,
+      "expected_num_frames": 1517,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo1",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo1"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 1,
+      "expected_num_frames": 1321,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo2",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo2"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 2,
+      "expected_num_frames": 1299,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo3",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo3"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 3,
+      "expected_num_frames": 1145,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo4",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo4"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 4,
+      "expected_num_frames": 787,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo5",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo5"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 5,
+      "expected_num_frames": 1049,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo6",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo6"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 6,
+      "expected_num_frames": 1012,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo7",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo7"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 7,
+      "expected_num_frames": 886,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo8",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo8"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 8,
+      "expected_num_frames": 923,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo9",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo9"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 9,
+      "expected_num_frames": 674,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo10",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo10"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 10,
+      "expected_num_frames": 937,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo11",
+      "split": "development",
+      "stable_id": "0902_bean_scoop/demo11"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 11,
+      "expected_num_frames": 762,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo12",
+      "split": "development",
+      "stable_id": "0902_bean_scoop/demo12"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 12,
+      "expected_num_frames": 968,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo13",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo13"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 13,
+      "expected_num_frames": 1263,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo14",
+      "split": "development",
+      "stable_id": "0902_bean_scoop/demo14"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 14,
+      "expected_num_frames": 698,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo15",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo15"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 15,
+      "expected_num_frames": 1264,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo16",
+      "split": "final_test",
+      "stable_id": "0902_bean_scoop/demo16"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 16,
+      "expected_num_frames": 1096,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo17",
+      "split": "development",
+      "stable_id": "0902_bean_scoop/demo17"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 17,
+      "expected_num_frames": 653,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo18",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo18"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 18,
+      "expected_num_frames": 940,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo19",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo19"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 19,
+      "expected_num_frames": 719,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo20",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo20"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 20,
+      "expected_num_frames": 979,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo21",
+      "split": "development",
+      "stable_id": "0902_bean_scoop/demo21"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 21,
+      "expected_num_frames": 696,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo22",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo22"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 22,
+      "expected_num_frames": 685,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo23",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo23"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 23,
+      "expected_num_frames": 913,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo24",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo24"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 24,
+      "expected_num_frames": 1186,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo25",
+      "split": "final_test",
+      "stable_id": "0902_bean_scoop/demo25"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 25,
+      "expected_num_frames": 594,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo26",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo26"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 26,
+      "expected_num_frames": 856,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo27",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo27"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 27,
+      "expected_num_frames": 1098,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo28",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo28"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 28,
+      "expected_num_frames": 1129,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo29",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo29"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 29,
+      "expected_num_frames": 927,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo30",
+      "split": "final_test",
+      "stable_id": "0902_bean_scoop/demo30"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 30,
+      "expected_num_frames": 650,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo31",
+      "split": "final_test",
+      "stable_id": "0902_bean_scoop/demo31"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 31,
+      "expected_num_frames": 1149,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo32",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo32"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 32,
+      "expected_num_frames": 903,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo33",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo33"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 33,
+      "expected_num_frames": 1117,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo34",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo34"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 34,
+      "expected_num_frames": 1115,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo35",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo35"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 35,
+      "expected_num_frames": 881,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo36",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo36"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 36,
+      "expected_num_frames": 929,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo37",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo37"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 37,
+      "expected_num_frames": 848,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo38",
+      "split": "final_test",
+      "stable_id": "0902_bean_scoop/demo38"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 38,
+      "expected_num_frames": 1058,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo39",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo39"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 39,
+      "expected_num_frames": 1110,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo40",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo40"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 40,
+      "expected_num_frames": 640,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo41",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo41"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 41,
+      "expected_num_frames": 827,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo42",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo42"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 42,
+      "expected_num_frames": 744,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo43",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo43"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 43,
+      "expected_num_frames": 1043,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo44",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo44"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 44,
+      "expected_num_frames": 627,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo45",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo45"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 45,
+      "expected_num_frames": 560,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo46",
+      "split": "final_test",
+      "stable_id": "0902_bean_scoop/demo46"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 46,
+      "expected_num_frames": 882,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo47",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo47"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 47,
+      "expected_num_frames": 615,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo48",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo48"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 48,
+      "expected_num_frames": 621,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo49",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo49"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 49,
+      "expected_num_frames": 839,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo50",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo50"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 50,
+      "expected_num_frames": 626,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo51",
+      "split": "development",
+      "stable_id": "0902_bean_scoop/demo51"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 51,
+      "expected_num_frames": 1080,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo52",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo52"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 52,
+      "expected_num_frames": 569,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo53",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo53"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 53,
+      "expected_num_frames": 826,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo54",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo54"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 54,
+      "expected_num_frames": 884,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo55",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo55"
+    },
+    {
+      "class": "x=2",
+      "episode_index": 55,
+      "expected_num_frames": 672,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo56",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo56"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 56,
+      "expected_num_frames": 515,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo57",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo57"
+    },
+    {
+      "class": "x=1",
+      "episode_index": 57,
+      "expected_num_frames": 548,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo58",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo58"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 58,
+      "expected_num_frames": 1088,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo59",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo59"
+    },
+    {
+      "class": "x=3",
+      "episode_index": 59,
+      "expected_num_frames": 1057,
+      "include": true,
+      "prompt": "scoop the beans into the tray as many times as the green light blinked",
+      "raw_dir": "/iris/u/kewalk/memory_project/data/0902_bean_scoop/demo60",
+      "split": "train",
+      "stable_id": "0902_bean_scoop/demo60"
+    }
+  ],
+  "lerobot_dir": "/iris/u/kewalk/memory_project_v5/v5/data/lerobot/yam/bean_scoop_0902_v5",
+  "schema_version": "openpi.v5.generic-manifest.v1",
+  "split_rule": "per class (target count): rank by sha256('902|stable_id'); first 2 final_test, next 2 development, rest train",
+  "split_seed": 902
+}
