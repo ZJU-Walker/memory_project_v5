@@ -514,3 +514,13 @@ build no fallback.
   Judged checkpoint `v5/checkpoints/pi05_yam_mem_v5_stageB6a/v5_stageB6a_20260903_r1/keep_499` (NFS). Both B runs now
   go through their batteries and then continue training (user rule).
 
+* 2026-09-04 09:50 — **Both B runs judged and continuing.** Self-write-mode batteries (first decision step, held-out):
+  B5a-999 normal 1.000, blank 0.458, margin +14.9; B6a-499 normal 1.000, blank 0.625, margin +18.6. The flip
+  follows-content number in SELF-write mode (B5a 0.688, B6a 0.521) is a measurement limit, not a model result: the battery
+  can flip only the prefilled history, and windows whose inspect phase lies inside the window get the model's own
+  unflipped sentence, so the flip never reaches the bank there; the clean read test is the oracle-mode battery of the A
+  stage (A5/A6 1.000) plus the self-write rollouts (45/45, 44/45). Continuations (user rule 02:02 "keep training"): B5a
+  resumed on the H200 at 06:36 toward 3000 updates (batch 2, ~7–9 s/update, saves 1250/1500/…); B6a resumed on the 4xH100
+  at 09:46 toward 3000 (batch 8, saves 750/1000/…). Judged checkpoints untouched: B5a keep_999, B6a keep_499 (both NFS).
+  Robot serving: `cluster_v5/serve_v5_hgx1.sh <ckpt dir> <config> [port]` on iris-hgx-1 (job 17192955).
+
