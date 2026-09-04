@@ -110,3 +110,34 @@ def test_first_step_summary_excludes_history_decided_windows():
     assert first["decision_steps"] == 1 and first["excluded_history_decided"] == 1
     every = battery.summarize(records)
     assert every["decision_steps"] == 3
+
+
+def test_b5_pipeline_carries_the_prefill_keys_to_the_tokenizer():
+    """The first B5 smoke died because two key whitelists (the repack structure and YamInputs)
+    silently dropped the raw prefill strings before the tokenizer transform saw them."""
+    from openpi.policies import yam_policy
+    from openpi.training import config as _config
+
+    cfg = _config.get_config("pi05_yam_mem_v5_stageB5")
+    data_config = cfg.data.create(cfg.assets_dirs, cfg.model)
+    repack = data_config.repack_transforms.inputs[0]
+    for key in ("memory_v5_prefill", "memory_v5_prefill_gaps", "memory_v5_pending"):
+        assert repack.structure[key] == key
+    tokenize = [t for t in data_config.model_transforms.inputs if isinstance(t, _transforms.TokenizeMemorySubtaskInputs)]
+    assert tokenize and tokenize[0].prefill_len == cfg.model.memory_v5_sentence_len
+    yam = yam_policy.YamInputs(model_type=cfg.model.model_type)
+    item = {
+        "observation/state": np.zeros((2, 14), dtype=np.float32),
+        "observation/image": np.zeros((2, 4, 4, 3), dtype=np.uint8),
+        "observation/left_wrist_image": np.zeros((2, 4, 4, 3), dtype=np.uint8),
+        "observation/right_wrist_image": np.zeros((2, 4, 4, 3), dtype=np.uint8),
+        "actions": np.zeros((2, 4, 14), dtype=np.float32),
+        "prompt": "find the banana",
+        "memory_v5_prefill": ["open both lids", "", "", "", "", ""],
+        "memory_v5_prefill_gaps": np.zeros((6,), dtype=np.int32),
+        "memory_v5_pending": "inspect both bins: banana left, grey pepper box right",
+    }
+    out = yam(item)
+    assert out["memory_v5_prefill"][0] == "open both lids"
+    assert out["memory_v5_pending"].startswith("inspect")
+    assert out["memory_v5_prefill_gaps"].shape == (6,)

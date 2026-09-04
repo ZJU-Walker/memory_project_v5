@@ -426,4 +426,9 @@ build no fallback.
   of B4). Tests: `pi0_v5_test.py` 19 passed, `scripts/v5_prefill_test.py` 5 passed, transforms/tokenizer 12, config+v4 18.
   Queue `cluster_v5/queue_b5_hgx2.sh`: smoke → r1 (1000) → keep_999 → videos (self, oracle) → batteries → verdict →
   placeholder. The useless A4→2999 continuation on the H200 was stopped for it.
+  * 17:31 B5 smoke FAILED: `memory_v5_prefill_history needs memory_v5_prefill_*/pending_* observation fields` — the raw
+    prefill strings were dropped by two key whitelists before the tokenizer transform (the yam repack structure in
+    `config.py` and `YamInputs` in `yam_policy.py`); both now pass `memory_v5_prefill{,_gaps}`/`memory_v5_pending`
+    through (regression test `test_b5_pipeline_carries_the_prefill_keys_to_the_tokenizer`; the CPU loader probe shows
+    [b, 6, 48] prefill tokens with valid rows and gaps). Relaunched 17:5x.
 

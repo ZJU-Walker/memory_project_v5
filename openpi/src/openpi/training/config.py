@@ -627,6 +627,10 @@ class LeRobotYamDataConfig(DataConfigFactory):
                 structure["memory_window"] = "memory_window"
         if use_v4_facts:
             structure["episode_fact_targets"] = "episode_fact_targets"
+        if use_memory and getattr(model_config, "memory_v5_prefill_history", False):
+            # A5 history prefill (emitted by MemorySequenceSubtasks on the raw item, tokenized
+            # by TokenizeMemorySubtaskInputs): the repack must carry the raw strings/gaps through.
+            structure.update({key: key for key in ("memory_v5_prefill", "memory_v5_prefill_gaps", "memory_v5_pending")})
         if use_quiz:
             structure.update({key: key for key in ("quiz_side", "reveal_frame", "close_frame")})
         if use_v34_labels:

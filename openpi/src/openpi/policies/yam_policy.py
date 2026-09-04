@@ -103,6 +103,11 @@ class YamInputs(transforms.DataTransformFn):
             # v4 dual-bank fact supervision (V4_PLAN.md); absent for every v3.x config.
             "seq_fact_labels",
             "seq_fact_observable",
+            # v5 A5 history prefill (cluster_v5/README.md §8): raw sentence strings/gaps from
+            # MemorySequenceSubtasks, tokenized later by TokenizeMemorySubtaskInputs.
+            "memory_v5_prefill",
+            "memory_v5_prefill_gaps",
+            "memory_v5_pending",
         ):
             if key in data:
                 inputs[key] = data[key]
