@@ -1,0 +1,494 @@
+<title>v5 Sentence Bank</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --surface2:#E9EDF1; --ink:#182230; --ink2:#4E5D6E; --line:#C9D2DB;
+  --sem:#0E6C78; --sem-soft:#D6EEF0; --vis:#A9721B; --vis-soft:#F6E9D1; --write:#8A3B7D; --write-soft:#F1DDEC;
+  --good:#2E7D4F; --good-soft:#DCEFE3; --bad:#B4432F; --bad-soft:#F6DED9; --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --display:"Sora","Segoe UI",Helvetica,Arial,sans-serif; --body:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111820; --surface:#18212B; --surface2:#222D39; --ink:#E4EAF0; --ink2:#9FB0C0; --line:#34424F;
+    --sem:#5CC2CC; --sem-soft:#153A40; --vis:#E0A64A; --vis-soft:#3B2E14; --write:#D48BC6; --write-soft:#3D2238;
+    --good:#6CC493; --good-soft:#193426; --bad:#F08A76; --bad-soft:#3F1F1A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111820; --surface:#18212B; --surface2:#222D39; --ink:#E4EAF0; --ink2:#9FB0C0; --line:#34424F;
+  --sem:#5CC2CC; --sem-soft:#153A40; --vis:#E0A64A; --vis-soft:#3B2E14; --write:#D48BC6; --write-soft:#3D2238;
+  --good:#6CC493; --good-soft:#193426; --bad:#F08A76; --bad-soft:#3F1F1A;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;margin:0}
+.page{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:2.1rem;font-weight:700;letter-spacing:-0.01em;line-height:1.15}
+h2{font-size:1.45rem;font-weight:600;margin-top:64px;padding-top:18px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:28px}
+p{max-width:70ch;margin:12px 0}
+.lede{font-size:1.15rem;color:var(--ink2);max-width:70ch;margin-top:12px}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:30px 0 6px}
+.kpi{background:var(--surface);border:1px solid var(--line);padding:14px 16px}
+.kpi .n{font-family:var(--display);font-size:1.7rem;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:.86rem;color:var(--ink2);margin-top:4px}
+.fig{background:var(--surface);border:1px solid var(--line);padding:16px 12px 8px;margin:18px 0 8px;overflow-x:auto}
+.fig svg{display:block;width:100%;height:auto;min-width:760px;font-family:var(--body)}
+.cap{font-size:.9rem;color:var(--ink2);max-width:80ch;margin:6px 0 0}
+.cap b{color:var(--ink)}
+svg .box{fill:var(--surface2);stroke:var(--line);stroke-width:1}
+svg .box-sem{fill:var(--sem-soft);stroke:var(--sem);stroke-width:1.2}
+svg .box-vis{fill:var(--vis-soft);stroke:var(--vis);stroke-width:1.2;stroke-dasharray:5 4}
+svg .box-write{fill:var(--write-soft);stroke:var(--write);stroke-width:1.2}
+svg .box-out{fill:var(--surface);stroke:var(--ink2);stroke-width:1.2}
+svg .t{fill:var(--ink);font-size:13px}
+svg .ts{fill:var(--ink2);font-size:11.5px}
+svg .tb{fill:var(--ink);font-size:13px;font-weight:600}
+svg .tm{fill:var(--ink);font-size:11.5px;font-family:var(--mono)}
+svg .tsem{fill:var(--sem);font-size:12px;font-weight:600}
+svg .twrite{fill:var(--write);font-size:12px;font-weight:600}
+svg .tvis{fill:var(--vis);font-size:12px;font-weight:600}
+svg .ln{stroke:var(--ink2);stroke-width:1.4;fill:none}
+svg .ln-sem{stroke:var(--sem);stroke-width:1.8;fill:none}
+svg .ln-write{stroke:var(--write);stroke-width:1.8;fill:none}
+svg .ln-vis{stroke:var(--vis);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+svg .tick{stroke:var(--line);stroke-width:1}
+svg .phase{stroke:var(--ink2);stroke-width:1}
+table{border-collapse:collapse;width:100%;font-size:.95rem;margin:14px 0}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);font-weight:600;font-size:.82rem;letter-spacing:.02em;color:var(--ink2)}
+td.num{font-family:var(--mono);font-size:.86rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tblwrap{overflow-x:auto}
+.pill{display:inline-block;font-family:var(--mono);font-size:.74rem;padding:2px 8px;border-radius:3px;white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.sem{background:var(--sem-soft);color:var(--sem)}
+.pill.write{background:var(--write-soft);color:var(--write)}
+code{font-family:var(--mono);font-size:.84em;background:var(--surface2);padding:1px 5px;border-radius:3px}
+.eq{font-family:var(--mono);font-size:.9rem;background:var(--surface2);border-left:3px solid var(--sem);padding:10px 14px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.two p{max-width:none}
+ul{max-width:72ch;padding-left:22px}
+li{margin:5px 0}
+.note{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--vis);padding:12px 16px;max-width:80ch;margin:16px 0}
+.note p{margin:4px 0}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}body{font-size:16px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="page">
+<div class="eyebrow">π0.5 · YAM bin task · worktree memory_project_v5 · 2026-09-04</div>
+<h1>The v5 sentence-fed fast-weight memory</h1>
+<p class="lede">One text span does two jobs. The subtask sentence π0.5 already decodes is written, with a one-step delay and a confidence gate, into a Titans-style fast-weight bank; eight learned queries read it back at layer 8 and the retrieved vectors are injected as memory tokens. The bank is therefore a log of "what I have done so far", and the decision sentence <i>wait; target bin is right</i> can only be produced by reading the inspect sentence written a minute earlier.</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">8 / 8</div><div class="l">held-out episodes correct on the model's own sentences (B5a and B6a)</div></div>
+  <div class="kpi"><div class="n">44 / 45</div><div class="l">B6a decision steps with the correct side (the miss is a one-step phase lag)</div></div>
+  <div class="kpi"><div class="n">5</div><div class="l">bank writes per episode in B6a, exactly the five true phases, no spurious writes</div></div>
+  <div class="kpi"><div class="n">1.000</div><div class="l">first-step side accuracy and flip-follows-content on the oracle battery (A5, A6)</div></div>
+</div>
+
+<h2>1. The task the bank has to solve</h2>
+<p>Each of the 70 labelled episodes (54 train, 8 development, 8 sealed final-test) runs the same five phases. The prompt names an object, the arms open both lids, look inside, close everything and return home, and only then decide which bin to open. At the decision step the lids are closed and the arms are home, so the image contains no evidence about where the banana is. Only the bank does.</p>
+
+<div class="fig">
+<svg viewBox="0 0 900 235" role="img" aria-label="One episode as a timeline of five phases, memory steps every 15 frames, and the five bank commits">
+  <text x="40" y="22" class="tb">One episode (median 797 frames at 30 Hz, about 53 memory steps at stride 15)</text>
+  <!-- phase bars -->
+  <rect x="40" y="52" width="221" height="34" class="box phase"/>
+  <rect x="261" y="52" width="70" height="34" class="box phase"/>
+  <rect x="331" y="52" width="172" height="34" class="box phase"/>
+  <rect x="503" y="52" width="105" height="34" class="box phase"/>
+  <rect x="608" y="52" width="252" height="34" class="box phase"/>
+  <text x="150" y="74" text-anchor="middle" class="t">open both lids</text>
+  <text x="296" y="74" text-anchor="middle" class="t">inspect</text>
+  <text x="417" y="74" text-anchor="middle" class="t">close both lids and reset arms</text>
+  <text x="555" y="74" text-anchor="middle" class="t">wait</text>
+  <text x="734" y="74" text-anchor="middle" class="t">open right bin</text>
+  <!-- frame counts under bars -->
+  <text x="150" y="102" text-anchor="middle" class="ts">211 frames · 14 steps</text>
+  <text x="296" y="102" text-anchor="middle" class="ts">67 · 4.5</text>
+  <text x="417" y="102" text-anchor="middle" class="ts">164 · 11 steps</text>
+  <text x="555" y="102" text-anchor="middle" class="ts">100 · 6.7</text>
+  <text x="734" y="102" text-anchor="middle" class="ts">241 frames · 16 steps</text>
+  <!-- memory step ticks every 15 frames (15.7 px) -->
+  <g class="tick">
+    <line x1="40" y1="112" x2="860" y2="112"/>
+    <line x1="40" y1="108" x2="40" y2="116"/><line x1="55.7" y1="108" x2="55.7" y2="116"/><line x1="71.4" y1="108" x2="71.4" y2="116"/><line x1="87.1" y1="108" x2="87.1" y2="116"/><line x1="102.8" y1="108" x2="102.8" y2="116"/><line x1="118.5" y1="108" x2="118.5" y2="116"/><line x1="134.2" y1="108" x2="134.2" y2="116"/><line x1="149.9" y1="108" x2="149.9" y2="116"/><line x1="165.6" y1="108" x2="165.6" y2="116"/><line x1="181.3" y1="108" x2="181.3" y2="116"/><line x1="197" y1="108" x2="197" y2="116"/><line x1="212.7" y1="108" x2="212.7" y2="116"/><line x1="228.4" y1="108" x2="228.4" y2="116"/><line x1="244.1" y1="108" x2="244.1" y2="116"/><line x1="259.8" y1="108" x2="259.8" y2="116"/><line x1="275.5" y1="108" x2="275.5" y2="116"/><line x1="291.2" y1="108" x2="291.2" y2="116"/><line x1="306.9" y1="108" x2="306.9" y2="116"/><line x1="322.6" y1="108" x2="322.6" y2="116"/><line x1="338.3" y1="108" x2="338.3" y2="116"/><line x1="354" y1="108" x2="354" y2="116"/><line x1="369.7" y1="108" x2="369.7" y2="116"/><line x1="385.4" y1="108" x2="385.4" y2="116"/><line x1="401.1" y1="108" x2="401.1" y2="116"/><line x1="416.8" y1="108" x2="416.8" y2="116"/><line x1="432.5" y1="108" x2="432.5" y2="116"/><line x1="448.2" y1="108" x2="448.2" y2="116"/><line x1="463.9" y1="108" x2="463.9" y2="116"/><line x1="479.6" y1="108" x2="479.6" y2="116"/><line x1="495.3" y1="108" x2="495.3" y2="116"/><line x1="511" y1="108" x2="511" y2="116"/><line x1="526.7" y1="108" x2="526.7" y2="116"/><line x1="542.4" y1="108" x2="542.4" y2="116"/><line x1="558.1" y1="108" x2="558.1" y2="116"/><line x1="573.8" y1="108" x2="573.8" y2="116"/><line x1="589.5" y1="108" x2="589.5" y2="116"/><line x1="605.2" y1="108" x2="605.2" y2="116"/><line x1="620.9" y1="108" x2="620.9" y2="116"/><line x1="636.6" y1="108" x2="636.6" y2="116"/><line x1="652.3" y1="108" x2="652.3" y2="116"/><line x1="668" y1="108" x2="668" y2="116"/><line x1="683.7" y1="108" x2="683.7" y2="116"/><line x1="699.4" y1="108" x2="699.4" y2="116"/><line x1="715.1" y1="108" x2="715.1" y2="116"/><line x1="730.8" y1="108" x2="730.8" y2="116"/><line x1="746.5" y1="108" x2="746.5" y2="116"/><line x1="762.2" y1="108" x2="762.2" y2="116"/><line x1="777.9" y1="108" x2="777.9" y2="116"/><line x1="793.6" y1="108" x2="793.6" y2="116"/><line x1="809.3" y1="108" x2="809.3" y2="116"/><line x1="825" y1="108" x2="825" y2="116"/><line x1="840.7" y1="108" x2="840.7" y2="116"/><line x1="856.4" y1="108" x2="856.4" y2="116"/>
+  </g>
+  <text x="862" y="116" class="ts">memory steps</text>
+  <!-- commits: one step after each phase start (write delay) -->
+  <g>
+    <polygon points="55.7,128 50,140 61.4,140" fill="var(--write)"/>
+    <polygon points="276.7,128 271,140 282.4,140" fill="var(--write)"/>
+    <polygon points="346.7,128 341,140 352.4,140" fill="var(--write)"/>
+    <polygon points="518.7,128 513,140 524.4,140" fill="var(--write)"/>
+    <polygon points="623.7,128 618,140 629.4,140" fill="var(--write)"/>
+  </g>
+  <text x="40" y="158" class="twrite">bank commits (one step after the sentence first appears)</text>
+  <!-- bank content -->
+  <text x="40" y="184" class="tm">1 open both lids</text>
+  <text x="180" y="184" class="tm">2 + inspect both bins: banana right, grey pepper box left</text>
+  <text x="40" y="204" class="tm">3 + close both lids and reset arms</text>
+  <text x="330" y="204" class="tm">4 + wait; target bin is right</text>
+  <text x="600" y="204" class="tm">5 + open right bin</text>
+  <!-- decision arrow -->
+  <line x1="503" y1="40" x2="503" y2="52" class="ln-sem"/>
+  <text x="503" y="36" text-anchor="middle" class="tsem">decision: prompt "find the banana" + bank → side</text>
+  <text x="40" y="228" class="ts">Phase lengths are medians over the 70 labelled episodes; banana left in 34 episodes, right in 36.</text>
+</svg>
+</div>
+<p class="cap"><b>Figure 1.</b> The bank is written five times per episode. The only place the side ever appears before the decision is the inspect sentence, written about 20 memory steps (roughly 10 s) before the wait phase begins.</p>
+
+<h2>2. Where the memory sits inside π0.5</h2>
+<p>The base model is unchanged π0.5: SigLIP image tokens plus the prompt go through the Gemma blocks, the subtask sentence is decoded greedily from the causal text span, and the action expert produces a 50-step chunk by flow matching. v5 keeps the v4 dual-bank plumbing at layer 8 of 18 but deletes the task-specific fact head. The semantic bank is fed by the decoded sentence itself; the visual bank still runs but its read is not injected in any stage since A4, so the policy is blind to it.</p>
+
+<div class="fig">
+<svg viewBox="0 0 1000 430" role="img" aria-label="Block diagram of pi0.5 with the layer-8 memory interface, the semantic bank read path, and the delayed sentence write path">
+  <!-- main row -->
+  <rect x="20" y="30" width="130" height="80" class="box"/>
+  <text x="85" y="55" text-anchor="middle" class="tb">inputs</text>
+  <text x="85" y="74" text-anchor="middle" class="ts">3 cameras · robot state</text>
+  <text x="85" y="92" text-anchor="middle" class="ts">prompt "find the banana"</text>
+
+  <rect x="180" y="30" width="140" height="80" class="box"/>
+  <text x="250" y="60" text-anchor="middle" class="tb">SigLIP + embedder</text>
+  <text x="250" y="80" text-anchor="middle" class="ts">frozen</text>
+
+  <rect x="350" y="30" width="130" height="80" class="box"/>
+  <text x="415" y="60" text-anchor="middle" class="tb">Gemma blocks 0–8</text>
+  <text x="415" y="80" text-anchor="middle" class="ts">trained</text>
+
+  <rect x="510" y="20" width="150" height="100" class="box-sem"/>
+  <text x="585" y="44" text-anchor="middle" class="tb">layer-8 interface</text>
+  <text x="585" y="63" text-anchor="middle" class="ts">build 8 read queries</text>
+  <text x="585" y="80" text-anchor="middle" class="ts">read the bank</text>
+  <text x="585" y="97" text-anchor="middle" class="ts">inject 8 memory tokens</text>
+
+  <rect x="690" y="30" width="130" height="80" class="box"/>
+  <text x="755" y="60" text-anchor="middle" class="tb">Gemma blocks 9–17</text>
+  <text x="755" y="80" text-anchor="middle" class="ts">sees memory tokens</text>
+
+  <rect x="850" y="10" width="140" height="52" class="box-out"/>
+  <text x="920" y="31" text-anchor="middle" class="tb">action expert</text>
+  <text x="920" y="49" text-anchor="middle" class="ts">flow match, 50 actions</text>
+  <rect x="850" y="76" width="140" height="52" class="box-out"/>
+  <text x="920" y="97" text-anchor="middle" class="tb">subtask sentence</text>
+  <text x="920" y="115" text-anchor="middle" class="ts">greedy, ≤ 48 tokens</text>
+
+  <g class="ln">
+    <line x1="150" y1="70" x2="180" y2="70"/><line x1="320" y1="70" x2="350" y2="70"/>
+    <line x1="480" y1="70" x2="510" y2="70"/><line x1="660" y1="70" x2="690" y2="70"/>
+    <line x1="820" y1="70" x2="835" y2="70"/><line x1="835" y1="36" x2="835" y2="102"/>
+    <line x1="835" y1="36" x2="850" y2="36"/><line x1="835" y1="102" x2="850" y2="102"/>
+  </g>
+
+  <!-- banks row -->
+  <rect x="500" y="180" width="170" height="90" class="box-sem"/>
+  <text x="585" y="204" text-anchor="middle" class="tb">semantic bank</text>
+  <text x="585" y="223" text-anchor="middle" class="ts">MLP 512 → 1024³ → 2048</text>
+  <text x="585" y="240" text-anchor="middle" class="ts">delta commits, decay 0.99</text>
+  <text x="585" y="257" text-anchor="middle" class="ts">state carried across steps</text>
+
+  <rect x="690" y="180" width="140" height="90" class="box-vis"/>
+  <text x="760" y="206" text-anchor="middle" class="tvis">visual bank</text>
+  <text x="760" y="226" text-anchor="middle" class="ts">Stage-4c fast weights</text>
+  <text x="760" y="243" text-anchor="middle" class="ts">unsupervised writes</text>
+  <text x="760" y="260" text-anchor="middle" class="ts">injection off (blind)</text>
+
+  <!-- read arrows interface <-> semantic bank -->
+  <g class="ln-sem">
+    <line x1="565" y1="120" x2="565" y2="180"/>
+    <line x1="605" y1="180" x2="605" y2="120"/>
+  </g>
+  <polygon points="565,180 560,170 570,170" fill="var(--sem)"/>
+  <polygon points="605,120 600,130 610,130" fill="var(--sem)"/>
+  <text x="556" y="152" text-anchor="end" class="tsem">8 queries</text>
+  <text x="614" y="152" class="tsem">8 × 2048 read</text>
+  <g class="ln-vis"><line x1="755" y1="120" x2="755" y2="180"/></g>
+  <text x="762" y="152" class="ts">write only</text>
+
+  <!-- write path row -->
+  <rect x="850" y="320" width="130" height="80" class="box-write"/>
+  <text x="915" y="344" text-anchor="middle" class="tb">sentence at t−1</text>
+  <text x="915" y="363" text-anchor="middle" class="ts">one-step delay</text>
+  <text x="915" y="381" text-anchor="middle" class="ts">changed? conf ≥ 0.9?</text>
+
+  <rect x="490" y="320" width="260" height="80" class="box-write"/>
+  <text x="620" y="344" text-anchor="middle" class="tb">sentence encoder</text>
+  <text x="620" y="363" text-anchor="middle" class="ts">frozen blocks 0–8, text only</text>
+  <text x="620" y="381" text-anchor="middle" class="ts">standardize, pool, L2 → k 512, v 2048</text>
+
+  <g class="ln-write">
+    <line x1="915" y1="128" x2="915" y2="320"/>
+    <line x1="850" y1="360" x2="750" y2="360"/>
+    <line x1="585" y1="320" x2="585" y2="270"/>
+  </g>
+  <polygon points="915,320 910,310 920,310" fill="var(--write)"/>
+  <polygon points="750,360 760,355 760,365" fill="var(--write)"/>
+  <polygon points="585,270 580,280 590,280" fill="var(--write)"/>
+  <text x="922" y="230" class="twrite">decoded sentence</text>
+  <text x="596" y="298" class="twrite">commit (k, v) or decay</text>
+
+  <text x="20" y="200" class="tb">Frozen: vision encoder, embedder,</text>
+  <text x="20" y="218" class="tb">visual bank, its compressors, gates.</text>
+  <text x="20" y="246" class="tb">Trained: Gemma blocks, action</text>
+  <text x="20" y="264" class="tb">expert, every semantic-bank module.</text>
+  <text x="20" y="300" class="ts">One memory step = 15 frames (0.5 s).</text>
+  <text x="20" y="318" class="ts">Training windows: up to 40 steps,</text>
+  <text x="20" y="336" class="ts">bank state carried through the scan.</text>
+</svg>
+</div>
+<p class="cap"><b>Figure 2.</b> Read and write are separated in time. The read happens inside the forward pass at layer 8; the write happens after the step, using the sentence decoded one step earlier. Nothing the model writes can influence the same step's decision.</p>
+
+<h2>3. Writing: from a sentence to a fast-weight update</h2>
+<p>A sentence is turned into one key and one value, then committed with the delta rule. Only the output weight of the memory MLP changes, which is what makes the write a single test-time gradient step and lets gaps without writes be collapsed analytically.</p>
+
+<div class="fig">
+<svg viewBox="0 0 1000 250" role="img" aria-label="The write path: sentence tokens through frozen blocks, standardization against eight reference sentences, pooling, projections, delta rule">
+  <rect x="15" y="60" width="110" height="70" class="box"/>
+  <text x="70" y="88" text-anchor="middle" class="tb">sentence</text>
+  <text x="70" y="107" text-anchor="middle" class="ts">≤ 48 tokens</text>
+
+  <rect x="150" y="60" width="130" height="70" class="box"/>
+  <text x="215" y="82" text-anchor="middle" class="tb">blocks 0–8</text>
+  <text x="215" y="100" text-anchor="middle" class="ts">text only, no images,</text>
+  <text x="215" y="116" text-anchor="middle" class="ts">no bank, stop-gradient</text>
+
+  <rect x="305" y="60" width="170" height="70" class="box-sem"/>
+  <text x="390" y="82" text-anchor="middle" class="tb">standardize</text>
+  <text x="390" y="100" text-anchor="middle" class="ts">(h − μ) / σ per feature</text>
+  <text x="390" y="116" text-anchor="middle" class="ts">μ, σ: 8 reference sentences</text>
+
+  <rect x="500" y="60" width="170" height="70" class="box-sem"/>
+  <text x="585" y="82" text-anchor="middle" class="tb">pool</text>
+  <text x="585" y="100" text-anchor="middle" class="ts">masked mean ⊕ 4-query</text>
+  <text x="585" y="116" text-anchor="middle" class="ts">attention pooling, then L2</text>
+
+  <rect x="695" y="30" width="120" height="50" class="box-sem"/>
+  <text x="755" y="51" text-anchor="middle" class="tb">W_k → k</text>
+  <text x="755" y="69" text-anchor="middle" class="ts">512, unit norm</text>
+  <rect x="695" y="110" width="120" height="50" class="box-sem"/>
+  <text x="755" y="131" text-anchor="middle" class="tb">W_v → v</text>
+  <text x="755" y="149" text-anchor="middle" class="ts">2048, unit norm</text>
+
+  <rect x="840" y="45" width="150" height="100" class="box-write"/>
+  <text x="915" y="70" text-anchor="middle" class="tb">delta rule</text>
+  <text x="915" y="90" text-anchor="middle" class="ts">h = MLP₁₋₂(k)</text>
+  <text x="915" y="108" text-anchor="middle" class="ts">r = v − W₃ᵀh</text>
+  <text x="915" y="126" text-anchor="middle" class="ts">W₃ += h rᵀ / ‖h‖²</text>
+
+  <g class="ln">
+    <line x1="125" y1="95" x2="150" y2="95"/><line x1="280" y1="95" x2="305" y2="95"/>
+    <line x1="475" y1="95" x2="500" y2="95"/>
+    <line x1="670" y1="95" x2="682" y2="95"/><line x1="682" y1="55" x2="682" y2="135"/>
+    <line x1="682" y1="55" x2="695" y2="55"/><line x1="682" y1="135" x2="695" y2="135"/>
+    <line x1="815" y1="55" x2="840" y2="70"/><line x1="815" y1="135" x2="840" y2="120"/>
+  </g>
+  <text x="15" y="172" class="ts">Why standardize: 98 % of every layer-8 token state is one shared direction, so a plain mean pools the two inspect variants</text>
+  <text x="15" y="190" class="ts">("banana left, grey pepper box right" vs the reverse) to cosine 0.9994. Standardizing against the eight reference sentences</text>
+  <text x="15" y="208" class="ts">and adding trainable attention pooling lets the side words dominate the key.</text>
+  <text x="15" y="236" class="ts">Every non-write step applies one decay W₃ ← 0.99 W₃; n silent steps collapse exactly to 0.99ⁿ (used for the prefill gaps).</text>
+</svg>
+</div>
+<p class="cap"><b>Figure 3.</b> The encoder shares the frozen blocks 0 to 8 with the reader, so a sentence lands in the same space the queries live in. Keys and values are unit vectors, which keeps the delta-rule step scale-free.</p>
+
+<h3>The write rule at rollout time</h3>
+<div class="fig">
+<svg viewBox="0 0 900 205" role="img" aria-label="Write rule timeline over three memory steps showing decode, pending, and commit or decay">
+  <g class="tick"><line x1="150" y1="30" x2="150" y2="190"/><line x1="400" y1="30" x2="400" y2="190"/><line x1="650" y1="30" x2="650" y2="190"/></g>
+  <text x="275" y="24" text-anchor="middle" class="tb">step t−1</text>
+  <text x="525" y="24" text-anchor="middle" class="tb">step t</text>
+  <text x="775" y="24" text-anchor="middle" class="tb">step t+1</text>
+
+  <text x="20" y="58" class="tb">1 read bank</text>
+  <text x="160" y="58" class="ts">queries from prompt + previous sentence</text>
+  <text x="410" y="58" class="ts">same, bank now holds the t−1 write</text>
+  <text x="660" y="58" class="ts">…</text>
+
+  <text x="20" y="92" class="tb">2 decode</text>
+  <rect x="160" y="74" width="225" height="26" class="box"/>
+  <text x="272" y="92" text-anchor="middle" class="tm">"inspect both bins: …" p=0.97</text>
+  <rect x="410" y="74" width="225" height="26" class="box"/>
+  <text x="522" y="92" text-anchor="middle" class="tm">"inspect both bins: …" p=0.98</text>
+  <rect x="660" y="74" width="225" height="26" class="box"/>
+  <text x="772" y="92" text-anchor="middle" class="tm">"close both lids …" p=0.95</text>
+
+  <text x="20" y="128" class="tb">3 pending</text>
+  <text x="160" y="128" class="ts">hold (sentence, p) for one step</text>
+  <text x="410" y="128" class="ts">hold</text>
+  <text x="660" y="128" class="ts">hold</text>
+
+  <text x="20" y="164" class="tb">4 write</text>
+  <rect x="160" y="146" width="225" height="26" class="box"/>
+  <text x="272" y="164" text-anchor="middle" class="ts">pending of t−2 unchanged → decay</text>
+  <rect x="410" y="146" width="225" height="26" class="box-write"/>
+  <text x="522" y="164" text-anchor="middle" class="twrite">new sentence, p ≥ 0.9 → commit</text>
+  <rect x="660" y="146" width="225" height="26" class="box"/>
+  <text x="772" y="164" text-anchor="middle" class="ts">t sentence = last written → decay</text>
+  <text x="20" y="196" class="ts">Commit iff the delayed sentence differs from the last written one and its mean token probability is ≥ 0.9; otherwise exactly one decay.</text>
+</svg>
+</div>
+<p class="cap"><b>Figure 4.</b> The one-step delay (introduced in A4) is what stopped the bank from feeding a sentence back into the very step that produced it. In the oracle stages the label sentence replaces the decoded one and is always confident; the transition contract is identical.</p>
+
+<h3>History prefill in training (A5 onward)</h3>
+<p>Training windows start anywhere in an episode. Before A5 every window began with an empty bank, so a window starting in the wait phase taught the model that closed lids, home arms and an empty bank mean "wait; target bin is X". At a real episode start the bank is empty for the same visual state, and 4 of 8 A4 episodes died at frame 0 with a confident, wrong wait sentence. Since A5 each window starts with the bank prefilled by delta-rule commits of the distinct label sentences before the window (at most 6, with the exact decay gaps between them) and the pending slot holding the delayed sentence. An empty bank now occurs only at frame 0, exactly as in a rollout.</p>
+
+<h2>4. Reading: eight queries that depend on the prompt and the last sentence</h2>
+<p>The read is a forward pass of the fast-weight MLP on eight unit-norm queries. The A6 probe showed why reading had been weak: the queries were identical across frames, images and even instructions (cosine 1.000), because the conditioner's zero-initialised output projection had never opened. A6 gives the queries two explicit inputs and standardizes the instruction rows first.</p>
+
+<div class="fig">
+<svg viewBox="0 0 985 262" role="img" aria-label="The read path: base queries plus an instruction term and a previous-sentence shift, conditioner, projection, fast MLP forward, tanh-RMS injection">
+  <rect x="15" y="20" width="210" height="52" class="box-sem"/>
+  <text x="120" y="41" text-anchor="middle" class="tb">8 learned base queries</text>
+  <text x="120" y="60" text-anchor="middle" class="ts">a trainable table Q₀</text>
+
+  <rect x="15" y="92" width="210" height="60" class="box-sem"/>
+  <text x="120" y="113" text-anchor="middle" class="tb">+ instruction term</text>
+  <text x="120" y="130" text-anchor="middle" class="ts">standardized prompt mean at layer 8</text>
+  <text x="120" y="145" text-anchor="middle" class="ts">→ W_inst (identity init)</text>
+
+  <rect x="15" y="172" width="210" height="60" class="box-sem"/>
+  <text x="120" y="193" text-anchor="middle" class="tb">+ previous-sentence shift</text>
+  <text x="120" y="210" text-anchor="middle" class="ts">encoder(last decoded sentence)</text>
+  <text x="120" y="225" text-anchor="middle" class="ts">→ W_prev (zero init)</text>
+
+  <rect x="250" y="92" width="150" height="60" class="box-sem"/>
+  <text x="325" y="115" text-anchor="middle" class="tb">conditioner</text>
+  <text x="325" y="133" text-anchor="middle" class="ts">attends the prompt rows</text>
+
+  <rect x="425" y="92" width="120" height="60" class="box-sem"/>
+  <text x="485" y="115" text-anchor="middle" class="tb">W_q, L2</text>
+  <text x="485" y="133" text-anchor="middle" class="ts">8 × 512 keys</text>
+
+  <rect x="570" y="80" width="160" height="84" class="box-write"/>
+  <text x="650" y="104" text-anchor="middle" class="tb">fast MLP forward</text>
+  <text x="650" y="122" text-anchor="middle" class="ts">512 → 1024 → 1024 → 1024</text>
+  <text x="650" y="139" text-anchor="middle" class="ts">→ W₃ → 2048</text>
+  <text x="650" y="156" text-anchor="middle" class="ts">reads the current state</text>
+
+  <rect x="755" y="92" width="110" height="60" class="box-sem"/>
+  <text x="810" y="115" text-anchor="middle" class="tb">tanh-RMS</text>
+  <text x="810" y="133" text-anchor="middle" class="ts">fixed-scale gate</text>
+
+  <rect x="890" y="80" width="85" height="84" class="box-out"/>
+  <text x="932" y="110" text-anchor="middle" class="tb">8 memory</text>
+  <text x="932" y="128" text-anchor="middle" class="tb">tokens</text>
+  <text x="932" y="150" text-anchor="middle" class="ts">blocks 9–17</text>
+
+  <g class="ln">
+    <line x1="225" y1="46" x2="238" y2="46"/><line x1="238" y1="46" x2="238" y2="202"/>
+    <line x1="225" y1="122" x2="250" y2="122"/><line x1="225" y1="202" x2="238" y2="202"/>
+    <line x1="400" y1="122" x2="425" y2="122"/><line x1="545" y1="122" x2="570" y2="122"/>
+    <line x1="730" y1="122" x2="755" y2="122"/><line x1="865" y1="122" x2="890" y2="122"/>
+  </g>
+  <text x="250" y="60" class="ts">the three terms are summed per query row; a step with no previous sentence gets no shift</text>
+  <text x="15" y="256" class="ts">token = tanh(w) · r · c / max(rms(r), τ), c = 12.4, τ = 0.02, w frozen at 0.5. An empty bank reads exactly zero, so nothing is injected at frame 0.</text>
+</svg>
+</div>
+<p class="cap"><b>Figure 5.</b> The instruction term is what lets "find the banana" and "find the grey pepper box" ask the bank different questions. The previous-sentence shift lets the query move with the phase, so the same bank content is read differently while inspecting and while waiting.</p>
+
+<h2>5. The training recipe: oracle bank first, own sentences second</h2>
+<p>Two stages, both with the same architecture and data. Stage A writes the label sentence (oracle bank) so reading and phase tracking are learned on a clean bank. Stage B warm-starts from the A checkpoint and writes the model's own delayed, confidence-gated sentences at half the learning rate, so self-writes only harden what A learned. Direct B from scratch failed: with spurious own "wait" sentences already in the bank, copying its own earlier wait sentence became the easiest way to produce one, and the side was a coin flip.</p>
+
+<div class="fig">
+<svg viewBox="0 0 960 250" role="img" aria-label="Training ladder from A4 through A5, A6, B5a, and B6a with the failed direct B5 branch">
+  <rect x="15" y="60" width="150" height="80" class="box"/>
+  <text x="90" y="84" text-anchor="middle" class="tb">A4</text>
+  <text x="90" y="102" text-anchor="middle" class="ts">oracle writes, delay 1</text>
+  <text x="90" y="118" text-anchor="middle" class="ts">1000 upd · batch 2 · H200</text>
+  <text x="90" y="134" text-anchor="middle" class="ts">pass, but frame-0 fail</text>
+
+  <rect x="195" y="60" width="175" height="80" class="box-sem"/>
+  <text x="282" y="84" text-anchor="middle" class="tb">A5</text>
+  <text x="282" y="102" text-anchor="middle" class="ts">+ prefill · exact writes</text>
+  <text x="282" y="118" text-anchor="middle" class="ts">1000 upd · batch 2 · lr 5e-5</text>
+  <text x="282" y="134" text-anchor="middle" class="ts">battery 1.000 / 1.000</text>
+
+  <rect x="400" y="60" width="175" height="80" class="box-sem"/>
+  <text x="487" y="84" text-anchor="middle" class="tb">A6</text>
+  <text x="487" y="102" text-anchor="middle" class="ts">+ query fix · from A5-999</text>
+  <text x="487" y="118" text-anchor="middle" class="ts">500 upd · batch 8 · 4×H100</text>
+  <text x="487" y="134" text-anchor="middle" class="ts">battery 1.000 / 1.000</text>
+
+  <rect x="605" y="60" width="175" height="80" class="box-write"/>
+  <text x="692" y="84" text-anchor="middle" class="tb">B6a</text>
+  <text x="692" y="102" text-anchor="middle" class="ts">own writes · from A6-499</text>
+  <text x="692" y="118" text-anchor="middle" class="ts">500 upd · batch 8 · lr 2.5e-5</text>
+  <text x="692" y="134" text-anchor="middle" class="ts">8/8 · 44/45 · 5 writes/ep</text>
+
+  <rect x="810" y="60" width="135" height="80" class="box-out"/>
+  <text x="877" y="84" text-anchor="middle" class="tb">robot</text>
+  <text x="877" y="102" text-anchor="middle" class="ts">server on H100</text>
+  <text x="877" y="118" text-anchor="middle" class="ts">ckpt 1000 serving</text>
+  <text x="877" y="134" text-anchor="middle" class="ts">continuing to 3000</text>
+
+  <rect x="195" y="170" width="175" height="62" class="box-write"/>
+  <text x="282" y="192" text-anchor="middle" class="tb">B5a</text>
+  <text x="282" y="209" text-anchor="middle" class="ts">own writes · from A5-999</text>
+  <text x="282" y="225" text-anchor="middle" class="ts">8/8 · 45/45 · 2 early waits</text>
+
+  <rect x="400" y="170" width="175" height="62" class="box"/>
+  <text x="487" y="192" text-anchor="middle" class="tb">B5 direct</text>
+  <text x="487" y="209" text-anchor="middle" class="ts">own sentences from scratch</text>
+  <text x="487" y="225" text-anchor="middle" style="fill:var(--bad);font-size:11.5px;font-weight:600">0/5, 0/4 — copy shortcut</text>
+
+  <g class="ln">
+    <line x1="165" y1="100" x2="195" y2="100"/><line x1="370" y1="100" x2="400" y2="100"/>
+    <line x1="575" y1="100" x2="605" y2="100"/><line x1="780" y1="100" x2="810" y2="100"/>
+    <line x1="282" y1="140" x2="282" y2="170"/>
+  </g>
+  <polygon points="195,100 185,95 185,105" fill="var(--ink2)"/>
+  <polygon points="400,100 390,95 390,105" fill="var(--ink2)"/>
+  <polygon points="605,100 595,95 595,105" fill="var(--ink2)"/>
+  <polygon points="810,100 800,95 800,105" fill="var(--ink2)"/>
+  <polygon points="282,170 277,160 287,160" fill="var(--ink2)"/>
+  <text x="15" y="30" class="ts">Warm starts copy every parameter (bf16 base leaves widened to f32); A6 re-initialises only its two new query projections.</text>
+  <text x="605" y="200" class="ts">Batch 8 on four H100s ≈ 2× the samples/hour of batch 2 on one H200;</text>
+  <text x="605" y="218" class="ts">500 updates at batch 8 see 4000 windows, twice A5's 2000.</text>
+</svg>
+</div>
+<p class="cap"><b>Figure 6.</b> Cosine schedule, AdamW, gradient clip 1.0, a separate clip of 5.0 on the memory path, no EMA. Sentences are supervised by the label cross-entropy of the causal span; actions by the flow-matching loss; there is no auxiliary memory loss.</p>
+
+<h2>6. What each stage showed</h2>
+<p>Two instruments. The <b>held-out battery</b> replays development windows with the bank in oracle mode and flips the side words inside the stored sentences; if the first decision follows the flipped content the model is reading the bank rather than the image. The <b>self-write rollouts</b> run all eight development episodes end to end on the model's own sentences, which is the only test of phase tracking without a teacher.</p>
+
+<div class="tblwrap">
+<table>
+<thead><tr><th>stage</th><th>bank during training</th><th>battery first step (normal / flip follows content)</th><th>self-write rollouts (8 dev episodes)</th><th>verdict</th></tr></thead>
+<tbody>
+<tr><td>A4</td><td>labels, delay 1, side-stripped wait</td><td class="num">1.000 / 1.000 · margins +15.4 / −18.0</td><td>4/8 die at frame 0 (empty bank read as wait); never reaches open-bin</td><td><span class="pill bad">frame-0 failure</span></td></tr>
+<tr><td>B5 direct</td><td>own sentences from step 0</td><td class="num">decision exact ≈ 0.5 in training</td><td>0/5, 0/4 on two episodes; flips side after its own wait write</td><td><span class="pill bad">copy shortcut</span></td></tr>
+<tr><td>A5</td><td>labels, prefill, exact writes</td><td class="num">1.000 / 1.000 · +11.0 / −12.0</td><td>not run (oracle stage)</td><td><span class="pill good">pass</span></td></tr>
+<tr><td>B5a</td><td>own, warm from A5-999</td><td class="num">normal 1.000 · blank 0.458 · +14.9</td><td>8/8 episodes, 45/45 decisions; 2 episodes write a spurious wait at frame 45 and recover</td><td><span class="pill good">pass</span></td></tr>
+<tr><td>A6</td><td>labels, prefill, query fix</td><td class="num">1.000 / 1.000 · +15.1 / −15.5</td><td>not run (oracle stage)</td><td><span class="pill good">pass</span></td></tr>
+<tr><td>B6a</td><td>own, warm from A6-499</td><td class="num">normal 1.000 · blank 0.625 · +18.6</td><td>8/8 episodes, 44/45 decisions, exactly 5 writes in every episode, side never wrong</td><td><span class="pill good">judged, on the robot</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="cap">Margins are log-odds in nats between the correct and the wrong side token at the first decision step. "Blank" is the same step with an empty bank, which should be near chance. The flip number is not reported for the B rows: in self-write mode the battery can only flip the prefilled history, so windows whose inspect phase lies inside the window never see the flip. The clean read test is the oracle-mode battery of the matching A stage plus the rollouts.</p>
+
+<h3>The three failures and their fixes</h3>
+<ul>
+  <li><b>Empty bank means "wait".</b> Training windows began with a blank bank anywhere in the episode. Fixed by history prefill (A5).</li>
+  <li><b>Never reaching "open left bin".</b> The A3/A4 bank stored the wait label side-stripped, so the bank never matched the sentence the model had to produce next. Fixed by writing sentences exactly as labelled (A5). The user chose the exact write over side-stripping to keep the rule general.</li>
+  <li><b>Queries did not depend on anything.</b> The probe on A4 weights measured cosine 1.000 between queries of different frames, images and prompts. Fixed by standardizing the prompt rows, an identity-initialised instruction term and a zero-initialised previous-sentence shift (A6). B6a then wrote no spurious sentences at all where B5a still had two episodes with early wait writes.</li>
+</ul>
+
+<h2>7. Serving loop on the robot</h2>
+<div class="two">
+<div>
+<p>The server holds the bank state between calls. Each replan sends three images, the state and the prompt; the model reads the bank, decodes the subtask sentence with per-token probabilities, samples 50 actions, and returns the sentence, its confidence and the bank contents. The server then applies the same write rule as training on the returned sentence (one-step delay, changed, confidence 0.9) and either commits or decays.</p>
+</div>
+<div>
+<p>The client is the v4 real-time-chunking client with a v5 readout: it prints the current sentence, marks a committed write with a star, and lists the bank after each commit. Pressing <code>r</code> resets the bank between trials. Compile takes about a minute at warmup; a call then takes about 150 ms on the H100. Today's first robot trials on B6a were reported as working well.</p>
+</div>
+</div>
+
+<div class="note">
+<p><b>Open items.</b> Checkpoint 1000 of the B6a continuation is serving but has not been through the battery; keep_499 is the judged one. A stability gate (commit only after two or three identical confident steps) is the prepared cure if flickers appear on the robot. The final-test split of 8 episodes stays sealed until a model is declared final.</p>
+</div>
+
+<p class="cap" style="margin-top:36px">Sources: openpi/src/openpi/models/pi0.py and memory.py, training/config.py (v5 stage configs), cluster_v5/README.md §8, data/v5_subtask_labels_0830_0831.json, the frozen v36 episode manifest. Numbers are those logged for the judged checkpoints A5-999, B5a-999, A6-499 and B6a-499.</p>
+</div>
