@@ -8,6 +8,9 @@ export HOME=/iris/u/kewalk
 # train there with FSDP over the 4 GPUs (GPUS=4, same global batch 2); batteries/videos take one GPU of that job.
 export JOB=17178887
 export GPUS=4
+# The trainer requires global batch % devices == 0 (the 23:33 smoke died on batch 2 / 4 GPUs): one window per GPU,
+# global batch 4 = twice A5's samples per update over the same 1000 updates and schedule.
+export BATCH=4
 diag=/iris/u/kewalk/memory_project_v5/v5/diagnostics
 cv5=/iris/u/kewalk/memory_project_v5/openpi/cluster_v5
 ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
