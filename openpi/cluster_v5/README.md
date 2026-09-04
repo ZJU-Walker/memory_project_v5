@@ -581,3 +581,13 @@ build no fallback.
   self/oracle videos (`v5_heldout_video.py --manifest/--sidecar`, exact-sentence decision scoring) and the
   **count-flip battery** `scripts/v5_count_flip_eval.py` (go-sentence count argmin-CE over the 3 variants; normal /
   flip (all counts in the prefill + in-window blink sentences cyclically shifted) / blank; history-only subset).
+  15:51 — **beans-A smoke exit 0 (20 updates, batch 8, 4xH100) → beans-A r1 launched 15:51** (500 updates, ~1.7 h;
+  then B smoke → B r1 → B continuation, all in `queue_beans_hgx1.log`). Loader report on the real data: 48 train
+  episodes, 23 083 slice starts (p 0.25), 16 458 transition-anchored starts (p 0.5, 3 class cells), 48 full starts.
+  Step-0 CE 7.67 (the beans sentences are new to the B6a weights). Two launch bugs fixed on the way: (1) norm stats
+  land under `<assets_base>/<config name>/<repo_id>` while the beans DATA config reads
+  `v5/assets/pi05_yam_bean_scoop_0902_v5/<repo_id>` — the launcher now copies them (first attempt exited
+  "MISSING"); (2) the first smoke OOM'd at step 0 because `run_train_h200.sh` killed only `gpu_placeholder_marker_<job>\b`
+  while the sentinel names its per-GPU placeholders `..._<job>_g<k>` — the kill pattern is now the marker prefix
+  (commit 490fa31). Also: `pkill`/`kill $(pgrep -f X)` inside an ssh command whose text contains X kills that shell
+  (bracket-trick patterns only). Client: `client_memory_v5.py` accepts the beans prompt (`--steps-between-inference 5`).
