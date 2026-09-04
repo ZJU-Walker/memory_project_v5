@@ -94,6 +94,11 @@ class AuditedPartialCheckpointWeightLoader(PartialCheckpointWeightLoader):
     fresh_init_allowlist: tuple[str, ...] = ()
     ignored_source_allowlist: tuple[str, ...] = ()
     manifest_output_path: str | None = None
+    # v5 (cluster_v5/README.md §8, 2026-09-03 20:25): restore every source leaf AS this dtype
+    # before the audit. Training checkpoints store the frozen base leaves in bfloat16 while a
+    # freshly built model is float32; the strict dtype rule would reject the warm start. Only a
+    # lossless widening is allowed (bfloat16 -> float32); any narrowing is refused.
+    source_cast_dtype: str | None = None
 
     def load(self, params: at.Params) -> at.Params:
         return self.load_with_manifest(params).params
@@ -103,7 +108,21 @@ class AuditedPartialCheckpointWeightLoader(PartialCheckpointWeightLoader):
         if self.manifest_output_path is None:
             raise AuditedGraftError("audited partial loading requires manifest_output_path")
         restored_path = download.maybe_download(self.params_path)
-        source_params = _model.restore_params(restored_path, restore_type=np.ndarray)
+        cast_dtype = None
+        if self.source_cast_dtype is not None:
+            cast_dtype = np.dtype(jax.numpy.dtype(self.source_cast_dtype))
+            if cast_dtype != np.dtype(jax.numpy.float32):
+                raise AuditedGraftError(f"source_cast_dtype must be float32 (lossless widening), got {self.source_cast_dtype!r}")
+            logger.info("Audited partial initialization: restoring %s as %s", self.params_path, cast_dtype)
+        source_params = _model.restore_params(restored_path, restore_type=np.ndarray, dtype=cast_dtype)
+        if cast_dtype is not None:
+            narrowed = [
+                "/".join(str(k) for k in path)
+                for path, leaf in jax.tree_util.tree_leaves_with_path(source_params)
+                if np.dtype(leaf.dtype).itemsize > cast_dtype.itemsize
+            ]
+            if narrowed:
+                raise AuditedGraftError(f"source_cast_dtype would narrow {len(narrowed)} leaves, e.g. {narrowed[:3]}")
         result = _audit_and_graft(
             source_params,
             params,

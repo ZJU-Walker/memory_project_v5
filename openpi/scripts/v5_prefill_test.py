@@ -5,6 +5,7 @@ import os
 import sys
 
 import numpy as np
+import pytest
 
 from openpi import transforms as _transforms
 from openpi.models import tokenizer as _tokenizer
@@ -141,3 +142,24 @@ def test_b5_pipeline_carries_the_prefill_keys_to_the_tokenizer():
     assert out["memory_v5_prefill"][0] == "open both lids"
     assert out["memory_v5_pending"].startswith("inspect")
     assert out["memory_v5_prefill_gaps"].shape == (6,)
+
+
+def test_b5a_warm_start_loader_is_the_cast_audited_loader():
+    """B from A5 (two stages, user 2026-09-03 20:20): every leaf of the A5 checkpoint is matched,
+    nothing is fresh, and the bf16 base leaves are widened to f32 explicitly (the strict loader
+    refuses them, as the B4 graft did)."""
+    from openpi.training import config as _config
+    from openpi.training import weight_loaders as wl
+
+    cfg = _config.get_config("pi05_yam_mem_v5_stageB5a")
+    loader = cfg.weight_loader
+    assert isinstance(loader, wl.AuditedPartialCheckpointWeightLoader)
+    assert loader.source_cast_dtype == "float32"
+    assert loader.matched_allowlist == (".+",) and loader.fresh_init_allowlist == ()
+    assert "pi05_yam_mem_v5_stageA5/v5_stageA5_20260903_r1/999/params" in loader.params_path
+    assert cfg.model.memory_v5_oracle_writes is False and cfg.model.memory_v5_prefill_history
+    assert cfg.lr_schedule.peak_lr < _config.get_config("pi05_yam_mem_v5_stageA5").lr_schedule.peak_lr
+    with pytest.raises(wl.AuditedGraftError, match="lossless"):
+        import dataclasses
+
+        dataclasses.replace(loader, source_cast_dtype="bfloat16", manifest_output_path="/dev/null").load_with_manifest({})

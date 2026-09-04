@@ -432,3 +432,22 @@ build no fallback.
     through (regression test `test_b5_pipeline_carries_the_prefill_keys_to_the_tokenizer`; the CPU loader probe shows
     [b, 6, 48] prefill tokens with valid rows and gaps). Relaunched 17:5x.
 
+* 2026-09-03 20:30 — **B5 (direct B) verdict from the first two self-write videos + training telemetry: the copy shortcut
+  formed before reading existed → back to two stages (user 20:20).** B5 r1 (own sentences from step 0, prefill on, exact
+  writes) trained cleanly (CE 2.37 at 900 vs A4 2.28; inspect exact 0.71; qk 0.71) but its decision exact stayed
+  0.41–0.53 with per-token 0.91 — the side word is the wrong token — and it wrote ~10 sentences/batch vs the oracle's 7.5:
+  confident 1–4-step flickers, mostly `wait; target bin is <side>` at frames 30–75 (lids closed, arms home), got written.
+  ckpt-999 self videos: ep01 frame 0 correct, inspect correct, reaches `open left bin` (exact writes fixed the execute
+  transition) but the decision flips to `right` (0/5) right after its own `wait; target bin is left` entered the bank;
+  ep02 same pattern (0/4). Reading: with spurious own wait sentences in the training bank, copying its own earlier wait
+  sentence (random side) became the easiest way to produce a wait sentence — the training decision number ≈ 0.5 is that.
+  Diagnosis running (`diagnose_b5_hgx2.sh`): the side-flip battery on B5-999 as trained and with a clean ORACLE bank
+  (A5 config, same weights) to split "cannot read" from "bank polluted"; stage-2 telemetry both ways.
+  Decision: A5 (label writes + prefill + exact) first, then **B5a** = A5 weights warm-started (`pi05_yam_mem_v5_stageB5a`:
+  audited loader with the new explicit lossless `source_cast_dtype="float32"` — training checkpoints store 64 base leaves
+  in bf16 and the strict dtype rule refused them, which is also what killed the B4 graft; CPU test against A2-999:
+  strict refuses, cast loader matched=154 fresh=0 ignored=0), own sentences, peak LR 2.5e-5 (A: 5e-5), 1000 updates.
+  Queue `cluster_v5/queue_a5_b5a_hgx2.sh` (waits for the diagnosis): A5 smoke → r1 → keep_999 → side-flip 999 →
+  verdict (first-step normal ≥ 0.9 & flip follows ≥ 0.9) → B5a smoke → r1 → keep_999 → videos → batteries → placeholder.
+  Not built (optional): stability-gated writes (commit only after 2–3 identical consecutive steps).
+
