@@ -782,3 +782,17 @@ build no fallback.
   `STAGES="A6 B6"` armed alongside the A5/B5 one. Inspection: `examples/yam/label_subtasks.py --beans-task --beans-v6
   --label-file subtask_labels_v6sub.json` (v6 schema + boundary descriptions; save-time schema check skipped),
   served on iris-ws-18:8765 for the user.
+  13:20 — **B5 (delay 0 + own writes) collapses in rollouts** although its telemetry is normal (step 400: CE 1.20 /
+  decision 0.95 / evidence 0.96; writes/window 20.9 vs B4 22.8): at the first "off" step after a blink it says "no
+  blink yet" (conf 0.98) with [no blink, light on: 1] in the bank, writes it, and the chain restarts — go count "1 time"
+  in demo11/14/21, "done" during the go phase; 28/119, 45/78, 111/172, 53/150, 71/116, 56/67. Two findings on the way:
+  (1) **rollout bug for delay-0 models** — training conditions the A6 read queries on `prev_sentence` when the delay is
+  0, but `v5_heldout_video.py` and `serve_yam_memory.py` fed the never-filled pending slot (an empty sentence); fixed
+  (53e4af0). Re-rendering B5 with the fix changes ≤4 decision steps per episode → the previous-sentence query term is
+  effectively unused by these models (its zero-init shift never opened), so the fix is a correctness fix, not the
+  cause. (2) **B5 ORACLE-write video demo11: 117/119** (count 2, scoop 2 held) — and even there the first "off" step
+  says "no blink yet" for one step before the label write corrects the bank. So B5's decoder learned "LED off after
+  light on → no blink yet" during own-write training with delay 0; A5 (same delay, label writes) does not have it.
+  Control launched 13:20: **`beansB5d1`** = A5 weights + own writes + retry + delay 1 (`queue_beans11_hgx1.sh`, 4xH100;
+  the B5 continuation stopped). B6 (delay 0, own writes, sub-phase labels) launched 13:14 on the 2xH100 and will show
+  whether it inherits the collapse; A6 evals running on the H200.
