@@ -632,3 +632,26 @@ build no fallback.
   self-write dev videos: x=1 demo12/demo51 perfect (78/78, 67/67 decision steps), x=2 demo11 27/119 (double count → "3
   times"), demo21 68/116 (go correct), x=3 demo14 69/172 (late: first decision still a blink sentence), demo17 26/150
   ("2 times"); 3/6 first decisions correct. Videos sent to the user.
+  20:10 — **Scoop counter never advances in self-write mode** (user 19:53: "always stuck in scoop 1"). Records: inside a
+  phase conf 1.00; at the bowl-arrival boundary "scoop 2" appears for ONE step at conf 0.90 (the write threshold) and
+  the next step reverts to "scoop 1" although the previous sentence says "scoop 2"; "done" is still timed exactly (from
+  the image of the last dump, not from counting). Rollout commit order verified against the training scan (read with the
+  pending sentence, then write it): no off-by-one. **ORACLE-write videos of A keep_499 (H200, 19:56-20:07)**: decisions
+  116/119, 78/78, 167/172, 142/150, 114/116, 67/67 — the counter advances, but exactly 2 steps after the label boundary
+  = when the oracle sentence lands in the bank: the model copies the bank and never detects the boundary itself. Cause
+  (same shape as the blink double count): with the v3 cut, "previous = scoop k, arm over the bowl" is the input both
+  during the dig of scoop k and at the arrival for scoop k+1 — identical inputs, different targets, one boundary step per
+  transition (~47 in the training set). User asked about a target lookahead: a global lookahead would corrupt the blink
+  targets (predict blinks before they happen) and flips the target at a fuzzy moment; the label-level version is the fix.
+  User "Ok do it". Measured cycle (119 scoops, from j0): arrival→tray 30-215 frames (median 127), over the tray 50-158
+  (median 83 ≈ 17 memory steps), tray→next arrival 0-30 (median 9!). So a cut at the dump END (first attempt,
+  `--cut delivery_end`) moves the boundary by ~2 steps only and was dropped; **the v4 "tray cut"** (`--cut
+  delivery_start`, `scripts/beans_relabel_scoop_dump.py` on the light-state labels): `scoop k+1` starts when the arm
+  arrives over the tray with scoop k (k < x; `scoop x` keeps through its dump; `done` after the last dump as before) —
+  the increment is decided in a persistent, visually distinct state and requires the count (k == x → no increment).
+  Sidecar `cluster_v5/beans/beans_v5_subtask_labels_v4tray.json` (sha 728916ab…, same 14 sentences, same manifest),
+  configs **`pi05_yam_mem_v5_beansA3`** (labels, warm start B6a keep_499 like A2) and **`beansB3`**. `queue_beans6_hgx1.sh`
+  (20:16): A3 on the 2xH100 job 17267129 NOW (batch 4, replaces the trossen placeholder) while A2 keeps running on the
+  4xH100; A2 keep_499 when it exits; then B3 + continuation on the 2xH100. queue5's B2 stage dropped (the tray cut
+  supersedes it; A2's evaluations still run to judge the light-state count fix). H200 waiter re-armed
+  `STAGES="A2 A3 B3"` with per-stage sidecars (`SIDECAR_<stage>`).

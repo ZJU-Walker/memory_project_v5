@@ -6,7 +6,8 @@
 export HOME=/iris/u/kewalk
 JOB="${JOB:?}"; RUNNER="${RUNNER:-hgx2}"; export JOB GRES="${GRES:-1}"
 # STAGES="A2 B2" SIDECAR=<v2light sidecar> for the light-state models (19:20).
-STAGES="${STAGES:-A B}"; [ -n "${SIDECAR:-}" ] && export SIDECAR
+STAGES="${STAGES:-A B}"; default_sidecar="${SIDECAR:-}"
+# per-stage override SIDECAR_<stage> (20:15: A2 = v2light, A3/B3 = v4tray).
 diag=/iris/u/kewalk/memory_project_v5/v5/diagnostics
 cv5=/iris/u/kewalk/memory_project_v5/openpi/cluster_v5
 ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
@@ -14,6 +15,7 @@ log=$diag/queue_beans_hgx1.log
 echo "evals waiter armed on $(hostname) job $JOB ($RUNNER) stages=$STAGES $(date '+%m/%d %H:%M')" >> $log
 for stage in $STAGES; do
   cfg=pi05_yam_mem_v5_beans$stage; exp=v5_beans${stage}_20260904_r1
+  v="SIDECAR_$stage"; sc="${!v:-$default_sidecar}"; if [ -n "$sc" ]; then export SIDECAR="$sc"; else unset SIDECAR; fi
   until [ -e $ckroot/$cfg/$exp/keep_499/params ]; do sleep 60; done
   sleep 30  # let the copy settle
   echo "beans-$stage keep_499 present; evals start on job $JOB $(date '+%m/%d %H:%M')" >> $log
