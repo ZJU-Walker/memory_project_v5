@@ -770,3 +770,15 @@ build no fallback.
   demo17 91/150 (count 3, scoop 2 on time, stuck at 2), demo21 68/116 (stuck at 1), demo51 67/67. Scoops remain the
   stage-A weakness (label writes, old rule); B5 (own writes, retry, delay 0) launched 09:51 on the 4xH100 (step 0 CE
   2.10 / decision 0.99), keep_499 ≈ 12:20. Placeholder trainings now never keep checkpoints (user 10:03; 92a0594).
+  10:35 — **v6 "sub-phase" scoop sentences** (user 10:22 "lets do the subphase", after the analysis page
+  `cluster_v5/docs/beans_scoop_analysis.html` showed that any one-sentence-per-cycle cut collides once per cycle):
+  `scoop k: to the tray` (bowl arrival k → tray arrival k − 1), `scoop k: to the bowl` (tray arrival k → bowl arrival
+  k+1 − 1, k < x), `done` from the LAST tray arrival (the count decision: prev "scoop x: to the tray" + over the tray →
+  done instead of "to the bowl"); light sentences = v5 visible-LED; 16 sentences (`scripts/beans_relabel_subphase.py`
+  → `beans_v5_subtask_labels_v6sub.json`, sha 2e934ccd…). Config `V5_BEANS_SENTENCES_V3` + reference rows (max 13
+  tokens), `v5_beans_sub_data`, **`beansA6`** (delay 0, prefill_max 16, warm start B6a keep_499) / **`beansB6`** (own
+  writes, retry). `queue_beans10_hgx1.sh`: A6 → keep_499 → B6 → continuation on the 2xH100 job 17267129 (the B3
+  continuation was stopped at ~2400 for it; B5 keeps the 4xH100 until its keep_499 ≈ 12:20). H200 waiter
+  `STAGES="A6 B6"` armed alongside the A5/B5 one. Inspection: `examples/yam/label_subtasks.py --beans-task --beans-v6
+  --label-file subtask_labels_v6sub.json` (v6 schema + boundary descriptions; save-time schema check skipped),
+  served on iris-ws-18:8765 for the user.
