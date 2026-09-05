@@ -731,3 +731,16 @@ build no fallback.
   step the one-step-delayed write has not yet put "light on: k" in the bank; stage A trusts the bank over its previous
   sentence and answers "no blink yet", after which the count drifts. The previous-sentence path is the only cue in that
   situation; stage B (own writes) is where it must be learned — B4 is the test.
+  07:15 — **beans-B4 r1 exit 0 06:48** (own writes, retry rule, visible-LED labels; step 400: CE 1.18 / 0.97 / 0.97),
+  keep_499. B4 keep_499 self-write: demo11 117/119 (scoop 2 held), demo14 149/172 (scoops 1→2→3, the second increment
+  21 steps late), demo12 78/78, demo51 67/67, demo21 68/116 (count right, scoop never incremented; B3 had 116/116),
+  demo17 98/150 (count 2 again; scoops nevertheless 1→2→3). A4 count-flip: first-go normal 0.985 / flip-follows 0.985 /
+  keeps-true 0 / blank 0.73. Net: B4 ≈ B3-with-retry; the visible-LED labels did not change demo17 because its blinks
+  cover ONE sampling step each and the one-step write delay keeps "light on" out of the bank at the first "off" step.
+  **The delay is not needed on this task**: it was introduced (A4, 09-03) so that a lookahead-shifted label could not leak
+  the decision into the bank; the beans labels have lookahead 0 (the sentence describes the current observation and the
+  write lands after the read), so `memory_v5_write_delay_steps=0` leaks nothing and puts sentence_t in the bank at t+1.
+  Configs **`beansA5`/`beansB5`** = A4/B4 with delay 0 (B5 keeps the retry rule); `queue_beans8_hgx1.sh` on the 4xH100
+  job 17249058 (the B4 continuation, the least valuable job, was stopped at ~step 560 for it; B3's continuation keeps
+  the 2xH100); H200 waiter `STAGES="A5 B5"`. Open after A5/B5: the tray-arrival ambiguity of the scoop sentences
+  (demo21 no increment, demo14 late, demo17 over-increment) → sub-phase sentences if B5 still shows it.
