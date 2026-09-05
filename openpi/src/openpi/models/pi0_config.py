@@ -286,6 +286,11 @@ class Pi0Config(_model.BaseModelConfig):
     # Predicted mode commits only when the sentence changed vs the previous step AND the mean
     # probability of the argmax tokens over the sentence span is at least this value.
     memory_v5_write_conf: float = 0.9
+    # 2026-09-05 (beans B3 demo11 relapse): with False the change detector compares the pending sentence with
+    # the last PRODUCED sentence, so a sentence that first appears below memory_v5_write_conf is never written
+    # unless it changes and comes back; with True it compares with the last COMMITTED sentence, i.e. a sentence
+    # is retried every step until it is confident enough (identical for oracle writes).
+    memory_v5_prev_is_committed: bool = False
     # Number of leading causal positions fed to the sentence encoder (the subtask sentence is
     # the left-aligned prefix of the causal buffer, FASTSubtaskTokenizer.tokenize_split). Every
     # label sentence must fit; the label builder checks this against the real tokenizer.

@@ -96,12 +96,13 @@ class V5SentenceMemory:
     read queries condition on. `write_fn(tokens[1, L], mask[1, L], state, commit[1]) -> (state,
     applied[1])` must apply the commit or the decay, like `Pi0.v5_semantic_write`."""
 
-    def __init__(self, *, init_state, write_fn, sentence_len: int, write_conf: float, delay_steps: int, decode_text):
+    def __init__(self, *, init_state, write_fn, sentence_len: int, write_conf: float, delay_steps: int, decode_text, prev_is_committed: bool = False):
         self._init_state = init_state
         self._write = write_fn
         self._len = int(sentence_len)
         self._conf = float(write_conf)
         self._delay = int(delay_steps)
+        self._prev_is_committed = bool(prev_is_committed)
         self._decode_text = decode_text
         self.reset()
 
@@ -138,7 +139,8 @@ class V5SentenceMemory:
         commit = changed and bool(cur_conf)
         self.state, applied = self._write(cur_tokens, cur_mask, self.state, np.asarray([commit]))
         applied = bool(np.asarray(applied).reshape(-1)[0])
-        self.prev_tokens = cur_tokens
+        if applied or not self._prev_is_committed:
+            self.prev_tokens = cur_tokens
         if self._delay == 1:
             self.pending_tokens, self.pending_mask, self.pending_conf = produced_tokens, produced_mask, produced_conf
         if applied:
@@ -214,6 +216,7 @@ class MemoryPolicy(_policy.Policy):
                 write_fn=write_fn,
                 sentence_len=int(model.memory_v5_sentence_len),
                 write_conf=float(model.memory_v5_write_conf),
+                prev_is_committed=bool(getattr(model, "memory_v5_prev_is_committed", False)),
                 delay_steps=int(getattr(model, "memory_v5_write_delay_steps", 0)),
                 decode_text=lambda ids: decode_tokenizer.decode(ids).strip(),
             )

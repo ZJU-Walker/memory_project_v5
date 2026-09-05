@@ -3547,6 +3547,7 @@ _CONFIGS = [
                             memory_v5_prefill_max=14,
                             memory_v5_query_standardize=True,
                             memory_v5_query_prev_sentence=True,
+                            memory_v5_prev_is_committed=True,  # retry-until-committed writes (2026-09-05)
                         ),
                         data=v5_beans_vis_data,
                         assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),

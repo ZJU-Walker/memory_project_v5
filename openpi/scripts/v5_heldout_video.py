@@ -154,6 +154,8 @@ def main() -> None:
     parser.add_argument("--config-name", default="pi05_yam_mem_v5_stageA2")
     parser.add_argument("--params", type=pathlib.Path, required=True)
     parser.add_argument("--episode-index", type=int, required=True, help="LeRobot episode index (manifest episode_index)")
+    parser.add_argument("--write-retry", action="store_true",
+                        help="retry-until-committed change detector (prev = last COMMITTED sentence); default = the config's memory_v5_prev_is_committed")
     parser.add_argument("--write-mode", choices=("self", "oracle"), default="self")
     parser.add_argument(
         "--intervention",
@@ -215,6 +217,7 @@ def main() -> None:
     lookahead = data_config.subtask_lookahead
     sentence_len = cfg.model.memory_v5_sentence_len
     conf_threshold = cfg.model.memory_v5_write_conf
+    prev_is_committed = bool(args.write_retry or getattr(cfg.model, "memory_v5_prev_is_committed", False))
     decode = make_decode_fn(model, args.max_decode_steps)
     write = make_write_fn(model)
 
@@ -309,7 +312,8 @@ def main() -> None:
             commit = changed and confident and args.intervention != "blank"
             sem_state, applied, key = write(model, jnp.asarray(cur), jnp.asarray(span[None]), sem_state, jnp.asarray([commit]))
             applied = bool(np.asarray(applied)[0])
-            prev_tokens = cur
+            if applied or not prev_is_committed:
+                prev_tokens = cur
             written_text = _decode_text(sp, cur[0][span]) if commit else ""
             if applied:
                 bank.append(written_text)

@@ -621,6 +621,7 @@ class Pi0(_model.BaseModel):
                     self.memory_v5_bank_waiting_prefix = tuple(config.memory_v5_bank_waiting_prefix)
                     self.memory_v5_bank_waiting_tokens = tuple(config.memory_v5_bank_waiting_tokens)
                     self.memory_v5_write_delay_steps = int(config.memory_v5_write_delay_steps)
+                    self.memory_v5_prev_is_committed = bool(getattr(config, "memory_v5_prev_is_committed", False))
                     self.memory_v5_prefill_history = bool(config.memory_v5_prefill_history)
                     self.memory_v5_prefill_max = int(config.memory_v5_prefill_max)
                     self.memory_v5_write_conf = config.memory_v5_write_conf
@@ -4985,7 +4986,11 @@ class Pi0(_model.BaseModel):
                     )
                     sem_commit = sem_aux["commit_applied"][:, 0] & transition_valid
                     next_sem_written = sem_written | sem_commit
-                    next_prev_sentence = jnp.where(transition_valid[:, None], cur_sentence, prev_sentence)
+                    if getattr(self, "memory_v5_prev_is_committed", False):
+                        # retry-until-committed: prev = the last sentence that actually entered the bank
+                        next_prev_sentence = jnp.where(sem_commit[:, None], cur_sentence, prev_sentence)
+                    else:
+                        next_prev_sentence = jnp.where(transition_valid[:, None], cur_sentence, prev_sentence)
                     # Padded/invalid steps keep the pending sentence so a gap does not drop a write.
                     next_pending_sentence = jnp.where(transition_valid[:, None], produced_sentence, pending_sentence)
                     next_pending_span = jnp.where(transition_valid[:, None], produced_span, pending_span)
