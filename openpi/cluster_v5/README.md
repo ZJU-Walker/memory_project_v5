@@ -683,3 +683,14 @@ build no fallback.
   demo11/21/51 — with the tray cut the `scoop 1` segment is short (30-215 frames) and the go→scoop-1 boundary got
   weaker at half the batch. Conclusion unchanged: stage A cannot hold its own increments (never trains on its own
   sentences); B3 (own writes, same labels) is the test, ckpt-499 ≈ 01:20.
+  2026-09-05 01:40 — **beans-B3 r1 exit 0 01:24** (own writes, tray-cut light-state labels, 2xH100 batch 4; step 400:
+  CE 1.65 / decision 0.93 / evidence 0.94), keep_499, continuation toward 3000 running on job 17267129. A3 count-flip
+  (keep_499): normal 1.00, **flip-follows 0.99**, keeps-true 0.00, blank 0.80. **B3 keep_499 self-write videos**: count
+  right 5/6 (demo17 still flickers off-1/off-2 → 2), and **the scoop counter is now written and held by the model
+  itself**: demo14 (x=3) 1→2→3 with a 2-step wobble at the first boundary, 138/172; demo21 (x=2) 116/116 perfect;
+  demo11 (x=2) scoop 2 written at the tray arrival and held 18 steps, one 33-step relapse to scoop 1, 85/119; demo17
+  advances to scoop 2 and stops there — consistent with its own (wrong) count of 2; demo12 78/78, demo51 67/67. Decision
+  exactness per episode A2 → A3 → B3: demo11 30→76→85, demo14 170→67→138, demo17 26→26→52, demo21 53→68→116, demo12
+  78→78→78, demo51 49→67→67. The "yellow go" lingering of A3 is gone (go→scoop 1 within 1-4 steps of the label).
+  Conclusion: the A→B recipe transfers to the beans task once the label boundaries sit on persistent, visually
+  distinct states; the remaining errors are single early wait-phase writes (demo17) and one mid-phase relapse (demo11).
