@@ -762,3 +762,11 @@ build no fallback.
   (`placeholder_train_trossen.sh`: `--checkpoint-base-dir /scr/kewalk_placeholder/checkpoints`, 0905 run names);
   new `gpu_sentinel_hgx2.sh` relaunches the H200 placeholder when its 30k-step run ends. The A5 eval waiter was paused
   until the copy completes (a waiter that polls `keep_499/params` can start on a half-copied checkpoint).
+  10:10 — **beans-A5 r1 (no write delay) exit 0 09:36** (step 400: CE 2.21 / decision 0.99 / evidence 0.99), keep_499
+  (re-copied after the disk incident). **A5 keep_499 self-write videos: the count is right in 6/6 dev episodes** —
+  demo17 counts 3 for the first time (every blink tracked on/off, no revert to "no blink yet"): with delay 0 the
+  "light on" sentence is in the bank at the first "off" step even when a blink covers a single sampling step.
+  demo11 86/119 (scoop 2 late, stage A), demo12 78/78, demo14 67/172 (count 3, scoops wobble/stuck),
+  demo17 91/150 (count 3, scoop 2 on time, stuck at 2), demo21 68/116 (stuck at 1), demo51 67/67. Scoops remain the
+  stage-A weakness (label writes, old rule); B5 (own writes, retry, delay 0) launched 09:51 on the 4xH100 (step 0 CE
+  2.10 / decision 0.99), keep_499 ≈ 12:20. Placeholder trainings now never keep checkpoints (user 10:03; 92a0594).
