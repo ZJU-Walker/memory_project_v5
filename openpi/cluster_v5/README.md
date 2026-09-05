@@ -722,3 +722,12 @@ build no fallback.
   stage B leans partly on timing (prefill decay gaps) in addition to the bank: a shortcut to watch in B4. Ops: editing
   `run_beans_evals_hgx2.sh` while its B3 count-flip instance was live made that instance execute a fragment of the new
   `if` line (exit 127; result already written; placeholder restored by the retry run) — never edit a running runner.
+  04:35 — **beans-A4 r1 exit 0 04:16** (visible-LED labels; step 400: CE 2.19 / decision 0.98 / evidence 0.97), keep_499;
+  **B4 launched 04:19** on the 4xH100 (own writes, retry rule; step 0: CE 2.03). A4 keep_499 self-write videos (old
+  write rule, the config has no retry flag): count right 5/6; evidence exactness up sharply where the grid straddles an
+  onset (demo11 186/188 vs A3 105/188, 117/119 decisions); demo14 reaches scoop 2; demo21/51 as A3. **demo17 still
+  loses the third blink, and the visible-LED labels show the real reason**: its three blinks (visible 27-32, 46-53,
+  72-78) each cover exactly ONE sampling step (30, 50, 75; 8-frame blinks do so 40 % of the time), so at the first "off"
+  step the one-step-delayed write has not yet put "light on: k" in the bank; stage A trusts the bank over its previous
+  sentence and answers "no blink yet", after which the count drifts. The previous-sentence path is the only cue in that
+  situation; stage B (own writes) is where it must be learned — B4 is the test.
