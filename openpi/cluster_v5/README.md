@@ -694,3 +694,16 @@ build no fallback.
   78→78→78, demo51 49→67→67. The "yellow go" lingering of A3 is gone (go→scoop 1 within 1-4 steps of the label).
   Conclusion: the A→B recipe transfers to the beans task once the label boundaries sit on persistent, visually
   distinct states; the remaining errors are single early wait-phase writes (demo17) and one mid-phase relapse (demo11).
+  01:50 — **Root cause of the demo17 miss (every model since A r1): the LED control signal leads the camera.** Trace
+  (A2 = A3 = B3, identical): at frames 25/45/70 the label says "light on" but the left camera's LED patch is still dark
+  (green 130 vs 241 lit; visible from frame 27/46/72); demo17's three onsets all sit on the rollout's stride-5 grid, so
+  each "light on" comes one step late, the delayed write misses the bank at the next step, the model (bank over
+  previous sentence) answers "no blink yet"/"light off: 1", the bank fills with contradicting entries and the third
+  blink is not counted. Measured over all 60 demos (LED patch = largest green rise around the first onset; frames
+  0..go only): onset lag 0/1/2 frames = 9/73/18 of 100 detectable, offsets 6/70/24; 18 of 100 onsets have a fixed-grid
+  frame inside the invisible gap (≈1 in 5 in training windows too = label noise). **v5 "visible LED" labels**:
+  `scripts/beans_relabel_visible_led.py` moves every light on/off boundary of the tray-cut labels to the first frame
+  where the camera shows the change (238 boundaries shifted 0/1/2 frames: 17/170/51; same 14 sentences) →
+  `cluster_v5/beans/beans_v5_subtask_labels_v5vis.json` (sha 1efb8d8f…), configs **`beansA4`/`beansB4`**, `queue_beans7_hgx1.sh`:
+  **A4 launched 01:50 on the 4xH100 job 17249058** (batch 8) → keep_499 → B4 → keep_499 → continuation; the B3
+  continuation keeps the 2xH100; H200 waiter `STAGES="A4 B4"` with the v5vis sidecar (commit f5de2ed).
