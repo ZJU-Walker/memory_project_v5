@@ -119,8 +119,8 @@ BEANS_V6_BOUNDARIES = {
     "off": "the first frame the camera shows the green light off again",
     "last_off": "the light is off after the last blink, until the yellow go signal",
     "go": "yellow light on, reach for the scoop and carry it UNTIL IT IS OVER THE WHITE BOWL",
-    "to_tray": "from bowl arrival k: dig and carry, until the scoop ARRIVES OVER THE TRAY",
-    "to_bowl": "from tray arrival k: dump and return, until the scoop is over the bowl again",
+    "to_tray": "from bowl arrival k: dig and carry, until the scoop ARRIVES OVER THE TRAY (still full)",
+    "to_bowl": "from the tray arrival (before the pour): dump and return, until the scoop is over the bowl again",
     "done": "from the LAST tray arrival: the last dump, release the scoop, return home",
 }
 
@@ -135,9 +135,9 @@ def beans_subtasks(x: int) -> list[str]:
         go = [f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}"]
         scoops = []
         for k in range(1, x + 1):
-            scoops.append(f"scoop {k}: to the tray")
+            scoops.append(f"scoop {k}: dig and carry")
             if k < x:
-                scoops.append(f"scoop {k}: to the bowl")
+                scoops.append(f"scoop {k}: dump and return")
         return [_BEANS_PRE, *lights, *go, *scoops, _BEANS_DONE]
     blinks = [f"wait for the light: {k} green blink{'' if k == 1 else 's'} so far" for k in range(1, x + 1)]
     go = [f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}"]

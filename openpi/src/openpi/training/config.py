@@ -1122,8 +1122,8 @@ V5_BEANS_SIDECAR_V4_SHA256 = "728916ab22da300095550eeffde55dfc2a895d1a8b1aeb9097
 V5_BEANS_SIDECAR_V5_SHA256 = "1efb8d8f64d93363aabd65373786455f03faeced36eb063cac9b18c0b70da419"
 # v6 "sub-phase" scoop sentences (2026-09-05 10:22, user "lets do the subphase"): one sentence per half-cycle so
 # the previous sentence says which half we are in (see cluster_v5/docs/beans_scoop_analysis.html):
-#   scoop k: to the tray  = bowl arrival k .. tray arrival k - 1 (dig, carry)
-#   scoop k: to the bowl  = tray arrival k .. bowl arrival k+1 - 1 (dump, return), k < x
+#   scoop k: dig and carry   = bowl arrival k .. tray arrival k - 1
+#   scoop k: dump and return = tray arrival k .. bowl arrival k+1 - 1 (k < x); renamed 10:40 (user: "to the bowl" while the scoop is still full)
 #   done                  = from tray arrival x (the last dump; the count decision is made there).
 # Light sentences = v5 visible-LED. 16 sentences; scripts/beans_relabel_subphase.py -> beans_v5_subtask_labels_v6sub.json.
 V5_BEANS_SENTENCES_V3: tuple[str, ...] = (
@@ -1137,11 +1137,11 @@ V5_BEANS_SENTENCES_V3: tuple[str, ...] = (
     "yellow go: pick up the scoop, scoop 1 time",
     "yellow go: pick up the scoop, scoop 2 times",
     "yellow go: pick up the scoop, scoop 3 times",
-    "scoop 1: to the tray",
-    "scoop 1: to the bowl",
-    "scoop 2: to the tray",
-    "scoop 2: to the bowl",
-    "scoop 3: to the tray",
+    "scoop 1: dig and carry",
+    "scoop 1: dump and return",
+    "scoop 2: dig and carry",
+    "scoop 2: dump and return",
+    "scoop 3: dig and carry",
     "done, put down the scoop and return",
 )
 V5_BEANS_REFERENCE_SENTENCE_TOKENS_V3: tuple[tuple[int, ...], ...] = (
@@ -1155,14 +1155,14 @@ V5_BEANS_REFERENCE_SENTENCE_TOKENS_V3: tuple[tuple[int, ...], ...] = (
     (22006, 871, 235292, 4788, 908, 573, 65522, 235269, 65522, 235248, 235274, 1069, 108),
     (22006, 871, 235292, 4788, 908, 573, 65522, 235269, 65522, 235248, 235284, 3023, 108),
     (22006, 871, 235292, 4788, 908, 573, 65522, 235269, 65522, 235248, 235304, 3023, 108),
-    (17390, 715, 235248, 235274, 235292, 577, 573, 24655, 108),
-    (17390, 715, 235248, 235274, 235292, 577, 573, 14581, 108),
-    (17390, 715, 235248, 235284, 235292, 577, 573, 24655, 108),
-    (17390, 715, 235248, 235284, 235292, 577, 573, 14581, 108),
-    (17390, 715, 235248, 235304, 235292, 577, 573, 24655, 108),
+    (17390, 715, 235248, 235274, 235292, 3441, 578, 6383, 108),
+    (17390, 715, 235248, 235274, 235292, 21430, 578, 2203, 108),
+    (17390, 715, 235248, 235284, 235292, 3441, 578, 6383, 108),
+    (17390, 715, 235248, 235284, 235292, 21430, 578, 2203, 108),
+    (17390, 715, 235248, 235304, 235292, 3441, 578, 6383, 108),
     (7262, 235269, 2507, 1706, 573, 65522, 578, 2203, 108),
 )
-V5_BEANS_SIDECAR_V6_SHA256 = "2e934ccd890eeb20441e239067b6b50b8e64aeffe2dc6c531864a4da7e2712d4"
+V5_BEANS_SIDECAR_V6_SHA256 = "c322f81ebc9e86a6d6c31db63a8ac6e500029c499deee6af0f710136d333e406"
 
 _CONFIGS = [
     #

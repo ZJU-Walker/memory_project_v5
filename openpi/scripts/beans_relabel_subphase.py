@@ -6,12 +6,12 @@ k, over the bowl" while digging k AND when arriving for k+1; tray cut (v4) = "pr
 dumping k AND when arriving with k+1 (openpi/cluster_v5/docs/beans_scoop_analysis.html). The light-state fix
 worked because the previous sentence carried the LED state; this does the same for the scoop cycle:
 
-    scoop k: to the tray   from bowl arrival k (dig, carry) until tray arrival k - 1
-    scoop k: to the bowl   from tray arrival k (dump, return) until bowl arrival k+1 - 1      (k < x)
+    scoop k: dig and carry   from bowl arrival k until tray arrival k - 1
+    scoop k: dump and return from tray arrival k (before the pour: the arrival is the sharp, persistent event) until bowl arrival k+1 - 1 (k < x)
     done, put down the scoop and return   from tray arrival x (the last dump, release, return home)
 
 Every (previous sentence, arm position) pair now has one target; the count decision is made at the last tray
-arrival: prev "scoop x: to the tray" + over the tray -> "done" instead of "scoop x: to the bowl". The go
+arrival: prev "scoop x: dig and carry" + over the tray -> "done" instead of "scoop x: dump and return". The go
 sentence ends at bowl arrival 1 as before; the light sentences are the v5 visible-LED ones (unchanged).
 Source: subtask_labels_v5vis.json + scripts/beans_build_subtask_labels.events(). Writes subtask_labels_v6sub.json per
 demo and subtask_labels_manifest_v6sub.json (create-only). Vocabulary: 16 sentences (x <= 3).
@@ -49,9 +49,9 @@ def relabel(segments: list[dict], ev: dict) -> list[dict]:
         raise ValueError(f"go segment ends at {out[-1]['end']}, bowl arrival 1 is {arr[0]}")
     for k in range(1, x + 1):
         a = arr[k - 1]; t = dl[k - 1][0]
-        out.append({"task": f"scoop {k}: to the tray", "start": a, "end": t - 1})
+        out.append({"task": f"scoop {k}: dig and carry", "start": a, "end": t - 1})
         if k < x:
-            out.append({"task": f"scoop {k}: to the bowl", "start": t, "end": arr[k] - 1})
+            out.append({"task": f"scoop {k}: dump and return", "start": t, "end": arr[k] - 1})
         else:
             out.append({"task": DONE, "start": t, "end": n - 1})
     cursor = 0
