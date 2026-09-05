@@ -141,6 +141,8 @@ def main(argv=None) -> None:
     parser.add_argument("--config-name", default="pi05_yam_mem_v5_beansA")
     parser.add_argument("--split", choices=("development", "train", "final_test"), default="development")
     parser.add_argument("--batches", type=int, default=24)
+    parser.add_argument("--write-retry", choices=("config", "on", "off"), default="config",
+                        help="override memory_v5_prev_is_committed for the in-window own writes (B configs)")
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--seed", type=int, default=4)
     parser.add_argument("--output-dir", type=pathlib.Path, required=True)
@@ -168,6 +170,9 @@ def main(argv=None) -> None:
     params = model_lib.restore_params(args.params, restore_type=np.ndarray)
     parameter_tree_sha256 = weight_loaders.parameter_tree_sha256(params)
     model = config.model.load(params)
+    if args.write_retry != "config":
+        model.memory_v5_prev_is_committed = args.write_retry == "on"
+        print(f"write rule override: memory_v5_prev_is_committed={model.memory_v5_prev_is_committed}", flush=True)
     model.eval()
     loader = data_loader_lib.create_data_loader(
         config, sharding=None, shuffle=True, num_batches=args.batches, exact_resume=False
@@ -305,6 +310,7 @@ def main(argv=None) -> None:
         "batch_size": args.batch_size,
         "seed": args.seed,
         "oracle_writes": oracle,
+        "prev_is_committed": bool(getattr(model, "memory_v5_prev_is_committed", False)),
         "summary": summary,
         "summary_first_go_step": summary_first,
         "summary_first_go_step_history_only": summary_history,
