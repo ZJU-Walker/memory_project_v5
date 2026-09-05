@@ -707,3 +707,18 @@ build no fallback.
   `cluster_v5/beans/beans_v5_subtask_labels_v5vis.json` (sha 1efb8d8f…), configs **`beansA4`/`beansB4`**, `queue_beans7_hgx1.sh`:
   **A4 launched 01:50 on the 4xH100 job 17249058** (batch 8) → keep_499 → B4 → keep_499 → continuation; the B3
   continuation keeps the 2xH100; H200 waiter `STAGES="A4 B4"` with the v5vis sidecar (commit f5de2ed).
+  02:15 — **Why the scoop counter falls back (user 01:53).** (1) Write-rule flaw: the change detector compared the
+  pending sentence with the last PRODUCED sentence, so a sentence that first appears just under the 0.90 threshold
+  (demo11 B3: "scoop 2" at conf 0.90 at step 98) is rejected once and then never written — every later "scoop 2"
+  (0.95-0.99 for 16 steps) counts as "unchanged"; the bank keeps "scoop 1", and back over the bowl the model trusts the
+  bank over its previous sentence and falls back (writes a duplicate "scoop 1"). Fix = **retry-until-committed**:
+  prev = last COMMITTED sentence (`memory_v5_prev_is_committed`, identical for label writes; on in `beansB4`; the
+  video script takes `--write-retry`, serving reads the flag; commit 10a1cdf). Same B3 checkpoint re-rendered with the
+  retry rule: demo11 **117/119** (85 before; "scoop 2" written at the tray arrival and held to the end), the other five
+  unchanged (78, 138, 52, 115, 67). (2) Residual ambiguity at the tray: "prev = scoop 2, over the tray" occurs during
+  the dump of scoop 1 and at the arrival of scoop 2 (demo14's 2→3→2→3 wobble); only the full/empty scoop separates them.
+  Candidate fix: sub-phase sentences ("scoop k: to the tray" / "scoop k: to the bowl"), decided after B4. **B3
+  count-flip** (own-write model): first-go normal 1.00, flip-follows 0.73 (A3 1.00), keeps-true 0.09, blank 0.64 —
+  stage B leans partly on timing (prefill decay gaps) in addition to the bank: a shortcut to watch in B4. Ops: editing
+  `run_beans_evals_hgx2.sh` while its B3 count-flip instance was live made that instance execute a fragment of the new
+  `if` line (exit 127; result already written; placeholder restored by the retry run) — never edit a running runner.
