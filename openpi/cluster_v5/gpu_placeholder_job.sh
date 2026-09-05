@@ -17,6 +17,9 @@ case "$JOB" in
   *) gpus="" ;;
 esac
 if [ -n "$gpus" ]; then
+  # 2026-09-05 10:05 (user: placeholder checkpoints are always deleted): sweep any leftover NFS checkpoint of the
+  # old 0904 placeholder runs (a run launched before the change still writes its final step there).
+  rm -rf /iris/u/kewalk/openpi_trossen/checkpoints/pi05_trossen_pack_with_human_full/pi05_pack_with_human_full_0904_* 2>/dev/null
   cd /iris/u/kewalk/memory_project_v5/openpi || exit 2
   setsid nohup bash cluster_v5/placeholder_train_trossen.sh "$JOB" "$gpus" > /dev/null 2>&1 < /dev/null &
   echo "placeholder training (openpi_trossen) for job $JOB on $gpus GPU(s) launched; log=$LOGDIR/placeholder_train_${JOB}.log"
