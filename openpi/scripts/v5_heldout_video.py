@@ -271,9 +271,17 @@ def main() -> None:
             )
             state_token_mask = jnp.asarray(seq_obs.token_state_mask[:, t])
             # A6: the last decoded sentence (the delay's pending sentence) conditions the read queries.
+            # The read queries condition on the previous sentence exactly as the training scan does:
+            # delay 1 -> the pending (one-step-delayed) sentence; delay 0 -> the previous sentence
+            # (prev_tokens: last produced, or last committed under the retry rule). Before 2026-09-05
+            # 12:40 the delay-0 rollout always passed the never-filled pending slot (an empty sentence).
+            if getattr(cfg.model, "memory_v5_write_delay_steps", 0) == 1:
+                q_tokens, q_mask = pending[0], pending[1][None]
+            else:
+                q_tokens, q_mask = np.maximum(prev_tokens, 0), prev_tokens > 0
             gen_tokens, gen_mask, gen_prob, sem_rms, sem_queries = decode(
                 model, observation, state_token_mask, sem_state,
-                jnp.asarray(pending[0], dtype=jnp.int32), jnp.asarray(pending[1][None]),
+                jnp.asarray(q_tokens, dtype=jnp.int32), jnp.asarray(q_mask),
             )
             gen_tokens = np.asarray(gen_tokens)[0]
             gen_mask = np.asarray(gen_mask)[0]

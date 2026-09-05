@@ -118,8 +118,12 @@ class V5SentenceMemory:
 
     @property
     def query_prev(self) -> tuple[np.ndarray, np.ndarray]:
-        """The last decoded sentence (what the A6 read queries condition on)."""
-        return self.pending_tokens, self.pending_mask
+        """What the A6 read queries condition on, as in the training scan: the pending (one-step-delayed)
+        sentence with delay 1, otherwise the previous sentence (last produced, or last committed under
+        the retry rule). Fixed 2026-09-05 12:40: delay 0 used to pass the never-filled pending slot."""
+        if self._delay == 1:
+            return self.pending_tokens, self.pending_mask
+        return np.maximum(self.prev_tokens, 0), self.prev_tokens > 0
 
     def step(self, tokens: np.ndarray, mask: np.ndarray, probs: np.ndarray) -> dict:
         """Apply one memory step with this step's decoded span (1-D arrays over the causal buffer)."""
