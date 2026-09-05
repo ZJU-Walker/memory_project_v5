@@ -670,3 +670,16 @@ build no fallback.
   previous sentence is the only cue, and stage A never trains on a wrong previous sentence. Stage B (own writes) is the
   cure we have (B5a fixed exactly this flicker on the original task); B2 dropped in favour of B3 (tray cut on the same
   light-state sentences), which therefore also tests the count under own writes.
+  23:05 — **beans-A3 r1 exit 0 22:50** (step 400: CE 2.51 / decision 0.97 / evidence 0.96; 2xH100, batch 4), keep_499;
+  **B3 launched 22:51** on the 2xH100 (step 0: CE 2.64). Cluster: job 17178887 timed out 22:46; the user cancelled
+  17188253 (2xH200, 6-GPU QOS) and the queued 4xH100 job **17249058** (iris-hgx-1, 800G, 3 d) started 22:59 — sentinel
+  and placeholder scripts re-keyed to it (trossen training on 4 GPUs, batch 32, FSDP 4; job-specific checks; 54cdb11).
+  **A2 count-flip (keep_499, oracle prefill)**: normal 0.97 / first-go 1.00, flip-follows 0.90 (A r1 0.84), keeps-true
+  0.00, blank 0.78. **A3 keep_499 self-write videos (tray-cut labels)**: count right in **5/6** (demo11 now "2 times";
+  demo17 still flickers off-1/off-2 → "2 times"); the light chain is exact in the other five. Scoop increment still
+  not held by stage A: demo11 says "scoop 2" exactly at the tray arrival (steps 100-101) but at conf 0.86/0.83 — below
+  the 0.90 write threshold — and falls back to "scoop 1"; demo14/17/21 never leave "scoop 1". New side effect: "yellow
+  go" lingers past the bowl arrival (demo12 until step 105 vs label 68; demo11 99 vs 73) and reappears during scoop 1 in
+  demo11/21/51 — with the tray cut the `scoop 1` segment is short (30-215 frames) and the go→scoop-1 boundary got
+  weaker at half the batch. Conclusion unchanged: stage A cannot hold its own increments (never trains on its own
+  sentences); B3 (own writes, same labels) is the test, ckpt-499 ≈ 01:20.
