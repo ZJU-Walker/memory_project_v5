@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Standing rule (user 2026-09-04 00:05): every idle GPU of ours on iris-hgx-1 is held busy (memory + util 70-100 %).
 # Sentinel loop, run ON the node:  nohup bash cluster_v5/gpu_sentinel_hgx1.sh &
-#   job 17178887 (4xH100): while a v5 training runs (launcher or train.py present) -> no placeholders;
-#     otherwise GPUs 1-3 always get one; GPU 0 only when no battery/video/probe python is running
-#     (those steps take the job's first GPU).
+#   job 17249058 (4xH100, from 23:00; 17178887 before): the openpi_trossen training on all 4 GPUs whenever no v5
+#     train step of that job and no eval python runs (see the loop).
 #   job 17192955 (1xH100, shared with the user's Qwen action-expert server ~11 GB) -> one placeholder (HOLD 52 GiB)
 #     whenever no v5 python runs in that job.
 # Each placeholder is an --overlap step of its job pinned to one GPU by CUDA_VISIBLE_DEVICES, marked
@@ -35,15 +34,12 @@ while True:
 }
 echo "$(date '+%m/%d %H:%M') sentinel up on $(hostname)" >> $LOGDIR/sentinel_hgx1.log
 while true; do
-  # 22:00: only a training that is a STEP OF JOB 17178887 counts (A3 on job 17267129 left the 4 GPUs idle for 3 min).
-  if pgrep -f "jobid=17178887 .*(cluster_v5/train.s[h]|train.py)" >/dev/null; then
-    ph=$(pgrep -f "gpu_placeholder_marker_1717888[7]" || true)
-    [ -n "$ph" ] && { kill $ph 2>/dev/null; echo "$(date '+%m/%d %H:%M') training present: killed 4-GPU-job placeholders $ph" >> $LOGDIR/sentinel_hgx1.log; }
-  else
-    for g in 1 2 3; do launch 17178887 $g 4 64; done
-    if ! pgrep -f "v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py|v5_probe_query_drif[t]" >/dev/null; then
-      launch 17178887 0 4 64
-    fi
+  # 23:00 (job 17178887 timed out 22:46; the user's 4xH100 job 17249058 replaced it): like the 2xH100 job, the
+  # placeholder is the REAL openpi_trossen training on all 4 GPUs (marker gpu_placeholder_marker_17249058), launched
+  # only while no v5 train step of that job and no eval python runs (run_train_h200.sh / the eval runner kill it first).
+  if ! pgrep -f "jobid=17249058 .*(cluster_v5/train.s[h]|train.py)|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null \
+     && ! pgrep -f "gpu_placeholder_marker_1724905[8]" >/dev/null; then
+    JOB=17249058 bash /iris/u/kewalk/memory_project_v5/openpi/cluster_v5/gpu_placeholder_job.sh >> $LOGDIR/sentinel_hgx1.log 2>&1
   fi
   # 2026-09-04 15:58 (user: the 2xH100 job 17267129 was "also placeholder training", ours to use): GPU 1 always
   # holds a busy placeholder; GPU 0 only while no eval python runs (the beans evaluations take GPU 0). The job's
@@ -53,7 +49,8 @@ while true; do
   # pi0.5 training from openpi_trossen (cluster_v5/placeholder_train_trossen.sh, marker gpu_placeholder_marker_17267129);
   # it is launched only while no v4 step and no eval python is running there (the eval runner kills it first).
   # 19:20: beans B2 trains on this job too (queue_beans5) -> a v5 train.py there also excludes the placeholder.
-  if ! pgrep -f "train.py pi05_yam_mem_v[4]|train.py pi05_yam_mem_v[5]|run_train_h200.s[h]|v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null \
+  # 23:02: job-specific (a v5 training on the 4xH100 job must not suppress this job's placeholder).
+  if ! pgrep -f "jobid=17267129 .*(cluster_v5/train.s[h]|train.py)|train.py pi05_yam_mem_v[4]|v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null \
      && ! pgrep -f "gpu_placeholder_marker_1726712[9]" >/dev/null; then
     JOB=17267129 bash /iris/u/kewalk/memory_project_v5/openpi/cluster_v5/gpu_placeholder_job.sh >> $LOGDIR/sentinel_hgx1.log 2>&1
   fi

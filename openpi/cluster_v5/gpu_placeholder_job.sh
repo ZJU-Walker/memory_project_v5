@@ -13,6 +13,7 @@ if pgrep -f "$marker" >/dev/null; then echo "placeholder already running for job
 case "$JOB" in
   17267793) gpus=1 ;;   # H200: resumes pi05_pack_with_human_full_0904_h200
   17267129) gpus=2 ;;   # 2xH100: pi05_pack_with_human_full_0904_2h100, batch 16, FSDP 2
+  17249058) gpus=4 ;;   # 4xH100 (23:00, replaces 17178887): pi05_pack_with_human_full_0904_4h100, batch 32, FSDP 4
   *) gpus="" ;;
 esac
 if [ -n "$gpus" ]; then

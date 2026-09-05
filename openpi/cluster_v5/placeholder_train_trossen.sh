@@ -16,6 +16,7 @@ config=pi05_trossen_pack_with_human_full
 case "$gpus" in
   1) exp=pi05_pack_with_human_full_0904_h200; batch=32 ;;
   2) exp=pi05_pack_with_human_full_0904_2h100; batch=16 ;;
+  4) exp=pi05_pack_with_human_full_0904_4h100; batch=32 ;;   # 23:00: the user's new 4xH100 job 17249058
   *) echo "unsupported gpu count $gpus"; exit 2 ;;
 esac
 ckdir=$repo/checkpoints/$config/$exp
