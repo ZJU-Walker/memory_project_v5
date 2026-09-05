@@ -14,7 +14,7 @@ ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
 log=$diag/queue_beans_hgx1.log
 echo "evals waiter armed on $(hostname) job $JOB ($RUNNER) stages=$STAGES $(date '+%m/%d %H:%M')" >> $log
 for stage in $STAGES; do
-  cfg=pi05_yam_mem_v5_beans$stage; exp=v5_beans${stage}_20260904_r1
+  cfg=pi05_yam_mem_v5_beans$stage; exp=v5_beans${stage}_$( [ "$stage" = A4 ] || [ "$stage" = B4 ] && echo 20260905 || echo 20260904 )_r1
   v="SIDECAR_$stage"; sc="${!v:-$default_sidecar}"; if [ -n "$sc" ]; then export SIDECAR="$sc"; else unset SIDECAR; fi
   until [ -e $ckroot/$cfg/$exp/keep_499/params ]; do sleep 60; done
   sleep 30  # let the copy settle
