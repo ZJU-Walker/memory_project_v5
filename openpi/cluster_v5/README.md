@@ -621,3 +621,14 @@ build no fallback.
   2xH100 job 17267129 at batch 4; B2 + continuation on the 2xH100; the sentinel now also excludes its trossen placeholder
   while a v5 `train.py` runs there). **Blocked 19:20: the Kerberos ticket expired at 18:01** (klist; ssh 255) — B r1 keeps
   running (134/500 at 19:12) until the user re-kinits; the chain is armed the moment ssh works again.
+  19:23 — Ticket renewed (user re-sent the password; one-shot `kinit -l 3d`, nothing stored). B r1 stopped at 134/500
+  (user 19:12 "kill current b training and beginning our next training"), queue4 + sentinel stopped; **queue5 launched:
+  A2 on the 4xH100 job 17178887 at 19:23** (batch 8, 3h23 left on the job, ~2.5 h needed; step-0 CE 7.73), then B2 +
+  continuation on the 2xH100 job 17267129. Sentinel relaunched (v5 exclusion on 17267129); the H200 waiter re-armed for
+  `STAGES="A2 B2"` with the v2light sidecar (old waiter, which had finished the A r1 evals 19:15 and restored the trossen
+  placeholder, killed). Code 23f1efd pushed to GitHub v5 main. **A r1 keep_499 results**: count-flip (oracle prefill,
+  1283 go steps, 66 first-go): normal 0.995 / flip-follows-content 0.836 / flip-keeps-true 0.023 / blank 0.809 (blank far
+  above chance 1/3: the previous-sentence query term still carries the count when the bank is blanked — by design);
+  self-write dev videos: x=1 demo12/demo51 perfect (78/78, 67/67 decision steps), x=2 demo11 27/119 (double count → "3
+  times"), demo21 68/116 (go correct), x=3 demo14 69/172 (late: first decision still a blink sentence), demo17 26/150
+  ("2 times"); 3/6 first decisions correct. Videos sent to the user.
