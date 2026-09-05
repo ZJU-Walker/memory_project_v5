@@ -744,3 +744,10 @@ build no fallback.
   job 17249058 (the B4 continuation, the least valuable job, was stopped at ~step 560 for it; B3's continuation keeps
   the 2xH100); H200 waiter `STAGES="A5 B5"`. Open after A5/B5: the tray-arrival ambiguity of the scoop sentences
   (demo21 no increment, demo14 late, demo17 over-increment) → sub-phase sentences if B5 still shows it.
+  08:25 — **B4 count-flip (first go step, label prefill): normal 0.79** (A4 0.985, B3 1.00, A3 1.00), flip-follows 0.76,
+  keeps-true 0.05, blank 0.50; errors are x=2/x=3 confusions (12/18 each; 3→2 ×4, 2→3 ×5). Is it the write rule?
+  Re-ran the battery with the rule overridden at eval time (`v5_count_flip_eval.py --write-retry on|off`,
+  `cluster_v5/run_count_flip_variant_hgx2.sh`): B3 with retry 1.00 (unchanged), B4 without retry 0.82 — **the eval-time
+  rule is irrelevant; B4's weights read a label-filled bank worse** (own-write rollouts still count 5/6). Cause not yet
+  separable between the retry rule DURING training and the visible-LED labels; B5 (A5 + retry, delay 0) is the next
+  data point. Note the battery's "normal" condition is a label-prefill probe, not the deployment condition.
