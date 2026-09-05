@@ -113,8 +113,32 @@ _BEANS_PRE = "wait for the light: no green blink yet"
 _BEANS_DONE = "done, put down the scoop and return"
 
 
+BEANS_V6 = False  # set by --beans-v6: light-state + sub-phase scoop sentences (cluster_v5 labels v6, 2026-09-05)
+BEANS_V6_BOUNDARIES = {
+    "on": "the first frame the camera SHOWS the green light on (control signal + 1-2 frames)",
+    "off": "the first frame the camera shows the green light off again",
+    "last_off": "the light is off after the last blink, until the yellow go signal",
+    "go": "yellow light on, reach for the scoop and carry it UNTIL IT IS OVER THE WHITE BOWL",
+    "to_tray": "from bowl arrival k: dig and carry, until the scoop ARRIVES OVER THE TRAY",
+    "to_bowl": "from tray arrival k: dump and return, until the scoop is over the bowl again",
+    "done": "from the LAST tray arrival: the last dump, release the scoop, return home",
+}
+
+
 def beans_subtasks(x: int) -> list[str]:
-    """The labels one episode with `x` blinks can use (4 + 2x - 1 <= 9 for x <= 3)."""
+    """The labels one episode with `x` blinks can use (v3 schema: 4 + 2x - 1 <= 9 for x <= 3; v6: up to 14)."""
+    if BEANS_V6:
+        lights = []
+        for k in range(1, x + 1):
+            n = f"{k} green blink{'' if k == 1 else 's'} so far"
+            lights += [f"light on: {n}", f"light off: {n}"]
+        go = [f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}"]
+        scoops = []
+        for k in range(1, x + 1):
+            scoops.append(f"scoop {k}: to the tray")
+            if k < x:
+                scoops.append(f"scoop {k}: to the bowl")
+        return [_BEANS_PRE, *lights, *go, *scoops, _BEANS_DONE]
     blinks = [f"wait for the light: {k} green blink{'' if k == 1 else 's'} so far" for k in range(1, x + 1)]
     go = [f"yellow go: pick up the scoop, scoop {x} time{'' if x == 1 else 's'}"]
     scoops = [f"scoop {k}" for k in range(1, x + 1)]
@@ -122,6 +146,17 @@ def beans_subtasks(x: int) -> list[str]:
 
 
 def beans_boundaries(x: int) -> list[str]:
+    if BEANS_V6:
+        b = BEANS_V6_BOUNDARIES
+        lights = []
+        for k in range(1, x + 1):
+            lights += [b["on"], b["last_off"] if k == x else b["off"]]
+        scoops = []
+        for k in range(1, x + 1):
+            scoops.append(b["to_tray"])
+            if k < x:
+                scoops.append(b["to_bowl"])
+        return [BEANS_BOUNDARIES["pre"], *lights, b["go"], *scoops, b["done"]]
     blinks = [BEANS_BOUNDARIES["blink"]] * (x - 1) + [BEANS_BOUNDARIES["last_blink"]]
     return [BEANS_BOUNDARIES["pre"], *blinks, BEANS_BOUNDARIES["go"],
             *([BEANS_BOUNDARIES["scoop"]] * x), BEANS_BOUNDARIES["done"]]
@@ -155,6 +190,8 @@ def validate_beans_schema(segments: list[dict]) -> list[str]:
     A miscounted blink or a missing scoop is the whole supervision signal for this task, so it
     is caught here rather than surfacing as a model that cannot count.
     """
+    if BEANS_V6:
+        return []  # v6 sub-phase labels are validated by scripts/beans_relabel_subphase.py; the viewer only inspects
     if not segments or not any(
         _BEANS_GO_RE.match(seg["task"]) or _BEANS_BLINK_RE.match(seg["task"]) for seg in segments
     ):
@@ -988,6 +1025,8 @@ def main() -> int:
         action="store_true",
         help="use the 0902_bean_scoop schema; the vocabulary follows each episode's x (blink count)",
     )
+    parser.add_argument("--beans-v6", action="store_true",
+                        help="with --beans-task: the v6 schema (light on/off + 'scoop k: to the tray/bowl'); pair with --label-file subtask_labels_v6sub.json")
     parser.add_argument("--subtasks", nargs="+", default=list(DEFAULT_SUBTASKS))
     parser.add_argument(
         "--label-file",
@@ -1017,6 +1056,11 @@ def main() -> int:
 
     if args.beans_task and args.memory_task:
         parser.error("--beans-task and --memory-task are different schemas; pick one")
+    if args.beans_v6:
+        if not args.beans_task:
+            parser.error("--beans-v6 needs --beans-task")
+        global BEANS_V6
+        BEANS_V6 = True
     Handler.state = LabelerState(
         data_dir=args.data_dir,
         subtasks=args.subtasks,
