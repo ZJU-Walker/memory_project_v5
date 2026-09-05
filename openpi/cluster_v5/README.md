@@ -655,3 +655,18 @@ build no fallback.
   4xH100; A2 keep_499 when it exits; then B3 + continuation on the 2xH100. queue5's B2 stage dropped (the tray cut
   supersedes it; A2's evaluations still run to judge the light-state count fix). H200 waiter re-armed
   `STAGES="A2 A3 B3"` with per-stage sidecars (`SIDECAR_<stage>`).
+  22:15 — **beans-A2 r1 exit 0 21:57** (step 400: CE 2.20, exact decision 0.98, evidence 0.97), keep_499; A3 (2xH100,
+  batch 4) at step 300 22:00: CE 2.66 / 0.94 / 0.92. Sentinel bug fixed on the way: after A2 exited it took A3 (a step of
+  job 17267129) for "training present" and left the 4xH100 idle for 3 min — the 17178887 check is now job-specific
+  (`jobid=17178887 .*train`, commit b6e8606); all four GPUs hold placeholders again. **A2 keep_499 self-write videos
+  (light-state sentences)**: the on/off chain itself is tracked exactly once it starts right (no double count within a
+  blink anywhere); count correct in 4/6 dev episodes (A r1: 3/6): demo12 78/78, demo14 170/172 — and there the scoop
+  counter advanced 1→2→3 by itself —, demo21 and demo51 counts right. Failures: demo11 hallucinates "light off: 1 green
+  blink so far" at frame 10 (LED off since frame 0; conf 0.97, one step after the first bank commit; qk cos −0.82) and
+  carries it to "3 times"; demo17 flickers between off-1/off-2 during the blinks and ends at "2 times". New A-stage
+  pathologies (never sees its own sentences): decoded garbage ("Action: <loc…>", "light off: wel…", below the write
+  threshold) and "yellow go" reappearing during scoop 1 / done in demo21 and demo51 (writes 17 and 14). The "no blink yet"
+  and "light off: 1" phases are 3.1 % and 3.4 % of the training frames and visually identical (LED off, arm idle) — the
+  previous sentence is the only cue, and stage A never trains on a wrong previous sentence. Stage B (own writes) is the
+  cure we have (B5a fixed exactly this flicker on the original task); B2 dropped in favour of B3 (tray cut on the same
+  light-state sentences), which therefore also tests the count under own writes.
