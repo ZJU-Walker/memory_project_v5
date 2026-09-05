@@ -751,3 +751,14 @@ build no fallback.
   rule is irrelevant; B4's weights read a label-filled bank worse** (own-write rollouts still count 5/6). Cause not yet
   separable between the retry rule DURING training and the visible-LED labels; B5 (A5 + retry, delay 0) is the next
   data point. Note the battery's "normal" condition is a label-prefill probe, not the deployment condition.
+  09:55 — **Disk-full incident.** `/iris/u/kewalk` (5.1 TB) hit 100 % at ~09:36, right as A5 exited: the three
+  openpi_trossen placeholder runs had written 540 GB of checkpoints (every 5k steps, ~42 GB each) and the B3
+  continuation another 160 GB of 250-step intermediates. Effects: queue8 died, the A5 keep_499 copy was partial (18 of
+  27 GB), B5 never launched, the trossen placeholder on the 4xH100 aborted (core dump) but still held 75 GB per GPU so
+  the first B5 relaunch OOM'd at init; the B3 continuation kept running (its log lost ~10 min of lines). Fixes: deleted
+  the placeholder checkpoints except the latest step of each run (−430 GB) and the B3 intermediates 250/750-1750 (kept
+  keep_499 and 2000, −160 GB) → 1.2 TB free; re-copied A5 keep_499; killed the dead placeholder (SIGKILL) and relaunched
+  B5 via `queue_beans9_hgx1.sh` (B5 → keep_499 → continuation); placeholder checkpoints now go to the node-local disk
+  (`placeholder_train_trossen.sh`: `--checkpoint-base-dir /scr/kewalk_placeholder/checkpoints`, 0905 run names);
+  new `gpu_sentinel_hgx2.sh` relaunches the H200 placeholder when its 30k-step run ends. The A5 eval waiter was paused
+  until the copy completes (a waiter that polls `keep_499/params` can start on a half-copied checkpoint).

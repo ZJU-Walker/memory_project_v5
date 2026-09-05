@@ -13,13 +13,16 @@ job="$1"; gpus="$2"
 export HOME=/iris/u/kewalk
 repo=/iris/u/kewalk/openpi_trossen
 config=pi05_trossen_pack_with_human_full
+# 2026-09-05 09:50: the 0904 runs wrote 540 GB of checkpoints to the NFS home and filled it (5.1 TB, 100 %). The
+# placeholders now checkpoint on the NODE-LOCAL disk (/scr, wiped with the node; nothing to keep) as 0905 runs.
 case "$gpus" in
-  1) exp=pi05_pack_with_human_full_0904_h200; batch=32 ;;
-  2) exp=pi05_pack_with_human_full_0904_2h100; batch=16 ;;
-  4) exp=pi05_pack_with_human_full_0904_4h100; batch=32 ;;   # 23:00: the user's new 4xH100 job 17249058
+  1) exp=pi05_pack_with_human_full_0905_h200; batch=32 ;;
+  2) exp=pi05_pack_with_human_full_0905_2h100; batch=16 ;;
+  4) exp=pi05_pack_with_human_full_0905_4h100; batch=32 ;;
   *) echo "unsupported gpu count $gpus"; exit 2 ;;
 esac
-ckdir=$repo/checkpoints/$config/$exp
+ckbase=/scr/kewalk_placeholder/checkpoints; mkdir -p "$ckbase" 2>/dev/null || ckbase=/tmp/kewalk_placeholder/checkpoints; mkdir -p "$ckbase"
+ckdir=$ckbase/$config/$exp
 if ls "$ckdir" 2>/dev/null | grep -qE '^[0-9]+$'; then mode=--resume; else mode=--overwrite; fi
 visible=$(seq -s, 0 $((gpus - 1)))
 log=/iris/u/kewalk/memory_project_v5/v5/tools/logs/placeholder_train_${job}.log
@@ -30,4 +33,4 @@ exec srun --jobid="$job" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres
       HF_LEROBOT_HOME=/iris/projects/humanoid/trossen_data XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 \
       WANDB_DIR=/iris/u/kewalk/openpi_trossen/wandb WANDB_MODE=offline HOME=/iris/u/kewalk \
   "$repo/.venv/bin/python" scripts/train.py "$config" --exp-name "$exp" --batch-size "$batch" --fsdp-devices "$gpus" \
-      --no-wandb-enabled "$mode" >> "$log" 2>&1
+      --checkpoint-base-dir "$ckbase" --no-wandb-enabled "$mode" >> "$log" 2>&1
