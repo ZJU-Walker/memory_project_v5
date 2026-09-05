@@ -5,12 +5,14 @@
 #   2xH100 job on iris-hgx-1: JOB=17267129 GRES=2 RUNNER=hgx1 bash cluster_v5/evals_beans_waiter.sh
 export HOME=/iris/u/kewalk
 JOB="${JOB:?}"; RUNNER="${RUNNER:-hgx2}"; export JOB GRES="${GRES:-1}"
+# STAGES="A2 B2" SIDECAR=<v2light sidecar> for the light-state models (19:20).
+STAGES="${STAGES:-A B}"; [ -n "${SIDECAR:-}" ] && export SIDECAR
 diag=/iris/u/kewalk/memory_project_v5/v5/diagnostics
 cv5=/iris/u/kewalk/memory_project_v5/openpi/cluster_v5
 ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
 log=$diag/queue_beans_hgx1.log
-echo "evals waiter armed on $(hostname) job $JOB ($RUNNER) $(date '+%m/%d %H:%M')" >> $log
-for stage in A B; do
+echo "evals waiter armed on $(hostname) job $JOB ($RUNNER) stages=$STAGES $(date '+%m/%d %H:%M')" >> $log
+for stage in $STAGES; do
   cfg=pi05_yam_mem_v5_beans$stage; exp=v5_beans${stage}_20260904_r1
   until [ -e $ckroot/$cfg/$exp/keep_499/params ]; do sleep 60; done
   sleep 30  # let the copy settle

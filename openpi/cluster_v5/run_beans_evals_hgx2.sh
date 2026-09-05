@@ -15,7 +15,7 @@ source cluster_v5/env.sh >/dev/null 2>&1
 export HOME=/iris/u/kewalk XLA_PYTHON_CLIENT_PREALLOCATE=false
 ck="$root/v5/checkpoints/$config/$exp/$step/params"
 manifest="$root/openpi/cluster_v5/beans/beans_episode_manifest_v1.json"
-sidecar="$root/openpi/cluster_v5/beans/beans_v5_subtask_labels_v1.json"
+sidecar="${SIDECAR:-$root/openpi/cluster_v5/beans/beans_v5_subtask_labels_v1.json}"  # A2/B2: SIDECAR=.../beans_v5_subtask_labels_v2light.json
 out="$root/v5/diagnostics/videos_${exp}_${step}"; mkdir -p "$out"
 cf="$root/v5/diagnostics/count_flip_${exp}_${step}"
 ph=$(pgrep -f "gpu_placeholder_marker[^_]" || true); [ "$JOB" != "17207774" ] && ph=$(pgrep -f "gpu_placeholder_marker_${JOB}" || true)

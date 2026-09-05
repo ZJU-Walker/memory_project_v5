@@ -601,3 +601,23 @@ build no fallback.
   Train chain re-armed as `queue_beans3_hgx1.sh` (A exit → B smoke → B r1 → keep_499 → continuation; no evals in the
   chain). beans-A r1: step 33 at 16:07, 16.7 s/update → A ends ≈18:15, B r1 ≈20:40, continuation until the job's
   22:46 limit. Note `run_beans_evals_hgx1.sh` (GPU 0 of a hgx-1 job, `GRES=`) exists for the 2xH100 job as a fallback.
+  18:19 — **beans-A r1 exit 0** (CE 7.67 → 2.24, decision exact 0.97, evidence exact 0.97, flow 0.023); keep_499; B r1
+  launched 18:21 on the 4xH100 (queue4: no B smoke; 17 s/update). Evaluations on the H200 job 17267793 (waiter): the 6
+  dev self-write videos 18:35-18:48, count-flip battery after. **A keep_499 self-write video demo11 (x=2) double-counts**:
+  "1 blink" at the first on-step, "2 blinks" at the SECOND on-step of the same blink, "3" at blink 2 → go "3 times",
+  then stuck on "scoop 1" (27/119 decision steps exact, 9 writes). Root cause: a blink lasts 6-9 frames = two stride-5
+  steps in 86/119 cases, and with the v1 sentences the inputs at the second on-step ("bank says k, light on") are the
+  same as at a new blink's first on-step. User 19:06: **option 2** — put the LED state into the waiting sentences so the
+  previous decoded sentence carries it: `light on: k green blink(s) so far` / `light off: k green blink(s) so far`
+  (14-sentence vocabulary; go/scoop/done unchanged; the LeRobot task strings and phase masks stay v3).
+  `scripts/beans_relabel_light_state.py` (from `subtask_labels.json` + `led_on.npy`, 119 light-on runs = Σx) →
+  `subtask_labels_light.json` per demo + `subtask_labels_manifest_light.json`; `beans_build_v5_manifest_sidecar.py
+  --label-filename subtask_labels_light.json --reuse-manifest` (same manifest v1/split, pinned inside) →
+  `cluster_v5/beans/beans_v5_subtask_labels_v2light.json` (sha eee0ba69…). Config: `V5_BEANS_SENTENCES_V2`,
+  `V5_BEANS_REFERENCE_SENTENCE_TOKENS_V2` (verified against the tokenizer), `v5_beans_light_data`,
+  **`pi05_yam_mem_v5_beansA2`** (labels, warm start B6a keep_499, prefill_max 14) and **`beansB2`** (own writes, from
+  A2 ckpt-499). Eval scripts take `SIDECAR=`; the waiter takes `STAGES="A2 B2"`. User 19:12: "kill current b training and
+  beginning our next training" → `queue_beans5_hgx1.sh` (A2 on the 4xH100 if ≥2h40 remain on job 17178887, else on the
+  2xH100 job 17267129 at batch 4; B2 + continuation on the 2xH100; the sentinel now also excludes its trossen placeholder
+  while a v5 `train.py` runs there). **Blocked 19:20: the Kerberos ticket expired at 18:01** (klist; ssh 255) — B r1 keeps
+  running (134/500 at 19:12) until the user re-kinits; the chain is armed the moment ssh works again.

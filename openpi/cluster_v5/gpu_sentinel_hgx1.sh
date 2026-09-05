@@ -51,7 +51,8 @@ while true; do
   # 16:22 (user: "use my openpi_trossen repo to keep training"): the placeholder on job 17267129 is a REAL 2-GPU
   # pi0.5 training from openpi_trossen (cluster_v5/placeholder_train_trossen.sh, marker gpu_placeholder_marker_17267129);
   # it is launched only while no v4 step and no eval python is running there (the eval runner kills it first).
-  if ! pgrep -f "train.py pi05_yam_mem_v[4]|v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null \
+  # 19:20: beans B2 trains on this job too (queue_beans5) -> a v5 train.py there also excludes the placeholder.
+  if ! pgrep -f "train.py pi05_yam_mem_v[4]|train.py pi05_yam_mem_v[5]|run_train_h200.s[h]|v4_side_flip_eva[l]|v4_stage2_eva[l]|v5_heldout_vide[o]|v5_count_flip_eva[l]|run_beans_evals_hgx[1]|v5_probe_[a-z_]*\.py" >/dev/null \
      && ! pgrep -f "gpu_placeholder_marker_1726712[9]" >/dev/null; then
     JOB=17267129 bash /iris/u/kewalk/memory_project_v5/openpi/cluster_v5/gpu_placeholder_job.sh >> $LOGDIR/sentinel_hgx1.log 2>&1
   fi

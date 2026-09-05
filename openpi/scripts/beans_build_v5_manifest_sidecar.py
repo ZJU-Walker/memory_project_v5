@@ -46,6 +46,12 @@ def main() -> None:
     parser.add_argument("--final-test-per-class", type=int, default=2)
     parser.add_argument("--dev-per-class", type=int, default=2)
     parser.add_argument("--dataset-name", default="0902_bean_scoop")
+    parser.add_argument("--label-filename", default="subtask_labels.json",
+                        help="per-demo label file (v3: subtask_labels.json; light-state v4: subtask_labels_light.json)")
+    parser.add_argument("--manifest-name", default="beans_episode_manifest_v1.json")
+    parser.add_argument("--sidecar-name", default="beans_v5_subtask_labels_v1.json")
+    parser.add_argument("--reuse-manifest", type=pathlib.Path, default=None,
+                        help="existing episode manifest to pin instead of writing a new one (same split/dataset)")
     parser.add_argument("--raw-dir", type=pathlib.Path, default=None,
                         help="raw demo root (demo1..demoN); needed when the dataset has no meta/episode_sources.json "
                              "(single-source conversions): episodes were converted in natural demo order and are "
@@ -81,7 +87,8 @@ def main() -> None:
         for episode_index, demo in enumerate(demo_dirs):
             entry = labels_manifest[demo.name]
             tasks = {segment["task"] for segment in entry["segments"]}
-            if int(entry["num_frames"]) != lengths[episode_index] or tasks != episode_tasks[episode_index]:
+            same_vocab = args.label_filename == "subtask_labels.json"  # the dataset carries the v3 task strings
+            if int(entry["num_frames"]) != lengths[episode_index] or (same_vocab and tasks != episode_tasks[episode_index]):
                 raise ValueError(
                     f"episode {episode_index} does not match {demo.name} (frames {lengths[episode_index]} vs "
                     f"{entry['num_frames']}, tasks {sorted(episode_tasks[episode_index])} vs {sorted(tasks)})"
@@ -103,7 +110,7 @@ def main() -> None:
         num_frames = lengths[episode_index]
         if int(entry["num_frames"]) != num_frames:
             raise ValueError(f"{stable_id}: labels manifest has {entry['num_frames']} frames, dataset {num_frames}")
-        segments = json.loads((raw_dir / "subtask_labels.json").read_text())
+        segments = json.loads((raw_dir / args.label_filename).read_text())
         if [s["task"] for s in segments] != [s["task"] for s in entry["segments"]]:
             raise ValueError(f"{stable_id}: on-disk labels differ from the labels manifest")
         cursor = 0
@@ -147,9 +154,9 @@ def main() -> None:
     episodes.sort(key=lambda e: e["episode_index"])
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = args.out_dir / "beans_episode_manifest_v1.json"
-    sidecar_path = args.out_dir / "beans_v5_subtask_labels_v1.json"
-    for path in (manifest_path, sidecar_path):
+    manifest_path = args.reuse_manifest or (args.out_dir / args.manifest_name)
+    sidecar_path = args.out_dir / args.sidecar_name
+    for path in ([sidecar_path] if args.reuse_manifest else [manifest_path, sidecar_path]):
         if path.exists():
             raise FileExistsError(f"{path} exists (create-only; delete it deliberately to rebuild)")
     manifest = {
@@ -163,8 +170,16 @@ def main() -> None:
         ),
         "episodes": episodes,
     }
-    manifest_text = _canonical(manifest)
-    manifest_path.write_text(manifest_text, encoding="utf-8")
+    if args.reuse_manifest:
+        manifest_text = manifest_path.read_text(encoding="utf-8")
+        existing = json.loads(manifest_text)
+        if [(e["episode_index"], e["stable_id"]) for e in existing["episodes"]] != [(e["episode_index"], e["stable_id"]) for e in episodes]:
+            raise ValueError("the reused manifest does not list the same episodes in the same order")
+        for e, old in zip(episodes, existing["episodes"]):
+            e["split"] = old["split"]
+    else:
+        manifest_text = _canonical(manifest)
+        manifest_path.write_text(manifest_text, encoding="utf-8")
     manifest_sha = hashlib.sha256(manifest_text.encode("utf-8")).hexdigest()
 
     sidecar = {

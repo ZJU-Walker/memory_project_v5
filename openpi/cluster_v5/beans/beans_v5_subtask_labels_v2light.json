@@ -1,0 +1,3071 @@
+{
+  "content_sha256": "269d0275ebeccf4d5404cd327aaed8605dc47e4bb62ca25b2867b4a5f3ad315e",
+  "dataset_version": "0902_bean_scoop",
+  "episodes": {
+    "0902_bean_scoop/demo1": {
+      "num_frames": 1517,
+      "segments": [
+        {
+          "end": 24,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 33,
+          "sentence": "light on: 1 green blink so far",
+          "start": 25
+        },
+        {
+          "end": 48,
+          "sentence": "light off: 1 green blink so far",
+          "start": 34
+        },
+        {
+          "end": 56,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 49
+        },
+        {
+          "end": 77,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 57
+        },
+        {
+          "end": 85,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 78
+        },
+        {
+          "end": 147,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 86
+        },
+        {
+          "end": 400,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 148
+        },
+        {
+          "end": 709,
+          "sentence": "scoop 1",
+          "start": 401
+        },
+        {
+          "end": 1012,
+          "sentence": "scoop 2",
+          "start": 710
+        },
+        {
+          "end": 1313,
+          "sentence": "scoop 3",
+          "start": 1013
+        },
+        {
+          "end": 1516,
+          "sentence": "done, put down the scoop and return",
+          "start": 1314
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo10": {
+      "num_frames": 674,
+      "segments": [
+        {
+          "end": 14,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 21,
+          "sentence": "light on: 1 green blink so far",
+          "start": 15
+        },
+        {
+          "end": 87,
+          "sentence": "light off: 1 green blink so far",
+          "start": 22
+        },
+        {
+          "end": 283,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 88
+        },
+        {
+          "end": 521,
+          "sentence": "scoop 1",
+          "start": 284
+        },
+        {
+          "end": 673,
+          "sentence": "done, put down the scoop and return",
+          "start": 522
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo11": {
+      "num_frames": 937,
+      "segments": [
+        {
+          "end": 31,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 40,
+          "sentence": "light on: 1 green blink so far",
+          "start": 32
+        },
+        {
+          "end": 53,
+          "sentence": "light off: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 61,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 54
+        },
+        {
+          "end": 128,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 62
+        },
+        {
+          "end": 365,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 129
+        },
+        {
+          "end": 584,
+          "sentence": "scoop 1",
+          "start": 366
+        },
+        {
+          "end": 798,
+          "sentence": "scoop 2",
+          "start": 585
+        },
+        {
+          "end": 936,
+          "sentence": "done, put down the scoop and return",
+          "start": 799
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo12": {
+      "num_frames": 762,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 39,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 106,
+          "sentence": "light off: 1 green blink so far",
+          "start": 40
+        },
+        {
+          "end": 340,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 107
+        },
+        {
+          "end": 607,
+          "sentence": "scoop 1",
+          "start": 341
+        },
+        {
+          "end": 761,
+          "sentence": "done, put down the scoop and return",
+          "start": 608
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo13": {
+      "num_frames": 968,
+      "segments": [
+        {
+          "end": 40,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 49,
+          "sentence": "light on: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 66,
+          "sentence": "light off: 1 green blink so far",
+          "start": 50
+        },
+        {
+          "end": 75,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 67
+        },
+        {
+          "end": 124,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 76
+        },
+        {
+          "end": 346,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 125
+        },
+        {
+          "end": 568,
+          "sentence": "scoop 1",
+          "start": 347
+        },
+        {
+          "end": 820,
+          "sentence": "scoop 2",
+          "start": 569
+        },
+        {
+          "end": 967,
+          "sentence": "done, put down the scoop and return",
+          "start": 821
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo14": {
+      "num_frames": 1263,
+      "segments": [
+        {
+          "end": 27,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 35,
+          "sentence": "light on: 1 green blink so far",
+          "start": 28
+        },
+        {
+          "end": 58,
+          "sentence": "light off: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 67,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 59
+        },
+        {
+          "end": 84,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 68
+        },
+        {
+          "end": 93,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 85
+        },
+        {
+          "end": 149,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 94
+        },
+        {
+          "end": 336,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 150
+        },
+        {
+          "end": 593,
+          "sentence": "scoop 1",
+          "start": 337
+        },
+        {
+          "end": 870,
+          "sentence": "scoop 2",
+          "start": 594
+        },
+        {
+          "end": 1112,
+          "sentence": "scoop 3",
+          "start": 871
+        },
+        {
+          "end": 1262,
+          "sentence": "done, put down the scoop and return",
+          "start": 1113
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo15": {
+      "num_frames": 698,
+      "segments": [
+        {
+          "end": 30,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 38,
+          "sentence": "light on: 1 green blink so far",
+          "start": 31
+        },
+        {
+          "end": 83,
+          "sentence": "light off: 1 green blink so far",
+          "start": 39
+        },
+        {
+          "end": 300,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 84
+        },
+        {
+          "end": 545,
+          "sentence": "scoop 1",
+          "start": 301
+        },
+        {
+          "end": 697,
+          "sentence": "done, put down the scoop and return",
+          "start": 546
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo16": {
+      "num_frames": 1264,
+      "segments": [
+        {
+          "end": 20,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 28,
+          "sentence": "light on: 1 green blink so far",
+          "start": 21
+        },
+        {
+          "end": 44,
+          "sentence": "light off: 1 green blink so far",
+          "start": 29
+        },
+        {
+          "end": 53,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 45
+        },
+        {
+          "end": 66,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 54
+        },
+        {
+          "end": 75,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 67
+        },
+        {
+          "end": 141,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 76
+        },
+        {
+          "end": 319,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 142
+        },
+        {
+          "end": 552,
+          "sentence": "scoop 1",
+          "start": 320
+        },
+        {
+          "end": 813,
+          "sentence": "scoop 2",
+          "start": 553
+        },
+        {
+          "end": 1092,
+          "sentence": "scoop 3",
+          "start": 814
+        },
+        {
+          "end": 1263,
+          "sentence": "done, put down the scoop and return",
+          "start": 1093
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo17": {
+      "num_frames": 1096,
+      "segments": [
+        {
+          "end": 24,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 31,
+          "sentence": "light on: 1 green blink so far",
+          "start": 25
+        },
+        {
+          "end": 44,
+          "sentence": "light off: 1 green blink so far",
+          "start": 32
+        },
+        {
+          "end": 51,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 45
+        },
+        {
+          "end": 69,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 52
+        },
+        {
+          "end": 75,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 70
+        },
+        {
+          "end": 146,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 76
+        },
+        {
+          "end": 356,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 147
+        },
+        {
+          "end": 557,
+          "sentence": "scoop 1",
+          "start": 357
+        },
+        {
+          "end": 763,
+          "sentence": "scoop 2",
+          "start": 558
+        },
+        {
+          "end": 966,
+          "sentence": "scoop 3",
+          "start": 764
+        },
+        {
+          "end": 1095,
+          "sentence": "done, put down the scoop and return",
+          "start": 967
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo18": {
+      "num_frames": 653,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 44,
+          "sentence": "light on: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 80,
+          "sentence": "light off: 1 green blink so far",
+          "start": 45
+        },
+        {
+          "end": 322,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 81
+        },
+        {
+          "end": 506,
+          "sentence": "scoop 1",
+          "start": 323
+        },
+        {
+          "end": 652,
+          "sentence": "done, put down the scoop and return",
+          "start": 507
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo19": {
+      "num_frames": 940,
+      "segments": [
+        {
+          "end": 14,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 23,
+          "sentence": "light on: 1 green blink so far",
+          "start": 15
+        },
+        {
+          "end": 45,
+          "sentence": "light off: 1 green blink so far",
+          "start": 24
+        },
+        {
+          "end": 53,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 46
+        },
+        {
+          "end": 117,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 54
+        },
+        {
+          "end": 310,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 118
+        },
+        {
+          "end": 558,
+          "sentence": "scoop 1",
+          "start": 311
+        },
+        {
+          "end": 798,
+          "sentence": "scoop 2",
+          "start": 559
+        },
+        {
+          "end": 939,
+          "sentence": "done, put down the scoop and return",
+          "start": 799
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo2": {
+      "num_frames": 1321,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 41,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 60,
+          "sentence": "light off: 1 green blink so far",
+          "start": 42
+        },
+        {
+          "end": 68,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 61
+        },
+        {
+          "end": 92,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 69
+        },
+        {
+          "end": 101,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 93
+        },
+        {
+          "end": 132,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 102
+        },
+        {
+          "end": 359,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 133
+        },
+        {
+          "end": 625,
+          "sentence": "scoop 1",
+          "start": 360
+        },
+        {
+          "end": 878,
+          "sentence": "scoop 2",
+          "start": 626
+        },
+        {
+          "end": 1132,
+          "sentence": "scoop 3",
+          "start": 879
+        },
+        {
+          "end": 1320,
+          "sentence": "done, put down the scoop and return",
+          "start": 1133
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo20": {
+      "num_frames": 719,
+      "segments": [
+        {
+          "end": 15,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 23,
+          "sentence": "light on: 1 green blink so far",
+          "start": 16
+        },
+        {
+          "end": 91,
+          "sentence": "light off: 1 green blink so far",
+          "start": 24
+        },
+        {
+          "end": 301,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 92
+        },
+        {
+          "end": 555,
+          "sentence": "scoop 1",
+          "start": 302
+        },
+        {
+          "end": 718,
+          "sentence": "done, put down the scoop and return",
+          "start": 556
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo21": {
+      "num_frames": 979,
+      "segments": [
+        {
+          "end": 22,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 31,
+          "sentence": "light on: 1 green blink so far",
+          "start": 23
+        },
+        {
+          "end": 46,
+          "sentence": "light off: 1 green blink so far",
+          "start": 32
+        },
+        {
+          "end": 55,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 47
+        },
+        {
+          "end": 127,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 56
+        },
+        {
+          "end": 328,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 128
+        },
+        {
+          "end": 598,
+          "sentence": "scoop 1",
+          "start": 329
+        },
+        {
+          "end": 836,
+          "sentence": "scoop 2",
+          "start": 599
+        },
+        {
+          "end": 978,
+          "sentence": "done, put down the scoop and return",
+          "start": 837
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo22": {
+      "num_frames": 696,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 41,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 96,
+          "sentence": "light off: 1 green blink so far",
+          "start": 42
+        },
+        {
+          "end": 318,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 97
+        },
+        {
+          "end": 544,
+          "sentence": "scoop 1",
+          "start": 319
+        },
+        {
+          "end": 695,
+          "sentence": "done, put down the scoop and return",
+          "start": 545
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo23": {
+      "num_frames": 685,
+      "segments": [
+        {
+          "end": 21,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 30,
+          "sentence": "light on: 1 green blink so far",
+          "start": 22
+        },
+        {
+          "end": 80,
+          "sentence": "light off: 1 green blink so far",
+          "start": 31
+        },
+        {
+          "end": 284,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 81
+        },
+        {
+          "end": 520,
+          "sentence": "scoop 1",
+          "start": 285
+        },
+        {
+          "end": 684,
+          "sentence": "done, put down the scoop and return",
+          "start": 521
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo24": {
+      "num_frames": 913,
+      "segments": [
+        {
+          "end": 26,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 35,
+          "sentence": "light on: 1 green blink so far",
+          "start": 27
+        },
+        {
+          "end": 53,
+          "sentence": "light off: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 62,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 54
+        },
+        {
+          "end": 119,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 63
+        },
+        {
+          "end": 342,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 120
+        },
+        {
+          "end": 606,
+          "sentence": "scoop 1",
+          "start": 343
+        },
+        {
+          "end": 774,
+          "sentence": "scoop 2",
+          "start": 607
+        },
+        {
+          "end": 912,
+          "sentence": "done, put down the scoop and return",
+          "start": 775
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo25": {
+      "num_frames": 1186,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 44,
+          "sentence": "light on: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 61,
+          "sentence": "light off: 1 green blink so far",
+          "start": 45
+        },
+        {
+          "end": 70,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 62
+        },
+        {
+          "end": 87,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 71
+        },
+        {
+          "end": 96,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 88
+        },
+        {
+          "end": 144,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 97
+        },
+        {
+          "end": 352,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 145
+        },
+        {
+          "end": 589,
+          "sentence": "scoop 1",
+          "start": 353
+        },
+        {
+          "end": 823,
+          "sentence": "scoop 2",
+          "start": 590
+        },
+        {
+          "end": 1035,
+          "sentence": "scoop 3",
+          "start": 824
+        },
+        {
+          "end": 1185,
+          "sentence": "done, put down the scoop and return",
+          "start": 1036
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo26": {
+      "num_frames": 594,
+      "segments": [
+        {
+          "end": 15,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 23,
+          "sentence": "light on: 1 green blink so far",
+          "start": 16
+        },
+        {
+          "end": 88,
+          "sentence": "light off: 1 green blink so far",
+          "start": 24
+        },
+        {
+          "end": 280,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 89
+        },
+        {
+          "end": 451,
+          "sentence": "scoop 1",
+          "start": 281
+        },
+        {
+          "end": 593,
+          "sentence": "done, put down the scoop and return",
+          "start": 452
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo27": {
+      "num_frames": 856,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 44,
+          "sentence": "light on: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 62,
+          "sentence": "light off: 1 green blink so far",
+          "start": 45
+        },
+        {
+          "end": 71,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 63
+        },
+        {
+          "end": 123,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 72
+        },
+        {
+          "end": 329,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 124
+        },
+        {
+          "end": 587,
+          "sentence": "scoop 1",
+          "start": 330
+        },
+        {
+          "end": 725,
+          "sentence": "scoop 2",
+          "start": 588
+        },
+        {
+          "end": 855,
+          "sentence": "done, put down the scoop and return",
+          "start": 726
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo28": {
+      "num_frames": 1098,
+      "segments": [
+        {
+          "end": 33,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 41,
+          "sentence": "light on: 1 green blink so far",
+          "start": 34
+        },
+        {
+          "end": 64,
+          "sentence": "light off: 1 green blink so far",
+          "start": 42
+        },
+        {
+          "end": 73,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 65
+        },
+        {
+          "end": 93,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 74
+        },
+        {
+          "end": 102,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 94
+        },
+        {
+          "end": 163,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 103
+        },
+        {
+          "end": 323,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 164
+        },
+        {
+          "end": 625,
+          "sentence": "scoop 1",
+          "start": 324
+        },
+        {
+          "end": 847,
+          "sentence": "scoop 2",
+          "start": 626
+        },
+        {
+          "end": 964,
+          "sentence": "scoop 3",
+          "start": 848
+        },
+        {
+          "end": 1097,
+          "sentence": "done, put down the scoop and return",
+          "start": 965
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo29": {
+      "num_frames": 1129,
+      "segments": [
+        {
+          "end": 42,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 50,
+          "sentence": "light on: 1 green blink so far",
+          "start": 43
+        },
+        {
+          "end": 71,
+          "sentence": "light off: 1 green blink so far",
+          "start": 51
+        },
+        {
+          "end": 80,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 72
+        },
+        {
+          "end": 102,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 81
+        },
+        {
+          "end": 111,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 103
+        },
+        {
+          "end": 144,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 112
+        },
+        {
+          "end": 329,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 145
+        },
+        {
+          "end": 549,
+          "sentence": "scoop 1",
+          "start": 330
+        },
+        {
+          "end": 774,
+          "sentence": "scoop 2",
+          "start": 550
+        },
+        {
+          "end": 1000,
+          "sentence": "scoop 3",
+          "start": 775
+        },
+        {
+          "end": 1128,
+          "sentence": "done, put down the scoop and return",
+          "start": 1001
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo3": {
+      "num_frames": 1299,
+      "segments": [
+        {
+          "end": 19,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 28,
+          "sentence": "light on: 1 green blink so far",
+          "start": 20
+        },
+        {
+          "end": 42,
+          "sentence": "light off: 1 green blink so far",
+          "start": 29
+        },
+        {
+          "end": 51,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 43
+        },
+        {
+          "end": 72,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 52
+        },
+        {
+          "end": 81,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 73
+        },
+        {
+          "end": 121,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 82
+        },
+        {
+          "end": 324,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 122
+        },
+        {
+          "end": 623,
+          "sentence": "scoop 1",
+          "start": 325
+        },
+        {
+          "end": 888,
+          "sentence": "scoop 2",
+          "start": 624
+        },
+        {
+          "end": 1128,
+          "sentence": "scoop 3",
+          "start": 889
+        },
+        {
+          "end": 1298,
+          "sentence": "done, put down the scoop and return",
+          "start": 1129
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo30": {
+      "num_frames": 927,
+      "segments": [
+        {
+          "end": 42,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 51,
+          "sentence": "light on: 1 green blink so far",
+          "start": 43
+        },
+        {
+          "end": 72,
+          "sentence": "light off: 1 green blink so far",
+          "start": 52
+        },
+        {
+          "end": 81,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 73
+        },
+        {
+          "end": 144,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 82
+        },
+        {
+          "end": 338,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 145
+        },
+        {
+          "end": 562,
+          "sentence": "scoop 1",
+          "start": 339
+        },
+        {
+          "end": 781,
+          "sentence": "scoop 2",
+          "start": 563
+        },
+        {
+          "end": 926,
+          "sentence": "done, put down the scoop and return",
+          "start": 782
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo31": {
+      "num_frames": 650,
+      "segments": [
+        {
+          "end": 42,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 51,
+          "sentence": "light on: 1 green blink so far",
+          "start": 43
+        },
+        {
+          "end": 104,
+          "sentence": "light off: 1 green blink so far",
+          "start": 52
+        },
+        {
+          "end": 287,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 105
+        },
+        {
+          "end": 508,
+          "sentence": "scoop 1",
+          "start": 288
+        },
+        {
+          "end": 649,
+          "sentence": "done, put down the scoop and return",
+          "start": 509
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo32": {
+      "num_frames": 1149,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 46,
+          "sentence": "light on: 1 green blink so far",
+          "start": 38
+        },
+        {
+          "end": 57,
+          "sentence": "light off: 1 green blink so far",
+          "start": 47
+        },
+        {
+          "end": 66,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 58
+        },
+        {
+          "end": 82,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 67
+        },
+        {
+          "end": 91,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 83
+        },
+        {
+          "end": 160,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 92
+        },
+        {
+          "end": 331,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 161
+        },
+        {
+          "end": 571,
+          "sentence": "scoop 1",
+          "start": 332
+        },
+        {
+          "end": 793,
+          "sentence": "scoop 2",
+          "start": 572
+        },
+        {
+          "end": 1014,
+          "sentence": "scoop 3",
+          "start": 794
+        },
+        {
+          "end": 1148,
+          "sentence": "done, put down the scoop and return",
+          "start": 1015
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo33": {
+      "num_frames": 903,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 44,
+          "sentence": "light on: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 58,
+          "sentence": "light off: 1 green blink so far",
+          "start": 45
+        },
+        {
+          "end": 66,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 59
+        },
+        {
+          "end": 105,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 67
+        },
+        {
+          "end": 255,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 106
+        },
+        {
+          "end": 521,
+          "sentence": "scoop 1",
+          "start": 256
+        },
+        {
+          "end": 747,
+          "sentence": "scoop 2",
+          "start": 522
+        },
+        {
+          "end": 902,
+          "sentence": "done, put down the scoop and return",
+          "start": 748
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo34": {
+      "num_frames": 1117,
+      "segments": [
+        {
+          "end": 14,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 22,
+          "sentence": "light on: 1 green blink so far",
+          "start": 15
+        },
+        {
+          "end": 35,
+          "sentence": "light off: 1 green blink so far",
+          "start": 23
+        },
+        {
+          "end": 42,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 36
+        },
+        {
+          "end": 56,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 43
+        },
+        {
+          "end": 65,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 57
+        },
+        {
+          "end": 130,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 66
+        },
+        {
+          "end": 306,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 131
+        },
+        {
+          "end": 547,
+          "sentence": "scoop 1",
+          "start": 307
+        },
+        {
+          "end": 787,
+          "sentence": "scoop 2",
+          "start": 548
+        },
+        {
+          "end": 982,
+          "sentence": "scoop 3",
+          "start": 788
+        },
+        {
+          "end": 1116,
+          "sentence": "done, put down the scoop and return",
+          "start": 983
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo35": {
+      "num_frames": 1115,
+      "segments": [
+        {
+          "end": 24,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 33,
+          "sentence": "light on: 1 green blink so far",
+          "start": 25
+        },
+        {
+          "end": 52,
+          "sentence": "light off: 1 green blink so far",
+          "start": 34
+        },
+        {
+          "end": 60,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 53
+        },
+        {
+          "end": 82,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 61
+        },
+        {
+          "end": 90,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 83
+        },
+        {
+          "end": 146,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 91
+        },
+        {
+          "end": 326,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 147
+        },
+        {
+          "end": 514,
+          "sentence": "scoop 1",
+          "start": 327
+        },
+        {
+          "end": 741,
+          "sentence": "scoop 2",
+          "start": 515
+        },
+        {
+          "end": 978,
+          "sentence": "scoop 3",
+          "start": 742
+        },
+        {
+          "end": 1114,
+          "sentence": "done, put down the scoop and return",
+          "start": 979
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo36": {
+      "num_frames": 881,
+      "segments": [
+        {
+          "end": 18,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 27,
+          "sentence": "light on: 1 green blink so far",
+          "start": 19
+        },
+        {
+          "end": 41,
+          "sentence": "light off: 1 green blink so far",
+          "start": 28
+        },
+        {
+          "end": 50,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 42
+        },
+        {
+          "end": 120,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 51
+        },
+        {
+          "end": 309,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 121
+        },
+        {
+          "end": 514,
+          "sentence": "scoop 1",
+          "start": 310
+        },
+        {
+          "end": 730,
+          "sentence": "scoop 2",
+          "start": 515
+        },
+        {
+          "end": 880,
+          "sentence": "done, put down the scoop and return",
+          "start": 731
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo37": {
+      "num_frames": 929,
+      "segments": [
+        {
+          "end": 42,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 51,
+          "sentence": "light on: 1 green blink so far",
+          "start": 43
+        },
+        {
+          "end": 69,
+          "sentence": "light off: 1 green blink so far",
+          "start": 52
+        },
+        {
+          "end": 78,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 70
+        },
+        {
+          "end": 113,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 79
+        },
+        {
+          "end": 337,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 114
+        },
+        {
+          "end": 553,
+          "sentence": "scoop 1",
+          "start": 338
+        },
+        {
+          "end": 770,
+          "sentence": "scoop 2",
+          "start": 554
+        },
+        {
+          "end": 928,
+          "sentence": "done, put down the scoop and return",
+          "start": 771
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo38": {
+      "num_frames": 848,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 44,
+          "sentence": "light on: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 57,
+          "sentence": "light off: 1 green blink so far",
+          "start": 45
+        },
+        {
+          "end": 66,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 58
+        },
+        {
+          "end": 99,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 67
+        },
+        {
+          "end": 309,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 100
+        },
+        {
+          "end": 500,
+          "sentence": "scoop 1",
+          "start": 310
+        },
+        {
+          "end": 701,
+          "sentence": "scoop 2",
+          "start": 501
+        },
+        {
+          "end": 847,
+          "sentence": "done, put down the scoop and return",
+          "start": 702
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo39": {
+      "num_frames": 1058,
+      "segments": [
+        {
+          "end": 20,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 26,
+          "sentence": "light on: 1 green blink so far",
+          "start": 21
+        },
+        {
+          "end": 47,
+          "sentence": "light off: 1 green blink so far",
+          "start": 27
+        },
+        {
+          "end": 54,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 48
+        },
+        {
+          "end": 75,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 55
+        },
+        {
+          "end": 83,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 76
+        },
+        {
+          "end": 117,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 84
+        },
+        {
+          "end": 315,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 118
+        },
+        {
+          "end": 511,
+          "sentence": "scoop 1",
+          "start": 316
+        },
+        {
+          "end": 719,
+          "sentence": "scoop 2",
+          "start": 512
+        },
+        {
+          "end": 921,
+          "sentence": "scoop 3",
+          "start": 720
+        },
+        {
+          "end": 1057,
+          "sentence": "done, put down the scoop and return",
+          "start": 922
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo4": {
+      "num_frames": 1145,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 51,
+          "sentence": "light on: 1 green blink so far",
+          "start": 44
+        },
+        {
+          "end": 71,
+          "sentence": "light off: 1 green blink so far",
+          "start": 52
+        },
+        {
+          "end": 80,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 72
+        },
+        {
+          "end": 134,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 81
+        },
+        {
+          "end": 389,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 135
+        },
+        {
+          "end": 711,
+          "sentence": "scoop 1",
+          "start": 390
+        },
+        {
+          "end": 948,
+          "sentence": "scoop 2",
+          "start": 712
+        },
+        {
+          "end": 1144,
+          "sentence": "done, put down the scoop and return",
+          "start": 949
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo40": {
+      "num_frames": 1110,
+      "segments": [
+        {
+          "end": 27,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 33,
+          "sentence": "light on: 1 green blink so far",
+          "start": 28
+        },
+        {
+          "end": 51,
+          "sentence": "light off: 1 green blink so far",
+          "start": 34
+        },
+        {
+          "end": 57,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 52
+        },
+        {
+          "end": 76,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 58
+        },
+        {
+          "end": 84,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 77
+        },
+        {
+          "end": 162,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 85
+        },
+        {
+          "end": 333,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 163
+        },
+        {
+          "end": 552,
+          "sentence": "scoop 1",
+          "start": 334
+        },
+        {
+          "end": 755,
+          "sentence": "scoop 2",
+          "start": 553
+        },
+        {
+          "end": 967,
+          "sentence": "scoop 3",
+          "start": 756
+        },
+        {
+          "end": 1109,
+          "sentence": "done, put down the scoop and return",
+          "start": 968
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo41": {
+      "num_frames": 640,
+      "segments": [
+        {
+          "end": 40,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 49,
+          "sentence": "light on: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 91,
+          "sentence": "light off: 1 green blink so far",
+          "start": 50
+        },
+        {
+          "end": 285,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 92
+        },
+        {
+          "end": 505,
+          "sentence": "scoop 1",
+          "start": 286
+        },
+        {
+          "end": 639,
+          "sentence": "done, put down the scoop and return",
+          "start": 506
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo42": {
+      "num_frames": 827,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 41,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 63,
+          "sentence": "light off: 1 green blink so far",
+          "start": 42
+        },
+        {
+          "end": 71,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 64
+        },
+        {
+          "end": 138,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 72
+        },
+        {
+          "end": 306,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 139
+        },
+        {
+          "end": 502,
+          "sentence": "scoop 1",
+          "start": 307
+        },
+        {
+          "end": 684,
+          "sentence": "scoop 2",
+          "start": 503
+        },
+        {
+          "end": 826,
+          "sentence": "done, put down the scoop and return",
+          "start": 685
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo43": {
+      "num_frames": 744,
+      "segments": [
+        {
+          "end": 38,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 47,
+          "sentence": "light on: 1 green blink so far",
+          "start": 39
+        },
+        {
+          "end": 64,
+          "sentence": "light off: 1 green blink so far",
+          "start": 48
+        },
+        {
+          "end": 73,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 65
+        },
+        {
+          "end": 109,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 74
+        },
+        {
+          "end": 275,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 110
+        },
+        {
+          "end": 448,
+          "sentence": "scoop 1",
+          "start": 276
+        },
+        {
+          "end": 619,
+          "sentence": "scoop 2",
+          "start": 449
+        },
+        {
+          "end": 743,
+          "sentence": "done, put down the scoop and return",
+          "start": 620
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo44": {
+      "num_frames": 1043,
+      "segments": [
+        {
+          "end": 31,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 40,
+          "sentence": "light on: 1 green blink so far",
+          "start": 32
+        },
+        {
+          "end": 59,
+          "sentence": "light off: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 67,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 60
+        },
+        {
+          "end": 88,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 68
+        },
+        {
+          "end": 97,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 89
+        },
+        {
+          "end": 132,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 98
+        },
+        {
+          "end": 325,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 133
+        },
+        {
+          "end": 523,
+          "sentence": "scoop 1",
+          "start": 326
+        },
+        {
+          "end": 715,
+          "sentence": "scoop 2",
+          "start": 524
+        },
+        {
+          "end": 901,
+          "sentence": "scoop 3",
+          "start": 716
+        },
+        {
+          "end": 1042,
+          "sentence": "done, put down the scoop and return",
+          "start": 902
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo45": {
+      "num_frames": 627,
+      "segments": [
+        {
+          "end": 40,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 49,
+          "sentence": "light on: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 114,
+          "sentence": "light off: 1 green blink so far",
+          "start": 50
+        },
+        {
+          "end": 292,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 115
+        },
+        {
+          "end": 481,
+          "sentence": "scoop 1",
+          "start": 293
+        },
+        {
+          "end": 626,
+          "sentence": "done, put down the scoop and return",
+          "start": 482
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo46": {
+      "num_frames": 560,
+      "segments": [
+        {
+          "end": 13,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 21,
+          "sentence": "light on: 1 green blink so far",
+          "start": 14
+        },
+        {
+          "end": 77,
+          "sentence": "light off: 1 green blink so far",
+          "start": 22
+        },
+        {
+          "end": 238,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 78
+        },
+        {
+          "end": 432,
+          "sentence": "scoop 1",
+          "start": 239
+        },
+        {
+          "end": 559,
+          "sentence": "done, put down the scoop and return",
+          "start": 433
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo47": {
+      "num_frames": 882,
+      "segments": [
+        {
+          "end": 29,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 37,
+          "sentence": "light on: 1 green blink so far",
+          "start": 30
+        },
+        {
+          "end": 57,
+          "sentence": "light off: 1 green blink so far",
+          "start": 38
+        },
+        {
+          "end": 65,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 58
+        },
+        {
+          "end": 106,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 66
+        },
+        {
+          "end": 303,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 107
+        },
+        {
+          "end": 517,
+          "sentence": "scoop 1",
+          "start": 304
+        },
+        {
+          "end": 727,
+          "sentence": "scoop 2",
+          "start": 518
+        },
+        {
+          "end": 881,
+          "sentence": "done, put down the scoop and return",
+          "start": 728
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo48": {
+      "num_frames": 615,
+      "segments": [
+        {
+          "end": 20,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 29,
+          "sentence": "light on: 1 green blink so far",
+          "start": 21
+        },
+        {
+          "end": 78,
+          "sentence": "light off: 1 green blink so far",
+          "start": 30
+        },
+        {
+          "end": 268,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 79
+        },
+        {
+          "end": 473,
+          "sentence": "scoop 1",
+          "start": 269
+        },
+        {
+          "end": 614,
+          "sentence": "done, put down the scoop and return",
+          "start": 474
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo49": {
+      "num_frames": 621,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 41,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 105,
+          "sentence": "light off: 1 green blink so far",
+          "start": 42
+        },
+        {
+          "end": 261,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 106
+        },
+        {
+          "end": 473,
+          "sentence": "scoop 1",
+          "start": 262
+        },
+        {
+          "end": 620,
+          "sentence": "done, put down the scoop and return",
+          "start": 474
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo5": {
+      "num_frames": 787,
+      "segments": [
+        {
+          "end": 26,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 35,
+          "sentence": "light on: 1 green blink so far",
+          "start": 27
+        },
+        {
+          "end": 94,
+          "sentence": "light off: 1 green blink so far",
+          "start": 36
+        },
+        {
+          "end": 327,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 95
+        },
+        {
+          "end": 587,
+          "sentence": "scoop 1",
+          "start": 328
+        },
+        {
+          "end": 786,
+          "sentence": "done, put down the scoop and return",
+          "start": 588
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo50": {
+      "num_frames": 839,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 40,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 64,
+          "sentence": "light off: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 72,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 65
+        },
+        {
+          "end": 125,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 73
+        },
+        {
+          "end": 290,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 126
+        },
+        {
+          "end": 496,
+          "sentence": "scoop 1",
+          "start": 291
+        },
+        {
+          "end": 678,
+          "sentence": "scoop 2",
+          "start": 497
+        },
+        {
+          "end": 838,
+          "sentence": "done, put down the scoop and return",
+          "start": 679
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo51": {
+      "num_frames": 626,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 40,
+          "sentence": "light on: 1 green blink so far",
+          "start": 33
+        },
+        {
+          "end": 106,
+          "sentence": "light off: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 291,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 107
+        },
+        {
+          "end": 478,
+          "sentence": "scoop 1",
+          "start": 292
+        },
+        {
+          "end": 625,
+          "sentence": "done, put down the scoop and return",
+          "start": 479
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo52": {
+      "num_frames": 1080,
+      "segments": [
+        {
+          "end": 27,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 34,
+          "sentence": "light on: 1 green blink so far",
+          "start": 28
+        },
+        {
+          "end": 53,
+          "sentence": "light off: 1 green blink so far",
+          "start": 35
+        },
+        {
+          "end": 61,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 54
+        },
+        {
+          "end": 77,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 62
+        },
+        {
+          "end": 86,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 78
+        },
+        {
+          "end": 146,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 87
+        },
+        {
+          "end": 320,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 147
+        },
+        {
+          "end": 518,
+          "sentence": "scoop 1",
+          "start": 321
+        },
+        {
+          "end": 715,
+          "sentence": "scoop 2",
+          "start": 519
+        },
+        {
+          "end": 921,
+          "sentence": "scoop 3",
+          "start": 716
+        },
+        {
+          "end": 1079,
+          "sentence": "done, put down the scoop and return",
+          "start": 922
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo53": {
+      "num_frames": 569,
+      "segments": [
+        {
+          "end": 17,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 25,
+          "sentence": "light on: 1 green blink so far",
+          "start": 18
+        },
+        {
+          "end": 91,
+          "sentence": "light off: 1 green blink so far",
+          "start": 26
+        },
+        {
+          "end": 306,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 92
+        },
+        {
+          "end": 434,
+          "sentence": "scoop 1",
+          "start": 307
+        },
+        {
+          "end": 568,
+          "sentence": "done, put down the scoop and return",
+          "start": 435
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo54": {
+      "num_frames": 826,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 46,
+          "sentence": "light on: 1 green blink so far",
+          "start": 38
+        },
+        {
+          "end": 65,
+          "sentence": "light off: 1 green blink so far",
+          "start": 47
+        },
+        {
+          "end": 74,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 66
+        },
+        {
+          "end": 138,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 75
+        },
+        {
+          "end": 303,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 139
+        },
+        {
+          "end": 498,
+          "sentence": "scoop 1",
+          "start": 304
+        },
+        {
+          "end": 683,
+          "sentence": "scoop 2",
+          "start": 499
+        },
+        {
+          "end": 825,
+          "sentence": "done, put down the scoop and return",
+          "start": 684
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo55": {
+      "num_frames": 884,
+      "segments": [
+        {
+          "end": 38,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 47,
+          "sentence": "light on: 1 green blink so far",
+          "start": 39
+        },
+        {
+          "end": 64,
+          "sentence": "light off: 1 green blink so far",
+          "start": 48
+        },
+        {
+          "end": 72,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 65
+        },
+        {
+          "end": 133,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 73
+        },
+        {
+          "end": 337,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 134
+        },
+        {
+          "end": 527,
+          "sentence": "scoop 1",
+          "start": 338
+        },
+        {
+          "end": 731,
+          "sentence": "scoop 2",
+          "start": 528
+        },
+        {
+          "end": 883,
+          "sentence": "done, put down the scoop and return",
+          "start": 732
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo56": {
+      "num_frames": 672,
+      "segments": [
+        {
+          "end": 13,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 21,
+          "sentence": "light on: 1 green blink so far",
+          "start": 14
+        },
+        {
+          "end": 37,
+          "sentence": "light off: 1 green blink so far",
+          "start": 22
+        },
+        {
+          "end": 45,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 38
+        },
+        {
+          "end": 89,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 46
+        },
+        {
+          "end": 259,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 90
+        },
+        {
+          "end": 424,
+          "sentence": "scoop 1",
+          "start": 260
+        },
+        {
+          "end": 561,
+          "sentence": "scoop 2",
+          "start": 425
+        },
+        {
+          "end": 671,
+          "sentence": "done, put down the scoop and return",
+          "start": 562
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo57": {
+      "num_frames": 515,
+      "segments": [
+        {
+          "end": 11,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 18,
+          "sentence": "light on: 1 green blink so far",
+          "start": 12
+        },
+        {
+          "end": 91,
+          "sentence": "light off: 1 green blink so far",
+          "start": 19
+        },
+        {
+          "end": 229,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 92
+        },
+        {
+          "end": 398,
+          "sentence": "scoop 1",
+          "start": 230
+        },
+        {
+          "end": 514,
+          "sentence": "done, put down the scoop and return",
+          "start": 399
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo58": {
+      "num_frames": 548,
+      "segments": [
+        {
+          "end": 21,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 29,
+          "sentence": "light on: 1 green blink so far",
+          "start": 22
+        },
+        {
+          "end": 96,
+          "sentence": "light off: 1 green blink so far",
+          "start": 30
+        },
+        {
+          "end": 252,
+          "sentence": "yellow go: pick up the scoop, scoop 1 time",
+          "start": 97
+        },
+        {
+          "end": 414,
+          "sentence": "scoop 1",
+          "start": 253
+        },
+        {
+          "end": 547,
+          "sentence": "done, put down the scoop and return",
+          "start": 415
+        }
+      ],
+      "x": 1
+    },
+    "0902_bean_scoop/demo59": {
+      "num_frames": 1088,
+      "segments": [
+        {
+          "end": 23,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 31,
+          "sentence": "light on: 1 green blink so far",
+          "start": 24
+        },
+        {
+          "end": 49,
+          "sentence": "light off: 1 green blink so far",
+          "start": 32
+        },
+        {
+          "end": 58,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 50
+        },
+        {
+          "end": 77,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 59
+        },
+        {
+          "end": 86,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 78
+        },
+        {
+          "end": 146,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 87
+        },
+        {
+          "end": 386,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 147
+        },
+        {
+          "end": 516,
+          "sentence": "scoop 1",
+          "start": 387
+        },
+        {
+          "end": 729,
+          "sentence": "scoop 2",
+          "start": 517
+        },
+        {
+          "end": 938,
+          "sentence": "scoop 3",
+          "start": 730
+        },
+        {
+          "end": 1087,
+          "sentence": "done, put down the scoop and return",
+          "start": 939
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo6": {
+      "num_frames": 1049,
+      "segments": [
+        {
+          "end": 21,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 30,
+          "sentence": "light on: 1 green blink so far",
+          "start": 22
+        },
+        {
+          "end": 46,
+          "sentence": "light off: 1 green blink so far",
+          "start": 31
+        },
+        {
+          "end": 55,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 47
+        },
+        {
+          "end": 98,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 56
+        },
+        {
+          "end": 320,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 99
+        },
+        {
+          "end": 662,
+          "sentence": "scoop 1",
+          "start": 321
+        },
+        {
+          "end": 843,
+          "sentence": "scoop 2",
+          "start": 663
+        },
+        {
+          "end": 1048,
+          "sentence": "done, put down the scoop and return",
+          "start": 844
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo60": {
+      "num_frames": 1057,
+      "segments": [
+        {
+          "end": 9,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 15,
+          "sentence": "light on: 1 green blink so far",
+          "start": 10
+        },
+        {
+          "end": 31,
+          "sentence": "light off: 1 green blink so far",
+          "start": 16
+        },
+        {
+          "end": 38,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 32
+        },
+        {
+          "end": 56,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 39
+        },
+        {
+          "end": 65,
+          "sentence": "light on: 3 green blinks so far",
+          "start": 57
+        },
+        {
+          "end": 106,
+          "sentence": "light off: 3 green blinks so far",
+          "start": 66
+        },
+        {
+          "end": 277,
+          "sentence": "yellow go: pick up the scoop, scoop 3 times",
+          "start": 107
+        },
+        {
+          "end": 464,
+          "sentence": "scoop 1",
+          "start": 278
+        },
+        {
+          "end": 673,
+          "sentence": "scoop 2",
+          "start": 465
+        },
+        {
+          "end": 893,
+          "sentence": "scoop 3",
+          "start": 674
+        },
+        {
+          "end": 1056,
+          "sentence": "done, put down the scoop and return",
+          "start": 894
+        }
+      ],
+      "x": 3
+    },
+    "0902_bean_scoop/demo7": {
+      "num_frames": 1012,
+      "segments": [
+        {
+          "end": 40,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 49,
+          "sentence": "light on: 1 green blink so far",
+          "start": 41
+        },
+        {
+          "end": 67,
+          "sentence": "light off: 1 green blink so far",
+          "start": 50
+        },
+        {
+          "end": 75,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 68
+        },
+        {
+          "end": 128,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 76
+        },
+        {
+          "end": 350,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 129
+        },
+        {
+          "end": 617,
+          "sentence": "scoop 1",
+          "start": 351
+        },
+        {
+          "end": 826,
+          "sentence": "scoop 2",
+          "start": 618
+        },
+        {
+          "end": 1011,
+          "sentence": "done, put down the scoop and return",
+          "start": 827
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo8": {
+      "num_frames": 886,
+      "segments": [
+        {
+          "end": 15,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 22,
+          "sentence": "light on: 1 green blink so far",
+          "start": 16
+        },
+        {
+          "end": 37,
+          "sentence": "light off: 1 green blink so far",
+          "start": 23
+        },
+        {
+          "end": 44,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 38
+        },
+        {
+          "end": 118,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 45
+        },
+        {
+          "end": 314,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 119
+        },
+        {
+          "end": 535,
+          "sentence": "scoop 1",
+          "start": 315
+        },
+        {
+          "end": 730,
+          "sentence": "scoop 2",
+          "start": 536
+        },
+        {
+          "end": 885,
+          "sentence": "done, put down the scoop and return",
+          "start": 731
+        }
+      ],
+      "x": 2
+    },
+    "0902_bean_scoop/demo9": {
+      "num_frames": 923,
+      "segments": [
+        {
+          "end": 17,
+          "sentence": "wait for the light: no green blink yet",
+          "start": 0
+        },
+        {
+          "end": 24,
+          "sentence": "light on: 1 green blink so far",
+          "start": 18
+        },
+        {
+          "end": 36,
+          "sentence": "light off: 1 green blink so far",
+          "start": 25
+        },
+        {
+          "end": 43,
+          "sentence": "light on: 2 green blinks so far",
+          "start": 37
+        },
+        {
+          "end": 120,
+          "sentence": "light off: 2 green blinks so far",
+          "start": 44
+        },
+        {
+          "end": 345,
+          "sentence": "yellow go: pick up the scoop, scoop 2 times",
+          "start": 121
+        },
+        {
+          "end": 546,
+          "sentence": "scoop 1",
+          "start": 346
+        },
+        {
+          "end": 752,
+          "sentence": "scoop 2",
+          "start": 547
+        },
+        {
+          "end": 922,
+          "sentence": "done, put down the scoop and return",
+          "start": 753
+        }
+      ],
+      "x": 2
+    }
+  },
+  "num_episodes": 60,
+  "schema_version": "openpi.v5.subtask-labels.v1",
+  "sentences": [
+    "done, put down the scoop and return",
+    "light off: 1 green blink so far",
+    "light off: 2 green blinks so far",
+    "light off: 3 green blinks so far",
+    "light on: 1 green blink so far",
+    "light on: 2 green blinks so far",
+    "light on: 3 green blinks so far",
+    "scoop 1",
+    "scoop 2",
+    "scoop 3",
+    "wait for the light: no green blink yet",
+    "yellow go: pick up the scoop, scoop 1 time",
+    "yellow go: pick up the scoop, scoop 2 times",
+    "yellow go: pick up the scoop, scoop 3 times"
+  ],
+  "source_manifest": "cluster_v5/beans/beans_episode_manifest_v1.json",
+  "source_manifest_sha256": "40d00bc458081a830a74c80fc3a002189f6f97bc4cbf86f94f9dd2ba8fb2a94a"
+}
