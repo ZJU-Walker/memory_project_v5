@@ -35,7 +35,8 @@ while True:
 }
 echo "$(date '+%m/%d %H:%M') sentinel up on $(hostname)" >> $LOGDIR/sentinel_hgx1.log
 while true; do
-  if pgrep -f "run_train_h200.s[h]|cluster_v5/train.s[h]|train.py pi05_yam_mem_v[5]" >/dev/null; then
+  # 22:00: only a training that is a STEP OF JOB 17178887 counts (A3 on job 17267129 left the 4 GPUs idle for 3 min).
+  if pgrep -f "jobid=17178887 .*(cluster_v5/train.s[h]|train.py)" >/dev/null; then
     ph=$(pgrep -f "gpu_placeholder_marker_1717888[7]" || true)
     [ -n "$ph" ] && { kill $ph 2>/dev/null; echo "$(date '+%m/%d %H:%M') training present: killed 4-GPU-job placeholders $ph" >> $LOGDIR/sentinel_hgx1.log; }
   else
