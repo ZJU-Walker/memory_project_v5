@@ -881,3 +881,19 @@ build no fallback.
   surviving job) waited for the orphaned step, protected keep_299 and started B6sd. Lesson: launch a queue from a
   shell in the job that will outlive it. The user's new 2-GPU job 17284681 (iris-hgx-2) hosts the B6 ckpt-1000 robot
   server (10.79.12.149:8000) and ran these probes next to it.
+  19:15 — **A6sd (decay 0.001, 300 updates) does NOT fix the tray decision: the 17:00 decay hypothesis is refuted
+  end-to-end, as the geometry probe predicted.** Self-write dev rollouts, dump-vs-done calls at the tray on the
+  identical metric: A6 (decay 0.01) 7/12, B6 7/12, **A6sd (decay 0.001) 8/12** — one call in twelve, inside noise —
+  and A6sd also loses demo17's count (go "2 times"; count 5/6 vs A6's 6/6). Per-episode: A6sd still says "done" one
+  scoop early on demo14/demo17 and "dump" on the one-scoop demo12. Videos
+  `videos_v5_beansA6sd_20260905_r1_keep_299`; ckpt `pi05_yam_mem_v5_beansA6sd/v5_beansA6sd_20260905_r1/keep_299`.
+  B6sd (own writes on the slow-decay weights) runs to ~20:05 as the last confirmation.
+  Tray probe matrix complete (normal / blank-bank / flip-the-remembered-count, alpha 0.01): A6 train 0.72 / 0.72 /
+  unchanged, B6 train 0.89 / 0.94 / unchanged, A6 dev 0.78 / 0.78 / unchanged, **B6 dev 0.78 / 0.89 / unchanged** —
+  in every cell an EMPTY bank is as good as or better than the true history and flipping the remembered count never
+  moves the answer. Combined with the geometry probe (the count is a 0.002 residual that later writes swamp), the
+  conclusion is settled: **the v5 bank supports "next sentence from the newest note", not "recall a specific older
+  note"; the fix has to make the count a separable direction, not a label rewrite and not a decay setting.**
+  NOTE: from 18:34 another session was writing to `queue_beans_hgx1.log` and using the same GPUs (2xH100 cancel,
+  B6-ckpt1000 robot server on job 17284681, an A6sd tray probe at 19:03) — check the log's authorship before
+  assuming a line is ours.
