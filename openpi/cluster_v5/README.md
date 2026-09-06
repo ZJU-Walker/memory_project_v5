@@ -952,3 +952,23 @@ build no fallback.
   its whole run because the process parsed the config at launch; B8 (queue15 launches it after A8 keep_299) and
   every later run pick 208 up automatically — the change is param-shape-neutral (RoPE positions, no positional
   table; only the padded buffer widens, so a 160-trained checkpoint loads into a 208 model unchanged).
+  21:55 — **Placeholder OOM incident on the single H200 (21:25) and the fix (user: "clean up the running task and
+  make sure this won't happen again").** What happened: the other session's A6sep verdict chain ran
+  `v5_bank_geometry_eval.py` on job 17267793 right after A6sep training ended; my hgx-2 sentinel
+  (`gpu_sentinel_hgx2.sh`) only knew a fixed list of scripts, did not recognise the geometry probe as real work,
+  and relaunched the trossen placeholder (~120 GB) at 21:25; the rollouts that followed OOM'd, the other session
+  killed the placeholder, swept its checkpoint and re-ran the rollouts at 21:45. State after cleanup: no placeholder
+  marker process on either node, no leftover placeholder checkpoint (`/scr/kewalk_placeholder` empty on both), the
+  user's `train_hs.py` job payloads untouched; hgx-1 had had NO sentinel at all since the 2xH100 job was cancelled
+  (the ssh shell it lived in was adopted by that job), so the 4xH100 would have sat idle after B8.
+  Fix, three layers: (1) one generic sentinel `cluster_v5/gpu_sentinel_job.sh` (`JOB=<job> TAG=<hgx1|hgx2>`,
+  20 s poll) replaces the per-node scripts on both nodes (hgx-2 job 17267793 pid 944761, hgx-1 job 17249058 pid
+  868248): real work = any srun step of the job running a training or a `scripts/v5_*.py`, any `scripts/v5_*.py`
+  python on the node, the eval/probe runners and the robot server — no more per-script list to forget; (2) the
+  sentinel is bidirectional: real work seen while a placeholder step runs -> it kills that srun step (only
+  processes whose command line STARTS with srun and carries the job's marker; the first version killed my own
+  ssh audit shell because its command text mentioned the marker — fixed 21:53); (3) the placeholder step itself
+  (`placeholder_train_trossen.sh`, atomically replaced) refuses to start when a GPU of the job already holds
+  > 8 GB (rc=3, nothing written), independent of any pattern. Residual race: a probe that starts in the 20 s
+  between two polls while a placeholder is up still OOMs — runners must keep killing the marker first (ours do).
+  `gpu_sentinel_hgx1.sh` / `gpu_sentinel_hgx2.sh` are superseded and no longer run.

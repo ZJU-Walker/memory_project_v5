@@ -31,10 +31,15 @@ cd "$repo" || exit 2
 # 2026-09-05 10:03 (user: "future placeholder ckpt just delete, always delete"): no periodic saves (save interval
 # beyond the run length) and the run's checkpoint dir is removed as soon as the step ends, whatever the exit code.
 trap 'rm -rf "$ckdir"' EXIT
+# 2026-09-05 21:55 (user: "make sure this won't happen again"): the step refuses to start when a GPU of the job already
+# holds > 8 GB (a v5 rollout/probe/training the sentinel's pattern did not know about); rc=3, nothing written.
 srun --jobid="$job" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:"$gpus" \
   env GPU_PLACEHOLDER="gpu_placeholder_marker_${job}" CUDA_VISIBLE_DEVICES="$visible" \
       HF_LEROBOT_HOME=/iris/projects/humanoid/trossen_data XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 \
       WANDB_DIR=/iris/u/kewalk/openpi_trossen/wandb WANDB_MODE=offline HOME=/iris/u/kewalk \
+  bash -c 'used=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | sort -n | tail -1)
+           if [ "${used:-0}" -gt 8000 ]; then echo "$(date "+%m/%d %H:%M:%S") placeholder REFUSED: a GPU of this job already holds ${used} MiB (real work running)"; exit 3; fi
+           exec "$0" "$@"' \
   "$repo/.venv/bin/python" scripts/train.py "$config" --exp-name "$exp" --batch-size "$batch" --fsdp-devices "$gpus" \
       --checkpoint-base-dir "$ckbase" --save-interval 100000000 --no-wandb-enabled "$mode" >> "$log" 2>&1
 rc=$?; rm -rf "$ckdir"; echo "$(date '+%m/%d %H:%M') placeholder training ended rc=$rc; checkpoints deleted ($ckdir)" >> "$log"; exit $rc
