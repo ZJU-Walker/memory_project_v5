@@ -1197,3 +1197,7 @@ build no fallback.
   6 delayed controls = 300 ms, the LED cue is timed in seconds so the blinks stay the same in real time but span
   fewer frames); NEXT TRAINING: raise the RTC `simulated_delay` (e.g. 10 → 333 ms at 30 Hz) so the policy is
   trained for the real ~250 ms inference delay instead of slowing the robot.
+  14:15 — **RTC delay for the next training = 15 (user 14:07 "set it to 15").** New configs `pi05_yam_mem_v5_beansA10` /
+  `pi05_yam_mem_v5_beansB10` = the A9/B9 recipe with `simulated_delay=15` (500 ms at 30 Hz; B10 loads A10 ckpt-299,
+  experiment name via `OPENPI_V5_BEANS_A10_EXP`, default `v5_beansA10_20260907_r1`). Not launched. The client will
+  need `--max-async-delay-steps 15 --initial-delay-steps 15 --delay-buffer-size 20` against a delay-15 checkpoint.
