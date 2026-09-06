@@ -1832,6 +1832,59 @@ _CONFIGS = [
         num_workers=12,
     ),
     TrainConfig(
+        # NON-MEMORY BASELINE for the 0905 beans task (user 2026-09-06 15:00: "train a baseline ... only pi05 no
+        # memory at all, but for pi05 we still need to do knowledge insulation and use our subtask to supervise
+        # the vlm and fast action token"). Same knowledge-insulation recipe as pi05_yam_0816 -- `predict_subtask`
+        # puts "{subtask}\nAction: <FAST>|" behind the "Task/State" prefix in ONE prompt buffer, the VLM backbone
+        # is trained by next-token CE over the subtask AND the FAST branch, and the action expert is trained by
+        # flow matching against a stop-gradient'ed prefix (pi0.py `Subtask + FAST co-training`), so the FAST
+        # branch never leaks into the action expert's attention or positions. NO memory flags: this is the
+        # memory-free reference for the v5 sentence-bank beans models, on the same data and the same labels
+        # (subtask_lookahead=0 -> the sentence describes the CURRENT frame, as in the v5 beans configs).
+        name="pi05_yam_beans0905_base",
+        model=pi0_config.Pi0Config(
+            pi05=True,
+            predict_subtask=True,
+            # scripts/v33_audit_token_lengths.py over all 71089 frames of this dataset: max context
+            # ("Task: ..., State: ...;\n") 73 tokens, max causal ("{subtask}\nAction: <FAST>|<eos>") 187.
+            # The non-memory path packs BOTH into this one buffer (the memory configs split them into
+            # max_token_len + causal_token_len), so it needs >= 260; 272 leaves 12 spare.
+            max_token_len=272,
+        ),
+        data=LeRobotYamDataConfig(
+            repo_id="yam/bean_scoop_0905_v5",
+            base_config=DataConfig(
+                prompt_from_episode_meta=True,
+                subtask_from_task=True,
+                subtask_lookahead=0,
+                # The dataset lives in the v5-private LeRobot root, not the default HF cache.
+                lerobot_dataset_root=str(
+                    _project_paths.project_path("v5/data/lerobot/yam/bean_scoop_0905_v5")
+                ),
+            ),
+            # Reuse the norm stats already computed for this dataset by the v5 beans runs
+            # (AssetsConfig lives on the factory, not on DataConfig).
+            assets=AssetsConfig(
+                assets_dir=str(
+                    _project_paths.project_path(_project_paths.V5_ASSETS_ROOT / "pi05_yam_bean_scoop_0905_v5")
+                )
+            ),
+        ),
+        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+        batch_size=16,
+        lr_schedule=_optimizer.CosineDecaySchedule(
+            warmup_steps=1_000, peak_lr=5e-5, decay_steps=30_000, decay_lr=5e-5
+        ),
+        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+        ema_decay=0.999,
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        num_train_steps=30_000,
+        save_interval=5_000,
+        keep_period=5_000,
+        num_workers=12,
+    ),
+    TrainConfig(
         # Plain (memory-free) pi05 fine-tune config for the two-task 0816 dataset (30 banana +
         # 30 grey-box episodes, per-episode instructions from meta/episode_prompts.json, 5-phase
         # subtask labels). Primarily used to compute the norm stats consumed by

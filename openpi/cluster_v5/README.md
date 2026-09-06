@@ -1218,3 +1218,25 @@ build no fallback.
   (UUID 3cc86c11) while GPU 1 (UUID b3d023a5) keeps the keep_1750 robot server; no sentinel for this job (it is
   per job and would kill the placeholder because of the server). Log `v5/tools/logs/placeholder_train_17286852.log`.
   Correction: job 17286852 is on iris-hgx-2 (10.79.12.149), the launcher's "hgx-1" was the launch shell's host.
+
+* 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
+  no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
+  and fast action token"). Config **`pi05_yam_beans0905_base`** (added next to `pi05_yam_0816`, which is the same
+  recipe on the bins task): `Pi0Config(pi05=True, predict_subtask=True, max_token_len=272)` — **no memory flags at
+  all** (`predict_with_memory` / `memory_v4_dual_bank` / `memory_v5_sentence_bank` all false, verified after load).
+  Knowledge insulation is the `predict_subtask` path in `pi0.py` ("Subtask + FAST co-training"): the VLM backbone
+  gets a next-token CE over the subtask sentence AND the FAST branch, the action expert is trained by flow matching
+  against a **stop-gradient'ed** prefix, and the FAST branch is hidden from the suffix in both attention and the
+  position offset so the action targets cannot leak. Data = the same 89-episode 0905 dataset and the same v6
+  sub-phase labels as the memory runs, `subtask_from_task=True`, `prompt_from_episode_meta=True`,
+  **`subtask_lookahead=0`** (the sentence describes the CURRENT frame, as in the v5 beans configs), norm stats
+  reused from `v5/assets/pi05_yam_bean_scoop_0905_v5`, `lerobot_dataset_root` pinned to the v5-private root.
+  **Token budget:** unlike the memory configs (which split the string into `max_token_len` + `causal_token_len`),
+  the non-memory tokenizer packs `Task: ..., State: ...;\n{subtask}\nAction: <FAST>|<eos>` into ONE buffer.
+  `scripts/v33_audit_token_lengths.py` over all 71089 frames: context max **73**, causal max **187** → the buffer
+  needs >= 260, set to **272**. Guessing here would silently truncate the trailing FAST tokens.
+  Fresh from the official `pi05_base` checkpoint (NOT warm-started from any memory model), batch 16, cosine 5e-5
+  with 1000 warmup, EMA 0.999, 30k steps, saves/keeps every 5000. Launched 15:13 on the user's H200 job 17267793
+  (user 15:09 "you can use 17267793 this gpu for training"); the tuned placeholder there was replaced by the
+  launcher. Step 0: CE 13.52 / flow 0.124, 1.2 it/s → ~6 h 53 m, ETA ~22:10. Experiment
+  `pi05_beans0905_base_20260906_r1`.
