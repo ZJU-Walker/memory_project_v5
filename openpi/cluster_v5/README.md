@@ -1240,3 +1240,22 @@ build no fallback.
   (user 15:09 "you can use 17267793 this gpu for training"); the tuned placeholder there was replaced by the
   launcher. Step 0: CE 13.52 / flow 0.124, 1.2 it/s → ~6 h 53 m, ETA ~22:10. Experiment
   `pi05_beans0905_base_20260906_r1`.
+
+* 2026-09-06 15:30 — **baseline first 500 steps are healthy, and a label-sourcing constraint found while checking it.**
+  Trajectory (batch 16, single H200, 1.2 it/s): CE **13.52 → 7.28 (100) → 4.15 (200) → 3.47 (300) → 3.25 (400) →
+  3.07 (500)**, flow **0.124 → 0.091 → 0.040 → 0.027 → 0.022 → 0.021**, grad norm 9.6-15.1, param norm flat at
+  1802.4. No NaN, no OOM, and **zero "exceeds causal_token_len" lines** — the 272-token buffer from the audit is
+  sufficient, which the memory beans runs A6..A8 could not say (they truncated at causal_token_len=160; the peer
+  session raised A9/B9/A10/B10 to 208 on 09-06). The baseline's `norm_stats.json` is byte-identical to the one
+  `pi05_yam_mem_v5_beansA9` uses (sha `d18a6df96f16e470…`), so normalization is matched to the memory line and the
+  action comparison is apples-to-apples.
+  **Constraint (worth knowing before anyone asks for a v7tgt baseline):** a NON-memory config cannot read the v5
+  sentence sidecar. `data_loader.py:243` is `if data_config.subtask_from_task and not use_memory:` →
+  `SubtaskFromLeRobotTask(dataset_meta.tasks)`, while the `memory_v5_subtask_labels_path` branch at :253 is inside
+  `if use_memory:`. So the non-memory sentence source is the LeRobot **task field**, frozen at conversion time, and
+  `beans_v5_subtask_labels_0905_v7tgt.json` is invisible to it. `meta/tasks.jsonl` of `bean_scoop_0905_v5` holds the
+  **16 v6sub sentences**, so this run is a v6sub baseline and compares like-for-like to A6..B8. Making a v7tgt
+  baseline (the like-for-like control for B9/B10, and the harder memoryless test since "scoop 2 of 3" needs the
+  target from green blinks minutes earlier) needs EITHER a second 53 GB conversion — images live in the parquet,
+  there is no separate videos dir — OR ~15 lines letting the non-memory path take sentences from the authenticated
+  sidecar. Not done: it touches a loader the peer session's runs load, and nobody has asked for it.
