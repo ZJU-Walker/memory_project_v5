@@ -18,8 +18,10 @@ diag=$root/v5/diagnostics; log=$diag/queue_beans_hgx1.log
 STAGE="${STAGE:?A9|B9|...}"; EXP_DATE="${EXP_DATE:-20260906}"
 exp=v5_beans${STAGE}_${EXP_DATE}_r1; cfg=pi05_yam_mem_v5_beans$STAGE; ck=$root/v5/checkpoints/$cfg/$exp/keep_299/params
 echo "$STAGE probe chain armed on $(hostname) job $JOB gpu $GPU: waits for the $STAGE keep_299 evals $(date '+%m/%d %H:%M')" >> $log
-until grep -q "^count-flip exit=" $diag/videos_${exp}_keep_299/status.log 2>/dev/null; do sleep 60; done
-sleep 20
+if [ -z "${NOWAIT:-}" ]; then  # NOWAIT=1 (user 03:43 "do the probe first"): start immediately, sharing the GPU with the rollouts
+  until grep -q "^count-flip exit=" $diag/videos_${exp}_keep_299/status.log 2>/dev/null; do sleep 60; done
+  sleep 20
+fi
 step() {  # tag script outdir extra-args...
   local tag=$1 script=$2 out=$3; shift 3; mkdir -p "$out"
   echo "$tag started $(date +%H:%M)" >> "$out/status.log"
