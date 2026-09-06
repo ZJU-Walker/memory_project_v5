@@ -1059,6 +1059,10 @@ class MemoryV5GenericFields(DataTransformFn):
     num_fact_targets: int
 
     def __call__(self, data: DataDict) -> DataDict:
+        if "seq_step_mask" not in data and not isinstance(data.get("subtask"), list):
+            # Live single-frame inference item (serve_yam_memory.py): nothing to build, pass through
+            # untouched like MemoryV34Labels does (2026-09-05: the first beans robot server died here).
+            return data
         if "seq_waiting_mask" not in data or "seq_step_mask" not in data:
             raise ValueError("MemoryV5GenericFields must run after MemoryV34Labels on a sequence item.")
         if "_v35_enabled" in data or "seq_occlusion_mask" in data:

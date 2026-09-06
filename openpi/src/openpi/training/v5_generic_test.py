@@ -132,3 +132,9 @@ def test_beans_configs_wire_the_generic_pipeline():
         assert "episode_fact_targets" not in structure
     assert _config.get_config("pi05_yam_mem_v5_beansA").model.memory_v5_oracle_writes
     assert not _config.get_config("pi05_yam_mem_v5_beansB").model.memory_v5_oracle_writes
+
+
+def test_generic_fields_passes_single_frame_inference_item_through():
+    t = _transforms.MemoryV5GenericFields(num_fact_slots=3, num_fact_targets=3)
+    item = {"observation/state": [0.0] * 14, "prompt": "scoop the beans"}
+    assert t(dict(item)) == item
