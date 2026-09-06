@@ -1116,3 +1116,6 @@ build no fallback.
   20260906, MANIFEST passthrough) with `run_beans_evals_job_v2.sh` (MANIFEST env) on GPU 1 of job 17286852,
   no placeholder. Judgement for A9: tray-flip probe on the 0905 development split must follow the flipped
   history (A8: 0/9), then B9 self-write rollouts.
+  00:58 — **B9 continuation 300 → 3000 armed** (user 00:57): `queue_beans18_hgx1.sh` waits for "beans-B9 ckpt-299
+  protected", then `run_train_h200.sh ... --num-train-steps 3000 --keep-period 1000` (auto-resume, batch 8; ~15 h,
+  ends ~20:00 on 09/06; kept checkpoints 1000, 2000, 2999 ≈ 81 GB). No evals armed for the continuation checkpoints.
