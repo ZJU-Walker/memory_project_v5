@@ -1054,3 +1054,15 @@ build no fallback.
   a fifth of a step and a blink lasts 8-9 frames, so this cannot flip a count. User decision 23:03: **keep the labels
   as they are** (the alternative, taking the boundary from the LATEST camera so no view is ever ahead of its label,
   is a one-line change to `beans_relabel_visible_led.py` + a re-run of the last two stages if it ever matters).
+  23:25 — **User (23:22): A7 and A6ctl dropped; the single H200 becomes the user's; this session = B8 line only.**
+  Stopped on job 17267793 at 23:23: the other session's `run_a6ctl_verdict_chain.sh`, its `run_beans_evals_hgx2.sh`
+  (A6ctl rollouts) and the two srun steps; my hgx-2 sentinel for that job; verified afterwards: no srun client on
+  either node, no python of the job other than the `train_hs.py` keep-alive (pids 3855222/3855226, 1 GB, 0 %), no
+  placeholder step, `/scr/kewalk_placeholder` empty. Job stays alive with the keep-alive only — nothing of ours runs
+  there again. User (23:24): the v5task2 session is data-preparation only from now on (told via SendMessage and the
+  queue log). A7 final record: geometry 10/12 @0.20 and count-flip 1.00/0.985/0.773 (oracle) but self-written
+  sentences lost the count (4/6 dev episodes wrong at the go decision, malformed "scoop : dump"); the matched
+  control A6ctl reached geometry 4/12 @0.0006 (so the loss, not the budget, made the count readable) and its
+  rollouts were stopped before finishing. Stale monitors of this session (B6/B5d1, A6sd/B6sd, B6 continuation)
+  stopped. Still running: B8 on the 4xH100 (keep_299 ~00:55), A8 count-flip -> probe chain -> oracle videos -> B8
+  evals on GPU 1 of job 17286852, the hgx-1 sentinel for 17249058.
