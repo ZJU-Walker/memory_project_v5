@@ -1173,3 +1173,9 @@ build no fallback.
   arrival frame; B9 produces it three times as often, uses the note (6/8 on the flipped-note cases) AND the picture
   (blank bank still finds 14/26 final trays, 0/20 false), and finishes 5/6 dev episodes in self-write. B9 =
   working model of the line; continuation to 3000 running (~20:00).
+  10:25 — **B9 ckpt-1000 self-write (user 10:12): 6/6 dev episodes right.** Decision steps 77/77, 79/79, 79/82, 79/80,
+  76/79, 69/70; tray-step exact 11/12 (keep_299: 8/12); every episode has exactly x−1 dumps before "done" and says
+  done (keep_299: the x=3 episode 0905beans_3/demo1 was ~2 s late — now right); writes 6–16 per episode; the k
+  increments land one step after the bowl arrival (a single-step repeat of the old k, then k+1), which is timing,
+  not a bookkeeping error. Videos `videos_v5_beansB9_20260906_r1_1000/`. Checkpoint 1000 is kept by the
+  continuation's keep_period (1000). Run on GPU 1 of job 17286852, no placeholder.
