@@ -897,3 +897,25 @@ build no fallback.
   NOTE: from 18:34 another session was writing to `queue_beans_hgx1.log` and using the same GPUs (2xH100 cancel,
   B6-ckpt1000 robot server on job 17284681, an A6sd tray probe at 19:03) — check the log's authorship before
   assuming a line is ours.
+  19:45 — **Sentence-separation loss implemented (not launched; the user chooses).** `Pi0Config`
+  `memory_v5_sentence_separation_weight` (default 0) + `memory_v5_separation_margin` (0.3); `Pi0
+  .v5_sentence_separation_terms()` encodes the STATIC reference vocabulary with the checkpoint's own encoder and
+  penalises `relu(|cos| - margin)^2` over the off-diagonal of BOTH the write keys and the write values, averaged.
+  It is parameter-only (no data, computed once per loss call, not inside the scan), the token states stay
+  stop-gradient'ed as everywhere on the v5 write path, and the gradient reaches exactly the parts that create the
+  collapse: the sentence attention pooling and `memory_sem_{key,value}_proj`. Telemetry is emitted at weight 0 too
+  (`v5_separation_loss`, `diagnostic/v5_separation_{key,value}_cos_max`, `..._key_cos_mean`), and `scripts/train.py`
+  adds `weight * v5_separation_loss` in BOTH loss paths (single-step and gradient-accumulation, the latter divided by
+  `accumulation_steps` like every other contribution). Weight sizing from A6 keep_499's measured cosines: at margin
+  0.3 the penalty is 0.45 (key 0.12 + value 0.33), so **weight 1.0** is comparable to but below the sentence CE;
+  mean |cos| off-diagonal is 0.50 (key) and **0.87 (value)** with 100 of 240 value pairs above 0.9 — the value
+  projection is the worse offender, and the term covers both. Configs `pi05_yam_mem_v5_beansA6sep` (label writes,
+  warm start B6a keep_499) / `beansB6sep` (own writes from A6sep-299, separation kept ON so stage B cannot re-collapse
+  the geometry — B6 measured a SMALLER count residual than A6), 300 updates each, matched to beansA6sd/B6sd.
+  Runner `queue_beans14_hgx1.sh` (4xH100 job 17249058), waiter map extended (`STAGES="A6sep B6sep" STEP=299`).
+  Tests: `pi0_v5_test.py::test_v5_separation_penalty_is_reported_and_pushes_the_vocabulary_apart` (finite terms,
+  exactly 0 at margin ~1, strictly positive at margin 0, non-zero finite gradients into both projections) and
+  `::test_v5_separation_config_validation`; the whole `-k "separation or a6"` group passes (6).
+  Success criterion, decided BEFORE the run: rerun `v5_bank_geometry_eval.py` on A6sep keep_299 and require the
+  go-count readout (currently 8/12 at margin 0.002) to rise with a margin at least an order of magnitude larger;
+  then the tray dump-vs-done metric (A6 7/12, B6 7/12, A6sd 8/12) in the self-write rollouts.

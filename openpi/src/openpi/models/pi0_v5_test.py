@@ -72,6 +72,7 @@ class _TinyV5Seq(_TinyV35):
 
     _v5_token_states = pi0.Pi0._v5_token_states
     v5_reference_token_rows = pi0.Pi0.v5_reference_token_rows
+    v5_sentence_separation_terms = pi0.Pi0.v5_sentence_separation_terms
     _v5_reference_stats = pi0.Pi0._v5_reference_stats
 
     def __init__(self, rngs: nnx.Rngs, *, oracle_writes: bool = True, write_conf: float = 0.9, pooling: str = "mean"):
@@ -87,6 +88,8 @@ class _TinyV5Seq(_TinyV35):
         self.memory_v5_write_conf = write_conf
         self.memory_v5_sentence_len = 2  # the tiny causal buffer is 2 tokens wide
         self.memory_v5_read_queries = 3
+        self.memory_v5_sentence_separation_weight = 0.0
+        self.memory_v5_separation_margin = 0.3
         self.memory_fact_slots = 3
         self.memory_fact_targets = 3
         self.memory_sem_injection_c = 12.4
@@ -707,6 +710,54 @@ def test_v5_a6_sequence_has_finite_gradients_and_trains_the_query_shift(tiny_v5_
     ]
     assert not bad, bad[:10]
     assert float(jnp.max(jnp.abs(grads["memory_sem_prev_query_proj"]["kernel"].value))) > 0.0
+
+
+def test_v5_separation_penalty_is_reported_and_pushes_the_vocabulary_apart(tiny_v5_a6):
+    """The separation term (README §8 2026-09-05): reported at weight 0, zero when the reference keys and
+    values are already inside the margin, positive and differentiable when they are collinear."""
+    tiny_v5_a6.memory_v5_reference_tokens = ((5, 6, 7), (5, 6, 8), (9, 3, 2))
+    tiny_v5_a6.memory_v5_separation_margin = 0.3
+    terms = tiny_v5_a6.v5_sentence_separation_terms()
+    for key, value in terms.items():
+        assert np.all(np.isfinite(np.asarray(value))), key
+    assert float(terms["v5_separation_loss"]) >= 0.0
+    assert 0.0 <= float(terms["v5_separation_key_cos_max"]) <= 1.0 + 1e-5
+
+    # A margin of 1 can never be exceeded -> the penalty is exactly zero.
+    tiny_v5_a6.memory_v5_separation_margin = 0.999999
+    assert float(tiny_v5_a6.v5_sentence_separation_terms()["v5_separation_loss"]) == 0.0
+    # A margin of 0 penalises every off-diagonal pair -> strictly positive for a real vocabulary.
+    tiny_v5_a6.memory_v5_separation_margin = 0.0
+    assert float(tiny_v5_a6.v5_sentence_separation_terms()["v5_separation_loss"]) > 0.0
+
+    # It trains the projections that create the collapse.
+    grads = nnx.grad(lambda m: m.v5_sentence_separation_terms()["v5_separation_loss"])(tiny_v5_a6)
+    for name in ("memory_sem_key_proj", "memory_sem_value_proj"):
+        leaf = grads[name]["kernel"].value
+        assert bool(jnp.all(jnp.isfinite(leaf))), name
+        assert float(jnp.max(jnp.abs(leaf))) > 0.0, name
+    tiny_v5_a6.memory_v5_separation_margin = 0.3
+
+
+def test_v5_separation_config_validation():
+    for bad in ({"memory_v5_sentence_separation_weight": -1.0}, {"memory_v5_separation_margin": 1.0}):
+        with pytest.raises(ValueError):
+            pi0_config.Pi0Config(
+                **_v5_kwargs(
+                    memory_v5_oracle_writes=True,
+                    memory_v5_pooling="standardized_attention",
+                    memory_v5_reference_tokens=((1, 2, 3), (4,)),
+                    **bad,
+                )
+            )
+    with pytest.raises(ValueError, match="reference_tokens"):
+        pi0_config.Pi0Config(
+            **_v5_kwargs(
+                memory_v5_oracle_writes=True,
+                memory_v5_pooling="standardized_attention",
+                memory_v5_sentence_separation_weight=1.0,
+            )
+        )
 
 
 def test_v5_a6_config_validation():

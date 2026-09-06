@@ -622,6 +622,10 @@ class Pi0(_model.BaseModel):
                     self.memory_v5_bank_waiting_tokens = tuple(config.memory_v5_bank_waiting_tokens)
                     self.memory_v5_write_delay_steps = int(config.memory_v5_write_delay_steps)
                     self.memory_v5_prev_is_committed = bool(getattr(config, "memory_v5_prev_is_committed", False))
+                    self.memory_v5_sentence_separation_weight = float(
+                        getattr(config, "memory_v5_sentence_separation_weight", 0.0)
+                    )
+                    self.memory_v5_separation_margin = float(getattr(config, "memory_v5_separation_margin", 0.3))
                     self.memory_v5_prefill_history = bool(config.memory_v5_prefill_history)
                     self.memory_v5_prefill_max = int(config.memory_v5_prefill_max)
                     self.memory_v5_write_conf = config.memory_v5_write_conf
@@ -5579,7 +5583,45 @@ class Pi0(_model.BaseModel):
                     "v5_exact_evidence_steps": ys["v5_exact_evidence"],
                 }
             )
+            losses.update(self.v5_sentence_separation_terms())
         return losses
+
+    def v5_sentence_separation_terms(self) -> dict[str, at.Array]:
+        """Off-diagonal cosine penalty on the REFERENCE vocabulary's write keys and values.
+
+        Measured 2026-09-05 (README §8 18:50): sentences differing only in a count are written at cosine
+        0.996-0.999 in BOTH key and value space, so an old note's count is a ~0.002 residual that the next
+        write swamps. This term is parameter-only (the reference rows are static), and its gradient reaches
+        the sentence pooling and the key/value projections -- the parts that create the collapse. The token
+        states themselves stay stop-gradient'ed, as everywhere on the v5 write path.
+
+        Telemetry is always reported (weight 0 = measurement only); the training script adds
+        `memory_v5_sentence_separation_weight * v5_separation_loss` to the total.
+        """
+        sent_len = self.memory_v5_sentence_len
+        ref_tokens, ref_mask = self.v5_reference_token_rows(sent_len)
+        encoded = self.v5_encode_sentence(ref_tokens, ref_mask)
+        keys, values = self.v5_sentence_intent(encoded)
+        keys, values = keys[:, 0, :], values[:, 0, :]  # already unit-norm
+        rows = keys.shape[0]
+        off = ~jnp.eye(rows, dtype=bool)
+        margin = jnp.asarray(self.memory_v5_separation_margin, dtype=jnp.float32)
+
+        def penalty(mat: at.Array) -> at.Array:
+            cos = mat @ mat.T
+            excess = jnp.maximum(jnp.abs(cos) - margin, 0.0)
+            return jnp.sum(jnp.square(excess) * off) / jnp.maximum(jnp.sum(off.astype(jnp.float32)), 1.0)
+
+        key_pen, value_pen = penalty(keys), penalty(values)
+        key_cos, value_cos = keys @ keys.T, values @ values.T
+        return {
+            "v5_separation_loss": key_pen + value_pen,
+            "v5_separation_key_penalty": key_pen,
+            "v5_separation_value_penalty": value_pen,
+            "v5_separation_key_cos_max": jnp.max(jnp.where(off, jnp.abs(key_cos), 0.0)),
+            "v5_separation_value_cos_max": jnp.max(jnp.where(off, jnp.abs(value_cos), 0.0)),
+            "v5_separation_key_cos_mean": jnp.sum(jnp.abs(key_cos) * off) / jnp.maximum(jnp.sum(off.astype(jnp.float32)), 1.0),
+        }
 
     def _compute_sequence_loss(
         self, rng: at.KeyArrayLike, observation: _model.Observation, actions: _model.Actions, *, train: bool = False

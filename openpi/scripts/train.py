@@ -1772,6 +1772,16 @@ def train_step(
             # Subtask co-training: combine the flow and (weighted) token CE losses, log both.
             loss = jnp.mean(chunked_loss["flow"]) + model.ce_loss_weight * jnp.mean(chunked_loss["ce"])
             info = {"flow_loss": jnp.mean(chunked_loss["flow"]), "ce_loss": jnp.mean(chunked_loss["ce"])}
+            # v5 sentence-separation penalty (README §8 18:50): parameter-only, already averaged over the
+            # reference vocabulary, so it enters the total once (not per micro-batch element).
+            sep_weight = float(getattr(model, "memory_v5_sentence_separation_weight", 0.0) or 0.0)
+            if "v5_separation_loss" in chunked_loss:
+                info["v5_separation_loss"] = chunked_loss["v5_separation_loss"]
+                info["diagnostic/v5_separation_key_cos_max"] = chunked_loss["v5_separation_key_cos_max"]
+                info["diagnostic/v5_separation_value_cos_max"] = chunked_loss["v5_separation_value_cos_max"]
+                info["diagnostic/v5_separation_key_cos_mean"] = chunked_loss["v5_separation_key_cos_mean"]
+                if sep_weight > 0:
+                    loss = loss + sep_weight * chunked_loss["v5_separation_loss"]
             if "write_grad_norm_sum" in chunked_loss:
                 # Core-steepness telemetry (v34 postmortems): healthy ~0.5-3; ramping toward
                 # ~50 preceded both explosion cycles by several hundred steps.
@@ -1988,6 +1998,16 @@ def train_step(
             loss = (flow_loss + model.ce_loss_weight * ce_loss) / accumulation_steps
             # These are additive contributions to the metrics of the effective global batch.
             info = {"flow_loss": flow_loss / accumulation_steps, "ce_loss": ce_loss / accumulation_steps}
+            # v5 sentence-separation penalty: divided by accumulation_steps like every other contribution,
+            # so the accumulated total carries it exactly once.
+            sep_weight = float(getattr(model, "memory_v5_sentence_separation_weight", 0.0) or 0.0)
+            if "v5_separation_loss" in chunked_loss:
+                info["v5_separation_loss"] = chunked_loss["v5_separation_loss"] / accumulation_steps
+                info["diagnostic/v5_separation_key_cos_max"] = chunked_loss["v5_separation_key_cos_max"] / accumulation_steps
+                info["diagnostic/v5_separation_value_cos_max"] = chunked_loss["v5_separation_value_cos_max"] / accumulation_steps
+                info["diagnostic/v5_separation_key_cos_mean"] = chunked_loss["v5_separation_key_cos_mean"] / accumulation_steps
+                if sep_weight > 0:
+                    loss = loss + sep_weight * chunked_loss["v5_separation_loss"] / accumulation_steps
             if "write_grad_norm_sum" in chunked_loss:
                 info.update(_write_diagnostic_sums(chunked_loss))
             if "probe_ce_sum" in chunked_loss:

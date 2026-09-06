@@ -349,6 +349,15 @@ class Pi0Config(_model.BaseModelConfig):
     # phase ("given I was doing X, what is relevant"), not only on the instruction.
     memory_v5_query_standardize: bool = False
     memory_v5_query_prev_sentence: bool = False
+    # 2026-09-05 (README §8 18:50): the bank separates sentence KINDS but not the COUNT inside a kind --
+    # the three go sentences differ only in a digit and their write keys/values sit at cosine 0.996-0.999,
+    # so the count is a ~0.002 residual that the next write swamps ("recall a note from a few steps ago"
+    # fails while "next sentence from the newest note" works). This penalises the off-diagonal cosines of
+    # the REFERENCE vocabulary's write keys and values above `memory_v5_separation_margin`; it is a
+    # parameter-only term (no data), differentiable through the sentence pooling and the key/value
+    # projections. 0 disables it.
+    memory_v5_sentence_separation_weight: float = 0.0
+    memory_v5_separation_margin: float = 0.3
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -569,6 +578,12 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("memory_v5_sentence_len must lie in [1, causal_token_len].")
                     if self.memory_v5_read_queries < 1:
                         raise ValueError("memory_v5_read_queries must be >= 1.")
+                    if self.memory_v5_sentence_separation_weight < 0:
+                        raise ValueError("memory_v5_sentence_separation_weight must be >= 0.")
+                    if not 0.0 <= self.memory_v5_separation_margin < 1.0:
+                        raise ValueError("memory_v5_separation_margin must lie in [0, 1).")
+                    if self.memory_v5_sentence_separation_weight > 0 and not self.memory_v5_reference_tokens:
+                        raise ValueError("the separation loss needs memory_v5_reference_tokens (the vocabulary rows).")
                     if bool(self.memory_v5_bank_waiting_prefix) != bool(self.memory_v5_bank_waiting_tokens):
                         raise ValueError(
                             "memory_v5_bank_waiting_prefix and memory_v5_bank_waiting_tokens must be set together."
