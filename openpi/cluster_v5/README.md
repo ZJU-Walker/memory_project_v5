@@ -1179,3 +1179,10 @@ build no fallback.
   increments land one step after the bowl arrival (a single-step repeat of the old k, then k+1), which is timing,
   not a bookkeeping error. Videos `videos_v5_beansB9_20260906_r1_1000/`. Checkpoint 1000 is kept by the
   continuation's keep_period (1000). Run on GPU 1 of job 17286852, no placeholder.
+  12:50 — **B9 ckpt-1000 with the memory OFF (user 12:34; `--intervention blank`: no commits, empty bank, previous
+  sentence only shifts the read queries → no effect on an empty bank).** Same six dev episodes: decision steps
+  25/77, 12/79, 24/82, 16/80, 16/79, 11/70 (with memory: 77/77, 79/79, 79/82, 79/80, 76/79, 69/70). The light
+  counter never leaves "wait for the light: no green blink yet" (each frame is independent, the count lives only
+  in the bank), "done" is emitted right after the wait phase (steps ~20–30, before any scoop), scoop sentences are
+  guesses ("scoop 2 of 3 / 2 of 2", regardless of x and k). The memory is what makes the task possible; vision
+  alone gives neither the blink count nor the scoop bookkeeping. Videos `videos_v5_beansB9_20260906_r1_1000_blank/`.
