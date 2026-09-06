@@ -1134,3 +1134,21 @@ build no fallback.
   A9 launched 01:24 (0905 norm stats loaded, 77 train episodes, v7tgt sentences, stageB6a warm start).
   `run_stage_probes_job.sh` (STAGE=A9) armed behind the A9 keep_299 evals on GPU 1 of job 17286852: tray-flip
   development + train, count recovery, geometry.
+  05:15 — **A9 first results (0905 development split).** Count-flip at the first go step: reads 1.00 / follows flip
+  1.00 / blank 0.69 (= A8); count recovery at the tray 12/12 (margin 0.18). Self-write rollouts: 1-scoop episodes
+  clean (done at the tray); 2-scoop: first scoop right, the second dig re-writes "1 of 2" (no increment) so the
+  second tray says "dump" (the rule applied to a wrong k) and the run drifts to "yellow go"; 3-scoop: the FIRST dig
+  is written "3 of 3" (x copied into k) so the first tray says "done". Tallies: first-go count 4/6, tray-step exact
+  4/12, correct k at a new dig 0/6; writes 6–23 per episode (no B8-style oscillation). ORACLE rollouts, prediction
+  at the exact tray-arrival step (history only): dump arrivals (k<x) 5/6 right (the miss is a one-step "still dig"
+  lag), done arrivals (k=x) 2/6 at the exact step (3 one-step lags, 1 real error: demo9 "2 of 2" → dump); NEVER a
+  false "done" at k<x (A8: "done" at every arrival). Per-episode oracle decision_exact ≈ 99 %. So the labels moved
+  the tray rule onto the note (dump iff k<x); the open problem is the k bookkeeping (first-dig k, increment) —
+  the stage-A boundary weakness (copy shortcut; 1–2 boundary examples per episode vs 3 blink increments).
+  Tray-flip probe on A9: two tooling gaps found and fixed — (1) the probe only parsed the v6 "scoop k:" rows
+  (patched: carried x, x flipped in scoop rows, variable-length candidates, schema v2); (2) it scores only
+  decision-mask steps, and the v4 decision list holds "done" but not the dump sentences, so its 26 dev cases were
+  all k=x: says "done" 5/26 (normal) = 5/26 (blank) = 7/26 (flip) — history-independent, biased to "dump", but a
+  weak instrument here (CE compares a 12-token vs a 9-token candidate). Fix: `v5_step_ce_steps` (unmasked per-step
+  CE) in the loss outputs; probe scores every tray arrival; rerun (`run_a9_tray_all_job.sh`, dev + train) queued
+  behind the chain. B9 (own writes) keep_299 ~05:35; its self-write evals, oracle rollouts and probe chain armed.
