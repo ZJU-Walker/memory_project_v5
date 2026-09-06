@@ -47,12 +47,15 @@ from openpi_client import action_chunk_broker  # noqa: E402
 from openpi_client import image_tools  # noqa: E402
 from openpi_client import websocket_client_policy as _websocket_client_policy  # noqa: E402
 
+# The beans prompt, defined here too so an older client_memory_v5.py on the robot computer (bin task only) still works.
+BEANS_PROMPT = getattr(base, "BEANS_PROMPT", "scoop the beans into the tray as many times as the green light blinked")
+
 
 @dataclasses.dataclass
 class Args(base.Args):
     host: str = "10.79.12.149"
     """iris-hgx-2 (the 2xH200 job 17284681); the bin-task default was iris-hgx-1."""
-    prompt: str = base.BEANS_PROMPT
+    prompt: str = BEANS_PROMPT
     steps_between_inference: int = 5
     """The beans models train at memory stride 5 (one memory tick every 5 controls = 1/6 s)."""
 
@@ -302,6 +305,29 @@ class _Display(base._Display):  # noqa: SLF001
         cv2.destroyAllWindows()
 
 
+def validate_v5_metadata(metadata: dict, args: Args) -> None:
+    """The base client's contract checks, with the beans prompt and stride 5 accepted (an older
+    client_memory_v5.py on the robot computer knows only the bin-task prompts / stride 15)."""
+    if not metadata.get("memory_v5_sentence_bank"):
+        raise ValueError(f"this client needs a v5 sentence-bank server; server config {metadata.get('config_name')!r}")
+    if metadata.get("memory_architecture") != "v32_layer8_dual_query":
+        raise ValueError(f"unexpected memory_architecture {metadata.get('memory_architecture')!r}")
+    if metadata.get("action_horizon") != args.action_horizon:
+        raise ValueError(f"server action_horizon is {metadata.get('action_horizon')!r}, client {args.action_horizon}")
+    if metadata.get("rtc_enabled") is not True:
+        raise ValueError("the server checkpoint is not RTC-trained (rtc_enabled must be true)")
+    if metadata.get("rtc_delay_semantics") != "inclusive_max":
+        raise ValueError(f"unexpected RTC delay semantics {metadata.get('rtc_delay_semantics')!r}")
+    trained_max_delay = metadata.get("rtc_max_delay")
+    if not isinstance(trained_max_delay, int) or args.max_async_delay_steps > trained_max_delay:
+        raise ValueError(f"client max_async_delay_steps={args.max_async_delay_steps} exceeds the server's RTC maximum ({trained_max_delay!r})")
+    training_stride = metadata.get("memory_stride_frames")
+    if training_stride != args.steps_between_inference:
+        raise ValueError(f"server memory_stride_frames is {training_stride!r}, but the client replans every {args.steps_between_inference} steps")
+    if args.prompt != BEANS_PROMPT:
+        raise ValueError(f"prompt {args.prompt!r} is not the beans training prompt {BEANS_PROMPT!r}")
+
+
 def main(args: Args) -> None:
     if not 1 <= args.blinks <= 3:
         raise ValueError("--blinks must be 1, 2 or 3 (the training range)")
@@ -312,7 +338,7 @@ def main(args: Args) -> None:
         ws_client = _websocket_client_policy.WebsocketClientPolicy(host=args.host, port=args.port)
     metadata = ws_client.get_server_metadata()
     logging.info("Server metadata: %s", metadata)
-    base.validate_v5_metadata(metadata, args)
+    validate_v5_metadata(metadata, args)
     policy = action_chunk_broker.RealtimeActionChunkBroker(
         ws_client,
         action_horizon=args.action_horizon,
