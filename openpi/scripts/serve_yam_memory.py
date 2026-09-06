@@ -56,6 +56,9 @@ class Args:
     config: str = "pi05_yam_mem_v3"
     port: int = 8000
     max_decode_steps: int = 10
+    # Flow-matching denoising steps of the action expert (training-time default 10). 2026-09-06: the B9 server
+    # measured 240 ms per request on an H200 (the RTC client tolerates ~200 ms); 6 steps trims ~40 ms.
+    num_steps: int = 10
     # Run synthetic requests before serving so the JIT compile (minutes) happens here, not on the
     # robot's first request; the memory is reset afterwards (ported from v4).
     warmup: bool = True
@@ -174,6 +177,7 @@ class MemoryPolicy(_policy.Policy):
         decode_tokenizer,
         stop_token: int,
         max_decode_steps: int,
+        num_steps: int = 10,
         action_horizon: int,
         action_dim: int,
         raw_action_dim: int,
@@ -184,6 +188,7 @@ class MemoryPolicy(_policy.Policy):
         self._decode_tokenizer = decode_tokenizer
         self._stop_token = stop_token
         self._max_decode_steps = max_decode_steps
+        self._num_steps = int(num_steps)
         self._action_horizon = action_horizon
         self._action_dim = action_dim
         self._raw_action_dim = raw_action_dim
@@ -327,6 +332,7 @@ class MemoryPolicy(_policy.Policy):
                 self._memory_state,
                 stop_token=self._stop_token,
                 max_decode_steps=self._max_decode_steps,
+                num_steps=self._num_steps,
                 action_prefix=action_prefix,
                 **v5_kwargs,
             )
@@ -413,6 +419,7 @@ def create_policy(args: Args) -> MemoryPolicy:
         decode_tokenizer=pg,
         stop_token=stop_token,
         max_decode_steps=max_decode_steps,
+        num_steps=args.num_steps,
         action_horizon=train_config.model.action_horizon,
         action_dim=train_config.model.action_dim,
         raw_action_dim=int(np.asarray(norm_stats["actions"].mean).shape[-1]),

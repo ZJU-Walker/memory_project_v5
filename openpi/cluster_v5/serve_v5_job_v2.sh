@@ -17,4 +17,4 @@ log="${LOG:-/iris/u/kewalk/memory_project_v5/v5/diagnostics/server_v5_$(date +%Y
 echo "serving $cfg from $ck on $(hostname) ($(hostname -I | awk '{print $1}')) port $port (job $JOB gpu $GPU); log $log" | tee -a "$log"
 srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=4 --gres=gpu:"$GRES" \
   env CUDA_VISIBLE_DEVICES="$GPU" XLA_PYTHON_CLIENT_PREALLOCATE=false XLA_PYTHON_CLIENT_MEM_FRACTION=0.6 PYTHONPATH=scripts \
-  .venv/bin/python -u scripts/serve_yam_memory.py --dir "$ck" --config "$cfg" --port "$port" --warmup 2>&1 | tee -a "$log"
+  .venv/bin/python -u scripts/serve_yam_memory.py --dir "$ck" --config "$cfg" --port "$port" --warmup ${SERVE_EXTRA:-} 2>&1 | tee -a "$log"  # SERVE_EXTRA="--num-steps 6" etc.

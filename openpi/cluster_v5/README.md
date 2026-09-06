@@ -1186,3 +1186,14 @@ build no fallback.
   in the bank), "done" is emitted right after the wait phase (steps ~20–30, before any scoop), scoop sentences are
   guesses ("scoop 2 of 3 / 2 of 2", regardless of x and k). The memory is what makes the task possible; vision
   alone gives neither the blink count nor the scoop bookkeeping. Videos `videos_v5_beansB9_20260906_r1_1000_blank/`.
+  13:50 — **Robot-test latency (user 13:20: the arm "go and stuck").** Bench from hgx-1 with real 0905 frames against
+  the B9 ckpt-1000 server (GPU 1 of job 17286852): median 250 ms per request, `server_timing.infer_ms` ≈ 240
+  (model time; network ~10 ms; node CPU load not the cause). The RTC client tolerates `max_async_delay_steps=6`
+  delayed controls = 200 ms at 30 Hz (the training `simulated_delay=6`), so every replan arrived late and the
+  arm stalled between chunks. Flow steps are NOT the cost: `--num-steps 6` (new server flag; `SERVE_EXTRA`
+  passthrough in serve_v5_job_v2.sh) gave 235 ms / 223 ms model time — the rest is the vision prefix, the
+  sentence decode and the per-call reference-row passes. Decision (user 13:45): back to 10 flow steps (server
+  relaunched 13:46, log `server_v5_b9_1000_20260906_ns10.log`); the user lowers the client control rate (`--hz 20`:
+  6 delayed controls = 300 ms, the LED cue is timed in seconds so the blinks stay the same in real time but span
+  fewer frames); NEXT TRAINING: raise the RTC `simulated_delay` (e.g. 10 → 333 ms at 30 Hz) so the policy is
+  trained for the real ~250 ms inference delay instead of slowing the robot.
