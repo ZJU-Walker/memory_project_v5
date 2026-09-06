@@ -5260,6 +5260,10 @@ class Pi0(_model.BaseModel):
                     outputs.update(
                         {
                             "v4_decision_ce": ce * decision_active,
+                            # 2026-09-06: the unmasked per-step sentence CE too (mean over the step's causal
+                            # tokens), so probes can score steps outside the decision mask (tray-flip: the
+                            # "dump" tray arrivals of the v4 "scoop k of x" labels are not decision phases).
+                            "v5_step_ce": ce,
                             "v4_decision_count": decision_active,
                             "v4_use_flow": flow * use_active,
                             "v4_use_count": use_active,
@@ -5336,6 +5340,10 @@ class Pi0(_model.BaseModel):
                     outputs.update(
                         {
                             "v4_decision_ce": ce * decision_active,
+                            # 2026-09-06: the unmasked per-step sentence CE too (mean over the step's causal
+                            # tokens), so probes can score steps outside the decision mask (tray-flip: the
+                            # "dump" tray arrivals of the v4 "scoop k of x" labels are not decision phases).
+                            "v5_step_ce": ce,
                             "v4_decision_count": decision_active,
                             "v4_use_flow": flow * use_active,
                             "v4_use_count": use_active,
@@ -5664,6 +5672,7 @@ class Pi0(_model.BaseModel):
                     # decision indicator, so the battery can contrast strings step by step.
                     "v4_decision_ce_steps": ys["v4_decision_ce"],
                     "v4_decision_active_steps": ys["v4_decision_count"],
+                    "v5_step_ce_steps": ys.get("v5_step_ce", ys["v4_decision_ce"]),
                     "v4_use_flow_sum": jnp.sum(ys["v4_use_flow"]),
                     "v4_use_count": jnp.sum(ys["v4_use_count"]),
                     "v4_sem_commit_count": jnp.sum(ys["v4_sem_commit"]),

@@ -273,9 +273,14 @@ def main(argv=None) -> None:
                         actions,
                         train=False,
                     )
-                    ce[(cond, candidate)] = np.asarray(jax.device_get(losses["v4_decision_ce_steps"])).T  # [b, T]
-                    if active is None:
-                        active = np.asarray(jax.device_get(losses["v4_decision_active_steps"])).T > 0.5
+                    if "v5_step_ce_steps" in losses:  # 2026-09-06: unmasked per-step CE -> every tray step is scored
+                        ce[(cond, candidate)] = np.asarray(jax.device_get(losses["v5_step_ce_steps"])).T  # [b, T]
+                        if active is None:
+                            active = np.ones(ce[(cond, candidate)].shape, dtype=bool)
+                    else:
+                        ce[(cond, candidate)] = np.asarray(jax.device_get(losses["v4_decision_ce_steps"])).T  # [b, T]
+                        if active is None:
+                            active = np.asarray(jax.device_get(losses["v4_decision_active_steps"])).T > 0.5
             for b, items in tray.items():
                 for t, k, x, label, age, carried in items:
                     if not active[b, t]:
