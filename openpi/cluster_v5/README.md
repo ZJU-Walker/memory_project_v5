@@ -850,3 +850,34 @@ build no fallback.
   / blank history, and under alpha 0.01 (as trained) vs 0.0 (no decay, same parameters). Runs for the A6 and B6
   parameters on the train and dev splits: `run_beans_evals_hgx2_tray_probe.sh` (named so the H200 sentinel treats it
   as real work) → `v5/diagnostics/tray_flip_<A6|B6>_keep_499_<split>/`. Started 17:11.
+  18:50 — **The tray failure is a SENTENCE-DIRECTION problem, not decay. The 17:00 decay diagnosis is refuted.**
+  `scripts/v5_bank_geometry_eval.py` (user 17:54 "will this be a sentence direction issue?") replays each dev
+  episode's true note sequence into a fresh bank on the real stride-5 clock and reads the go note back with its own
+  key, under alpha 0.01 / 0.001 / 0. Results (A6 keep_499 / B6 keep_499):
+  * the go note is NOT faded: go_recall (cosine of the retrieval with its own stored value) 0.94 / 0.98 at alpha
+    0.01, and 0.95 / 0.99 with the decay switched off — 30 s and up to 6 intervening writes later. Decay is not the
+    binding constraint, so **beansA6sd/B6sd will very likely not fix the tray decision**;
+  * but the retrieval matches the NEWEST note about as well as the go note itself (go_vs_recent +0.91..+0.98);
+  * decisive readout: comparing the retrieval against the three go variants (they differ only in the digit) the
+    cosines are 0.9409 / 0.9391 / 0.9426 — **the count lives in the 4th decimal, margin 0.002 (A6) and 0.0008 (B6),
+    and the bank's answer is 8/12 with every x=2 episode read as 3; identical 8/12 at alpha 0** (`--alphas`).
+  Cause, measured on the vocabulary itself (encoding / write key / write value cosines between distinct sentences):
+  sentences of different KIND are well separated (go vs scoop key −0.34, go vs light +0.03), but sentences that
+  differ ONLY in the count are collinear — go 1/2/3 times: encoding 0.934-0.978, key 0.996-0.998, value 0.996-0.999;
+  light off 1/2/3: key 0.969-0.990; scoop k dig: key 0.986-0.998, value 0.997-0.999. The encoder already blurs the
+  digit (1 token of ~13) and the key/value projections amplify the collapse. Why counting still works: the delta rule
+  reproduces the NEWEST note exactly (recent_recall 1.000), so the 0.002 component survives when the model reads the
+  note it just wrote; any later write injects content along nearly the same direction and swamps it. This is exactly
+  the user's summary (18:00): "update the next sentence from the last one" works, "recall a few steps ago" does not —
+  and it is the capability their 3-minute task needs. Fix direction (user's call): a SEPARATION loss over the
+  reference vocabulary in stage A (penalise |cos| between distinct reference keys and between distinct values; no
+  label change, task-independent), or a fast lexical diagnostic (counts as lexically distant words) to confirm the
+  mechanism end-to-end in ~1 h. Reports: `v5/diagnostics/bank_geometry_{A6,B6}_keep_499{,_countreadout}/`.
+  Tray probe (`scripts/v5_tray_flip_eval.py`), train and dev splits, A6 and B6: the tray decision is IDENTICAL with
+  the true history, with an emptied bank and with the remembered count flipped (A6 train 0.72/0.72/flip-unchanged,
+  B6 train 0.89/0.94, A6 dev 0.78/0.78) — the decision never used the bank, consistent with the geometry above.
+  Ops: the 2xH100 job 17267129 was cancelled at 18:34; the queue13 shell and its run_train_h200.sh wrapper died with
+  it while the A6sd srun STEP (job 17249058) kept running, so `queue_beans13b_hgx1.sh` (launched from a shell in the
+  surviving job) waited for the orphaned step, protected keep_299 and started B6sd. Lesson: launch a queue from a
+  shell in the job that will outlive it. The user's new 2-GPU job 17284681 (iris-hgx-2) hosts the B6 ckpt-1000 robot
+  server (10.79.12.149:8000) and ran these probes next to it.
