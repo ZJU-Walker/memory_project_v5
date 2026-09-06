@@ -1152,3 +1152,13 @@ build no fallback.
   weak instrument here (CE compares a 12-token vs a 9-token candidate). Fix: `v5_step_ce_steps` (unmasked per-step
   CE) in the loss outputs; probe scores every tray arrival; rerun (`run_a9_tray_all_job.sh`, dev + train) queued
   behind the chain. B9 (own writes) keep_299 ~05:35; its self-write evals, oracle rollouts and probe chain armed.
+  05:55 — **B9 keep_299 self-write: first model that solves the multi-scoop episodes on its own.** 0905 dev split:
+  demo27 (x=2) 77/77 decision steps: 1 of 2 dig → dump → 2 of 2 dig → done; demo9 (x=2) 77/79 same; demo31 /
+  demo10 (x=1) 79/79 and 69/70; 0905beans_2/demo1 (x=3) 80/82: three dumps then done (k labels wobble: "3 of 3"
+  written at the second dig, "2 of 3: dump" at the second tray, still the right sequence of tray decisions);
+  0905beans_3/demo1 (x=3) 66/80: the third tray is first called "2 of 3: dump" and "done" follows 13 steps later.
+  Tray decision sequence right in 5/6 episodes (the sixth: done ~2 s late). Tallies vs A9: tray-step exact 8/12
+  (A9 4/12), correct k at a new dig 3/6 (0/6), writes 6–17 per episode (no B8 oscillation; A9 6–23). Own-writes
+  training fixed most of the k bookkeeping and kept the tray rule; the x=3 episodes still carry wrong k labels at
+  times. Continuation 300 → 3000 running since 05:38; B9 count-flip, oracle rollouts and probe chain follow on
+  GPU 1 of job 17286852.
