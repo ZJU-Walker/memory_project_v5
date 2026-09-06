@@ -1019,3 +1019,14 @@ build no fallback.
   2xH200 job itself should have stayed alive with only the 1 GB keep-alive (no placeholder, GPUs free for the
   user) — too late for 17284681; standing rule from now: nothing of ours (no placeholder, no evals, no training)
   runs on the user's 2xH200 job, whichever id it gets when resubmitted.
+  22:35 — **A8/B8 evals moved to the free GPU of the user's 2xH200 job 17286852** (user 22:27: "it has 1 available
+  h200, run the a8 stuff there and when finish just finish, don't run anything on that job"). GPU 0 of that job
+  is the user's own openpi-beta process (130 GB, 100 %); GPU 1 (UUID GPU-b3d023a5-…) holds only the 1 GB
+  keep-alive. New `run_beans_evals_job.sh` (variant of the hgx2 runner): `GRES=2` + `CUDA_VISIBLE_DEVICES=<UUID>`
+  inside the `--overlap` step (an `--overlap --gres=gpu:1` step always maps to physical GPU 0, i.e. the user's
+  GPU — verified: pinned by UUID JAX sees exactly one device), `NO_PLACEHOLDER=1` skips both the placeholder kill
+  and the relaunch at the end, so the job is left exactly as found. Waiter = the original `evals_beans_waiter.sh`
+  (no job-busy wait: the user's process on GPU 0 must not block it), launched FROM hgx-1 so no shell of ours sits in
+  the user's job cgroup; `RUNNER=job STAGES="A8 B8" STEP=299 SIDECAR=v6sub`. The a8b8 waiter on the single H200 is
+  stopped; that GPU is entirely the other session's (A6ctl until ~23:40). A8 rollouts therefore start right after
+  A8's keep_299 (~22:50) instead of after midnight.
