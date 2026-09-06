@@ -1162,3 +1162,14 @@ build no fallback.
   training fixed most of the k bookkeeping and kept the tray rule; the x=3 episodes still carry wrong k labels at
   times. Continuation 300 → 3000 running since 05:38; B9 count-flip, oracle rollouts and probe chain follow on
   GPU 1 of job 17286852.
+  08:10 — **A9/B9 probe round-up (0905 development).** Tray-flip v2 (all 46 tray arrivals, dump-labelled 20 / done 26;
+  B9 probed under the A9 oracle config): dump arrivals — A9 20/20, B9 20/20, blank bank 20/20 for both; done
+  arrivals — A9 says done 5/26 (blank 6/26), B9 15/26 (blank 14/26); flipped history where the newest note becomes
+  "k of k" at a non-final tray (8 cases): A9 says done 6/8, B9 6/8. Oracle rollouts at the exact arrival frame: A9
+  7/12 (dump 5/6, done 2/6), B9 8/12 (dump 5/6, done 3/6); the misses are one-frame "still dig" lags plus one
+  early done (B9 demo27, absent in its self-write run). Count-flip: A9 1.00/1.00/0.69, B9 1.00/0.55/0.63 (the usual
+  own-writes drop; all six rollout go counts right). Count recovery at the tray: A9 12/12 (0.18), B9 see run.log.
+  Reading: the labels put the tray rule within reach of a single note; A9 (stage A) under-produces "done" at the
+  arrival frame; B9 produces it three times as often, uses the note (6/8 on the flipped-note cases) AND the picture
+  (blank bank still finds 14/26 final trays, 0/20 false), and finishes 5/6 dev episodes in self-write. B9 =
+  working model of the line; continuation to 3000 running (~20:00).
