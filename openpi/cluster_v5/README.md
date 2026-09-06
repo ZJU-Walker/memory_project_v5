@@ -919,3 +919,25 @@ build no fallback.
   Success criterion, decided BEFORE the run: rerun `v5_bank_geometry_eval.py` on A6sep keep_299 and require the
   go-count readout (currently 8/12 at margin 0.002) to rise with a margin at least an order of magnitude larger;
   then the tray dump-vs-done metric (A6 7/12, B6 7/12, A6sd 8/12) in the self-write rollouts.
+  19:35 — **A6sd count-flip: the slow decay also made the one thing that WORKED slightly worse.** First-go
+  history-only battery (count read from the bank / follows a flipped history / blank bank): A6 (decay 0.01)
+  1.000 / 0.955 / 0.667, B6 0.970 / 0.848 / 0.667, **A6sd (decay 0.001) 1.000 / 0.727 / 0.773** — the flip-follow
+  rate falls and the blank-bank accuracy rises, i.e. A6sd leans LESS on the bank for the go count (plausibly because
+  a slower decay leaves more of the collinear older content in the matrix, making the read noisier). Together with
+  the tray metric (8/12 vs 7/12, noise) and the lost demo17 count, the decay branch is closed as a net negative.
+  20:40 — **Decay branch closed. Full A6/B6 vs A6sd/B6sd comparison (same 6 dev episodes, same metrics):**
+
+  | stage | decay | go count | tray dump-vs-done | decision steps | count-flip follows-flip |
+  |-------|-------|----------|-------------------|----------------|-------------------------|
+  | A6    | 0.01  | 6/6      | 7/12              | 510/702 = .726 | 0.955                   |
+  | A6sd  | 0.001 | 5/6      | 8/12              | 467/702 = .665 | 0.727                   |
+  | B6    | 0.01  | 5/6      | 7/12              | 519/702 = .739 | 0.848                   |
+  | B6sd  | 0.001 | 6/6      | 5/12              | 564/702 = .803 | (pending)               |
+
+  The tray decision does not move in either direction beyond noise (7, 8, 7, 5 of 12) while the geometry probe
+  predicted exactly that. B6sd is the best model on raw decision steps (0.803) and recovers demo17's count, but it
+  is the WORST at the tray (5/12), which is another instance of the same thing: raw sentence accuracy is driven by
+  the newest-note read, the tray decision is not driven by the bank at all. A6sd's count-flip regression (follows a
+  flipped history 0.727 vs A6's 0.955, blank-bank 0.773 vs 0.667) says the slower decay actively weakened the read
+  that works. Nothing in the decay direction is worth pursuing; the sentence-direction fixes (this session's
+  separation loss `beansA6sep`, running; session A8's slot keys + whitened values) are the live branch.
