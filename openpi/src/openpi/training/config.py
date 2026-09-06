@@ -1845,6 +1845,12 @@ _CONFIGS = [
         model=pi0_config.Pi0Config(
             pi05=True,
             predict_subtask=True,
+            # Train-time RTC action-prefix conditioning, same budget as A10/B10 (user 2026-09-06 15:52
+            # "i also want rtc"): D=15 samples the simulated inference delay uniformly from {0..15},
+            # i.e. up to 500 ms at 30 Hz. Matches the raise from 6 that A10/B10 made after the B9
+            # server measured ~230 ms per request. RTC lives in the action expert's suffix, so it does
+            # not change the prompt-buffer budget below.
+            simulated_delay=15,
             # scripts/v33_audit_token_lengths.py over all 71089 frames of this dataset: max context
             # ("Task: ..., State: ...;\n") 73 tokens, max causal ("{subtask}\nAction: <FAST>|<eos>") 187.
             # The non-memory path packs BOTH into this one buffer (the memory configs split them into
@@ -1857,6 +1863,24 @@ _CONFIGS = [
                 prompt_from_episode_meta=True,
                 subtask_from_task=True,
                 subtask_lookahead=0,
+                # Same 20 target-carry sentences the v5 memory runs are trained on (A9/B9), NOT the
+                # 16 sub-phase ones frozen into this dataset's meta/tasks.jsonl at conversion time.
+                # A non-memory run normally has no way to reach a sidecar (the sidecar branch of
+                # create_torch_dataset sits inside `if use_memory:`), so the loader takes the
+                # SubtaskFromV5Sidecar path here instead of SubtaskFromLeRobotTask. Both pins are
+                # the same objects B9 loads, and both loaders fail closed on their SHA256.
+                memory_episode_manifest_path=str(
+                    _project_paths.project_path("openpi/cluster_v5/beans/beans_episode_manifest_0905_v1.json")
+                ),
+                memory_episode_manifest_sha256=V5_BEANS_0905_MANIFEST_SHA256,
+                # Only read to resolve the manifest's active split; this run samples every episode
+                # (user 15:42: "i think it is ok for training on all the demos"), so nothing filters on it.
+                memory_manifest_split="train",
+                memory_manifest_split_seed=902,
+                memory_v5_subtask_labels_path=str(
+                    _project_paths.project_path("openpi/cluster_v5/beans/beans_v5_subtask_labels_0905_v7tgt.json")
+                ),
+                memory_v5_subtask_labels_sha256=V5_BEANS_0905_SIDECAR_V7_SHA256,
                 # The dataset lives in the v5-private LeRobot root, not the default HF cache.
                 lerobot_dataset_root=str(
                     _project_paths.project_path("v5/data/lerobot/yam/bean_scoop_0905_v5")

@@ -241,7 +241,28 @@ def create_torch_dataset(
         dataset = TransformedDataset(dataset, [_transforms.InjectPromptFromEpisode(prompts)])
 
     if data_config.subtask_from_task and not use_memory:
-        dataset = TransformedDataset(dataset, [_transforms.SubtaskFromLeRobotTask(dataset_meta.tasks)])
+        if data_config.memory_v5_subtask_labels_path is not None:
+            # Supervise a NON-memory run with the authenticated v5 sentence sidecar rather than the
+            # vocabulary frozen into meta/tasks.jsonl at conversion time. Without this a non-memory
+            # baseline cannot speak the same sentences as the memory runs it is compared against.
+            if data_config.subtask_lookahead:
+                # SubtaskFromV5Sidecar indexes the sidecar by this frame. The lookahead is applied
+                # upstream by delta_timestamps on task_index, which the sidecar does not go through,
+                # so a nonzero lookahead would be silently ignored rather than shifting the label.
+                raise ValueError(
+                    "the non-memory v5 sentence sidecar has no lookahead path; "
+                    "set subtask_lookahead=0 or drop memory_v5_subtask_labels_path."
+                )
+            dataset = TransformedDataset(
+                dataset,
+                [
+                    _transforms.SubtaskFromV5Sidecar(
+                        _load_v5_sentences_without_memory(data_config, dataset, dataset_meta)
+                    )
+                ],
+            )
+        else:
+            dataset = TransformedDataset(dataset, [_transforms.SubtaskFromLeRobotTask(dataset_meta.tasks)])
 
     if use_memory:
         info = _episode_info_table(dataset, dataset_meta, data_config)
@@ -1130,6 +1151,41 @@ def _load_v5_generic_manifest(
         "memory_cell": memory_cell,
         "memory_cell_names": tuple(sorted(class_vocab, key=class_vocab.get)),
     }
+
+
+def _load_v5_sentences_without_memory(
+    data_config: "_config.DataConfig",
+    dataset: lerobot_dataset.LeRobotDataset,
+    dataset_meta: lerobot_dataset.LeRobotDatasetMetadata,
+) -> tuple[np.ndarray, ...]:
+    """Per-frame v5 sentences for a run with no memory path (see SubtaskFromV5Sidecar).
+
+    The memory loader gets these through `_episode_info_table`, which also builds phase tables,
+    waiting cores and sampling windows that a plain pi0.5 run has no use for. This reads only the
+    episode_index column (no images) and then reuses the two authenticated loaders unchanged: the
+    frozen manifest supplies the stable ids the sidecar is keyed by, and both fail closed on their
+    pinned SHA256.
+    """
+    episode = np.asarray(_unwrap_lerobot(dataset).hf_dataset.with_format(None)["episode_index"], dtype=np.int64)
+    num_episodes = int(episode.max()) + 1
+    starts = np.nonzero(np.append(True, episode[1:] != episode[:-1]))[0]
+    episode_lengths = (np.append(starts[1:], len(episode)) - starts).astype(np.int32)
+    manifest = _load_v5_generic_manifest(
+        data_config, num_episodes=num_episodes, episode_lengths=episode_lengths
+    )
+    sentences = _load_v5_subtask_labels(
+        data_config, stable_ids=manifest["stable_id"], episode_lengths=episode_lengths
+    )
+    vocabulary = sorted({str(value) for table in sentences for value in table})
+    logging.info(
+        "v5 sentences (no memory): %d episodes, %d distinct sentences, %d frames from %s",
+        len(sentences),
+        len(vocabulary),
+        int(episode_lengths.sum()),
+        pathlib.Path(str(data_config.memory_v5_subtask_labels_path)).name,
+    )
+    del dataset_meta  # the sidecar replaces meta/tasks.jsonl as the sentence source
+    return sentences
 
 
 def _load_v5_subtask_labels(

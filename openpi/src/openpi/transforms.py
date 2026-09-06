@@ -1280,6 +1280,46 @@ class SubtaskFromLeRobotTask(DataTransformFn):
 
 
 @dataclasses.dataclass(frozen=True)
+class SubtaskFromV5Sidecar(DataTransformFn):
+    """Per-frame subtask string from the authenticated v5 sentence sidecar.
+
+    The non-memory counterpart of the sidecar path `MemorySequenceSubtasks` takes: it stands in for
+    `SubtaskFromLeRobotTask` so a run can be supervised with a sentence set that is NOT the one
+    frozen into the LeRobot conversion. That matters because the conversion bakes its vocabulary
+    into meta/tasks.jsonl, so without this a non-memory run is stuck with whatever labels the
+    dataset was built with (e.g. the v6 sub-phase sentences) even when the memory runs it is meant
+    to be compared against read the v7 target-carry ones from a sidecar.
+
+    Runs on raw LeRobot items (needs "episode_index" and "frame_index"). `episode_sentences` is
+    indexed by episode and then by frame, exactly as `_load_v5_subtask_labels` returns it; that
+    loader has already checked the pinned SHA256, the content self-hash, the source-manifest
+    identity, and that every episode's segments tile all its frames.
+    """
+
+    # One object-dtype array of per-frame sentences per episode (data_loader._load_v5_subtask_labels).
+    episode_sentences: tuple
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "episode_index" not in data or "frame_index" not in data:
+            raise ValueError('v5 sidecar sentences need "episode_index" and "frame_index" on the raw item.')
+        episode = int(np.asarray(data["episode_index"]).item())
+        if not 0 <= episode < len(self.episode_sentences):
+            raise ValueError(
+                f"episode {episode} is outside the v5 sentence sidecar ({len(self.episode_sentences)} episodes)."
+            )
+        table = self.episode_sentences[episode]
+        subtasks = []
+        for raw_frame in np.atleast_1d(np.asarray(data["frame_index"])):
+            frame = int(raw_frame)
+            if not 0 <= frame < len(table):
+                raise ValueError(
+                    f"frame {frame} is outside episode {episode} ({len(table)} frames) in the v5 sentence sidecar."
+                )
+            subtasks.append(str(table[frame]))
+        return {**data, "subtask": subtasks if len(subtasks) > 1 else subtasks[0]}
+
+
+@dataclasses.dataclass(frozen=True)
 class PadStatesAndActions(DataTransformFn):
     """Zero-pads states and actions to the model action dimension."""
 
