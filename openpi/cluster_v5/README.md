@@ -1030,3 +1030,27 @@ build no fallback.
   the user's job cgroup; `RUNNER=job STAGES="A8 B8" STEP=299 SIDECAR=v6sub`. The a8b8 waiter on the single H200 is
   stopped; that GPU is entirely the other session's (A6ctl until ~23:40). A8 rollouts therefore start right after
   A8's keep_299 (~22:50) instead of after midnight.
+  23:05 — **New 0905 beans collection labelled + converted (user 22:50).** Data: `data/0905beans_{1,2,3}` =
+  60+5+25 demos, same signals as 0902 plus the same 3 cameras. `0905beans_1/demo3` DELETED on the user's
+  instruction (22:58): the cue said 3 blinks but the arm delivered twice (gripper held 266-848, two j0>0.8
+  excursions) — an incomplete demonstration, never labelled. Remaining **89 demos** labelled with the SAME automatic
+  chain as 0902: `beans_build_subtask_labels.py` (events from led_on/go_on/cue_num_blinks/gripper/j0) →
+  `beans_relabel_light_state` → `beans_relabel_scoop_dump --cut delivery_start` → `beans_relabel_visible_led` →
+  `beans_relabel_subphase`, i.e. the 16-sentence v6 vocabulary the current models train on. Verification: 89/89 tile
+  their episode exactly, zero segments outside `V5_BEANS_SENTENCES_V3`, all 16 sentences present, x-counts 27/34/28
+  for 1/2/3 scoops (vs 19/23/18 in 0902). The detector needed NO retuning — it succeeded on 89/90 first try, the
+  only failure being the deleted demo. Manifest `data/0905beans_episode_manifest_v1.json` (schema 1, 89 episodes,
+  71089 frames, per-episode `label_file: subtask_labels_v6sub.json`); conversion → `v5/data/lerobot/yam/bean_scoop_0905_v5`
+  (`HF_LEROBOT_HOME=v5/data/lerobot`, run on iris-hgx-1 — the login node silently killed the 0902 conversion at 42/60).
+  Inspection: `label_subtasks.py --data-dir data/0905beans_all --beans-task --beans-v6 --label-file
+  subtask_labels_v6sub.json --port 8766` on iris-ws-18, where `0905beans_all` is a SYMLINK view (demo1001-1059 =
+  folder 1, demo2001-2005 = folder 2, demo3001-3025 = folder 3, `source_map.json` alongside) so one server covers all
+  89 and edits save back into the real folders.
+  **Camera-sync measurement (user 23:00: "top camera light still on when wrist already off?").** Measured the LED
+  patch independently in the TOP and LEFT videos over 25 demos / 56 blinks: top minus left onset = -1/0/+1 frames in
+  2/41/13 blinks, offset = 0/+1 in 47/9. So the views differ by at most ONE frame and agree in ~75% of blinks; there
+  is no case of one camera being on while the other has long been off. For comparison the correction the labels
+  ALREADY apply (left camera minus electrical signal) is +1 frame in 44 blinks and +2 in 10. At stride 5 one frame is
+  a fifth of a step and a blink lasts 8-9 frames, so this cannot flip a count. User decision 23:03: **keep the labels
+  as they are** (the alternative, taking the boundary from the LATEST camera so no view is ever ahead of its label,
+  is a one-line change to `beans_relabel_visible_led.py` + a re-run of the last two stages if it ever matters).
