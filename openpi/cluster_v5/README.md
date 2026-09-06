@@ -1119,3 +1119,18 @@ build no fallback.
   00:58 — **B9 continuation 300 → 3000 armed** (user 00:57): `queue_beans18_hgx1.sh` waits for "beans-B9 ckpt-299
   protected", then `run_train_h200.sh ... --num-train-steps 3000 --keep-period 1000` (auto-resume, batch 8; ~15 h,
   ends ~20:00 on 09/06; kept checkpoints 1000, 2000, 2999 ≈ 81 GB). No evals armed for the continuation checkpoints.
+  01:30 — **A8 oracle rollouts and B8 self-write: the two remaining pieces of the A8 picture.** (a) A8 ORACLE-write
+  rollouts (true sentences fed to the bank) score 116/119, 78/78, 169/172, 144/150, 115/116, 67/67 — but at the
+  exact tray-arrival step, with only the history in the bank, the prediction is "done" in every case (demo11 step
+  99, demo14 steps 100–101 and 152, demo21 step 101; conf 0.95–0.97); one step later the oracle has written
+  "scoop k: dump" and the model copies it. The videos look right only because the answer is handed over a step
+  late; the decision itself is always "done" (= the tray-flip probe; train split: 17/18 "done", follows-flip
+  1/18, A6 8/18). (b) B8 self-write OSCILLATES: "scoop 1: dig" / "scoop 2: dig" alternate at every step of the
+  scoop phase (54–64 writes per episode vs 6–14 for A8); tray-step exact 8/12 is the coin flip; demo12 ends in
+  "yellow go". Mechanism: whitened values make the newest note crisp, own-writes training closes the loop
+  prediction → write → read → prediction without a visual anchor (B6's blurry plain bank leaned on vision and was
+  stable). Tray-step exact, self-write dev: A6 7/12, B6 7/12, A8 3/12, B8 8/12. Noted as a risk for B9; a generic
+  mitigation is a refractory write rule (no rewrite for a few steps unless the slot changes) — not applied yet.
+  A9 launched 01:24 (0905 norm stats loaded, 77 train episodes, v7tgt sentences, stageB6a warm start).
+  `run_stage_probes_job.sh` (STAGE=A9) armed behind the A9 keep_299 evals on GPU 1 of job 17286852: tray-flip
+  development + train, count recovery, geometry.
