@@ -1289,3 +1289,34 @@ build no fallback.
   `.venv/bin/python scripts/eval_yam_subtask_raw.py --config pi05_yam_beans0905_base --ckpt-dir <ckpt> --raw-demo
   /iris/u/kewalk/memory_project/data/0905beans_all/<demo> --prompt 'scoop the beans into the tray as many times as
   the green light blinked'`. Checkpoints do carry their own `assets/yam/bean_scoop_0905_v5`, so norm stats resolve.
+
+* 2026-09-06 16:06 — **baseline relaunched on the v7tgt labels WITH RTC** (user 15:45 "can you make sure the subtask
+  label is newest 20 sentences one so exactly same as my v5", 15:52 "i also want rtc", then 15:58 "just pure pi05" /
+  "no memory"). The v6sub run was killed at step 3400 (`exit=137`, deliberate) and replaced by
+  **`pi05_beans0905_base_v7rtc_20260906_r1`**, launched 16:06 on job 17267793.
+  **What had to change.** A non-memory config could not reach a sidecar at all: `data_loader.py:243` is
+  `if data_config.subtask_from_task and not use_memory:` -> `SubtaskFromLeRobotTask(dataset_meta.tasks)`, and the
+  `memory_v5_subtask_labels_path` branch is inside `if use_memory:`. So sentences came from `meta/tasks.jsonl`,
+  frozen at conversion to the 16 v6sub strings. Added **`transforms.SubtaskFromV5Sidecar`** (maps
+  (episode_index, frame_index) -> sidecar sentence) and **`_load_v5_sentences_without_memory`**, which reads only the
+  episode_index column and then reuses `_load_v5_generic_manifest` and `_load_v5_subtask_labels` **unchanged**, so the
+  pinned SHA256, the content self-hash, the source-manifest check and the tile-completeness check all still apply.
+  Gated on the sidecar being configured; the `else` is the original line verbatim. Plus a guard: the sidecar has no
+  lookahead path (lookahead is applied upstream via `delta_timestamps` on `task_index`), so a nonzero
+  `subtask_lookahead` now raises instead of being silently ignored.
+  **Regression check.** `pi05_yam_mem_v5_beansB9` and `...A9` both still build `use_memory=True`, len 71089, first
+  subtask `'wait for the light: no green blink yet'`, and a spy on the new helper counted **0 calls** for either.
+  Memory configs never enter the branch.
+  **Still no memory, verified after load:** `predict_with_memory=False`, `memory_stride_frames=0` -> `use_memory=False`;
+  3.35B params, identical to the v6sub run, so no bank, no memory tokens, no memory params. The `memory_*` names on
+  the two new DataConfig entries only say where the label file lives; those validators sit after
+  `if not self.memory_v35_enabled: return`, so a non-memory config carries them without tripping anything.
+  **RTC:** `simulated_delay=15`, the A10/B10 budget. Note `pi05_yam` and `pi05_yam_0816` have `simulated_delay=None`,
+  so this baseline is deliberately NOT the stock pi05 recipe on that axis; it matches the memory line it is compared
+  against. RTC is action-prefix conditioning in the action expert and is unrelated to memory.
+  **Token budget re-audited on the v7tgt labels:** max context **73**, max causal **187**, byte-identical to v6sub,
+  because both vocabularies span 9-13 sentence tokens and the longest string
+  ("yellow go: pick up the scoop, scoop 3 times", 13 tokens) is in both. Packed 260 <= **272**, unchanged, and the run
+  logs zero truncation lines. Startup confirms the swap:
+  `v5 sentences (no memory): 89 episodes, 20 distinct sentences, 71089 frames from beans_v5_subtask_labels_0905_v7tgt.json`.
+  Commit 6b9761b.
