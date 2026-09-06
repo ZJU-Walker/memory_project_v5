@@ -4280,9 +4280,13 @@ _CONFIGS = [
                     # The detailed inspect sentence is 12 tokens (v4: 4); with the FAST action
                     # tokens behind it the 128-wide causal buffer overflowed and silently
                     # truncated the chunk's last action tokens (smoke 2026-09-02: lengths up to
-                    # 151 in the first batches; v4 saw 129-135 occasionally). 160 fits every
-                    # observed length; costs 32 KV-cache positions per step.
-                    causal_token_len=160,
+                    # 151 in the first batches; v4 saw 129-135 occasionally). 160 was raised to
+                    # 208 on 2026-09-05: the beans runs (A6/B6/A8) truncated ~10% of chunks
+                    # (lengths 161-186, i.e. their last 1-26 action tokens were dropped from the
+                    # CE target). 208 covers the observed maximum with 22 tokens of headroom;
+                    # costs 48 more KV-cache positions per step. Runs launched before this
+                    # change (A6..A8, B6, A6sd/B6sd) trained with 160.
+                    causal_token_len=208,
                     memory_v5_sentence_bank=True,
                     memory_v5_write_conf=0.9,
                     memory_v5_sentence_len=48,

@@ -941,3 +941,14 @@ build no fallback.
   flipped history 0.727 vs A6's 0.955, blank-bank 0.773 vs 0.667) says the slower decay actively weakened the read
   that works. Nothing in the decay direction is worth pursuing; the sentence-direction fixes (this session's
   separation loss `beansA6sep`, running; session A8's slot keys + whitened values) are the live branch.
+  21:15 — **`causal_token_len` 160 → 208 (config.py, v5 model base).** The user noticed the tokenizer warning
+  `Causal length (165) exceeds causal_token_len (160), truncating` appearing constantly in the A8 log. Counted
+  over the A6/B6/A8 logs: 8.7k warnings, chunk lengths 161–186 (histogram peaks at 161–165 and thins to a
+  handful at 185–186), i.e. roughly one chunk in ten lost its last 1–26 FAST action tokens from the CE target.
+  Pre-existing in every v5 beans stage (A5..A8, B5..B6, A6sd/B6sd all trained with 160), silent apart from the
+  warning, and NOT a candidate cause for the tray failure (it only trims the tail of the action target; the
+  sentence tokens are never touched). 208 covers the observed maximum with 22 tokens of headroom and costs 48
+  more KV-cache positions per step. Applied to the config only: the running A8 (launched 20:48) keeps 160 for
+  its whole run because the process parsed the config at launch; B8 (queue15 launches it after A8 keep_299) and
+  every later run pick 208 up automatically — the change is param-shape-neutral (RoPE positions, no positional
+  table; only the padded buffer widens, so a 160-trained checkpoint loads into a 208 model unchanged).
