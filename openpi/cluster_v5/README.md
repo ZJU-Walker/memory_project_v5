@@ -796,3 +796,57 @@ build no fallback.
   Control launched 13:20: **`beansB5d1`** = A5 weights + own writes + retry + delay 1 (`queue_beans11_hgx1.sh`, 4xH100;
   the B5 continuation stopped). B6 (delay 0, own writes, sub-phase labels) launched 13:14 on the 2xH100 and will show
   whether it inherits the collapse; A6 evals running on the H200.
+  16:10 — **A6, B5d1, B6 results.** A6 (label writes, delay 0, sub-phase sentences) self-write: count 6/6 (demo17
+  included), count-flip first-go 1.00 / follows-flip 0.955; but at the tray it says "done" one scoop early in all four
+  multi-scoop episodes (demo11 x=2 at k=1, demo21 at k=1, demo14/17 x=3 at k=2; the k=1 "dump" of demo14/17 at conf
+  0.90-0.91) with a CORRECT bank ([go x, scoop k: dig]) — a read/decision failure: "dump vs done" needs two bank
+  entries (x from the go sentence, k from the last scoop sentence) plus a comparison, the blink count needs one entry
+  plus an increment. Videos `videos_v5_beansA6_20260905_r1_keep_499`. **B5d1 (A5 + own writes + retry + delay 1) is a
+  full replica of the B5 collapse** (28/119, 53/78, 30/172, 26/150, 28/116, 67/67; "light on: 1 → no blink yet" at the
+  first off step everywhere) → the write delay is NOT the cause; the A5 weights + own-write fine-tuning collapse either
+  way. Query-key cosine in the blink phase of demo11 (bank [no blink] / [no blink, on: 1]): A4 0.57 → B4 0.36; A5
+  0.01-0.09 → B5 −0.3, B5d1 −0.9; A6 0.06-0.30 → **B6 +0.07 → +0.72**. **B6 (A6 + own writes + retry + delay 0) does
+  NOT collapse**: demo11 115/119 (count 2, scoop 1 dig → dump → scoop 2 dig → done, the first fully correct multi-scoop
+  rollout), demo12 77/78 (a spurious "scoop 1: dump" before done), demo14 119/172 (count 3, dump 1 right, "done" early
+  at k=2), demo17 57/150 (count 2: the single-step blink is lost again after the B stage; scoops consistent with its
+  count), demo21 84/116 (count 2, "done" early at k=1), demo51 67/67. Count 5/6; tray "dump vs done" right in 3 of 6
+  decisions (A6: 0 of 4). So the earlier reading "the delay-0 A stage is what has to go" was WRONG (B6 starts from a
+  delay-0 A stage); the only collapsing combination so far is A5 (visible-LED labels + delay 0) → any B; B4 (same
+  labels, delay 1) and B6 (sub-phase labels, delay 0) are healthy. Not explained yet. Ops: both H200 waiters were
+  stopped before the keep_499 copies (a waiter polling `keep_499/params` can start on a half-copied checkpoint) and the
+  B5d1/B6 evals launched by hand; the placeholder that the B5-evals runner had started on the H200 at 13:23 was
+  killed at 13:32 because it was sharing the GPU with the A6 evals (its /scr checkpoint dir deleted). The queue10
+  B6 continuation toward 3000 started automatically on the 2xH100 at 15:52 (kept pending the user's decision).
+  Prepared but NOT trained (user 13:40 "before you do anything talk to me"): v7 "target-carry" scoop sentences
+  (`scoop k of x: dig and carry` / `dump and return`, so every transition is a single-read copy/increment/compare of
+  the previous sentence; `scripts/beans_relabel_target_carry.py` → `subtask_labels_v7tgt.json` +
+  `beans_v5_subtask_labels_v7tgt.json`, sha 99eee3c9…, 20 sentences, max 13 tokens), `queue_beans12_hgx1.sh` (A7 → B7),
+  waiter date map extended; the config entries (V5_BEANS_SENTENCES_V4 / TOKENS_V4 / beansA7,B7,A6d1,B6d1) were not
+  written.
+  17:00 — **Why the tray decision fails: the bank forgets on a fixed clock.** (User: "I don't want to make it depend
+  on the previous sentence … 3-minute task … is the memory too small / forgetting?") Size is not it (fast weights
+  1024x2048 per bank). Decay is: `MemoryConfig.alpha_step = 0.01` is a FIXED per-step factor (every stride-5 step,
+  1/6 s, the whole matrix is multiplied by 0.99; half-life 69 steps ≈ 11.5 s), applied on write-free steps too, and
+  the training prefill reproduces it with the true gaps (`memory_v5_prefill_gaps`), so the model never saw an old note
+  any stronger than a rollout does. B6 demo11/12/14/21/51: the go decision reads the newest light note at age 10-14
+  steps (strength 0.87-0.90); the tray decisions read the go note at ages 58-83 / 121-126 / 175 steps (strength
+  0.43-0.56 / 0.28-0.30 / 0.17) underneath fresh scoop notes that share most of its words. 0.99^n: 1 min 0.027,
+  2 min 0.0007, 3 min 2e-5 — with this alpha a 3-minute task can only work if every fact is re-written every 10-20 s
+  (which is exactly what the v7 "k of x" sentences would do; the user rightly rejects that as a workaround). B6 tray
+  decisions with a correct bank: 4/7 right, errors in both directions at conf 0.96-0.99; the visible tray (k-1 dumps)
+  predicts 69% of training tray decisions (empty: dump 33/done 15; one dump: done 19/dump 14; two: done 14) and B6's
+  seven dev decisions agree with that tray-only rule in 5 — consistent with "reads the tray, not the target".
+  Circumstantial; two things launched in parallel (user 16:59 "in parallel"):
+  (1) **A6sd → B6sd** (`queue_beans13_hgx1.sh`, 4xH100 job 17249058, batch 8, **300 updates each** — user 17:03 "train
+  to 300 steps not 500 to save time"; checkpoint 299 → keep_299): the A6/B6 recipe with only the decay changed,
+  `alpha_step=0.001` on both banks (the config pins them equal; half-life ~115 s). The v3.5 Revision-4 alpha pin in
+  `Pi0Config.__post_init__` now exempts `memory_v5_sentence_bank` models. Waiter armed with `STEP=299`; the waiter now
+  waits for the queue runner's "protected as keep_<step>" line instead of polling the folder (two half-copy starts
+  today). A6sd launched 17:04.
+  (2) **Tray-decision probe** `scripts/v5_tray_flip_eval.py` (from the count-flip machinery): at every tray-arrival
+  step of the loader's windows (oracle history with true gaps) the step's sentence is replaced by the two candidates
+  ("scoop k: dump and return" with the step's k, "done") and the lower decision CE wins, under normal / flip (all
+  light+go counts in the history shifted 1→2→3→1, scoop k kept; content-consistent answer = done iff k == shifted x)
+  / blank history, and under alpha 0.01 (as trained) vs 0.0 (no decay, same parameters). Runs for the A6 and B6
+  parameters on the train and dev splits: `run_beans_evals_hgx2_tray_probe.sh` (named so the H200 sentinel treats it
+  as real work) → `v5/diagnostics/tray_flip_<A6|B6>_keep_499_<split>/`. Started 17:11.

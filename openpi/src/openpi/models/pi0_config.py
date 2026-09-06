@@ -484,7 +484,9 @@ class Pi0Config(_model.BaseModelConfig):
                 # same frozen constant under runtime arithmetic.
                 # numpy, not jnp: config __post_init__ runs inside spawned data-loader
                 # workers, where a jnp call initializes a JAX backend and fails CUDA init.
-                if float(np.float32(self.memory.alpha_step)) != float(np.float32(0.01)):
+                # v5 sentence-bank models (cluster_v5, 2026-09-05) may lower the decay: the v3.5
+                # Revision 4 pin protects the v3.5 artifact protocol, which v5 does not use.
+                if float(np.float32(self.memory.alpha_step)) != float(np.float32(0.01)) and not self.memory_v5_sentence_bank:
                     raise ValueError("v3.5 Revision 4 freezes memory.alpha_step=0.01 per 15-frame step.")
                 if not self.memory.blank_initial_output:
                     raise ValueError("v3.5 requires blank_initial_output=True for an exact-zero reset memory.")
