@@ -1004,3 +1004,18 @@ build no fallback.
   Ops: the first A6sep eval attempt OOM'd on all 6 episodes because a trossen placeholder had restarted on job
   17267793 at 21:25 (~120 GB) after the training ended; killed + checkpoint swept, evals re-run. When a training
   finishes on an eval job, kill the restored placeholder BEFORE launching the evals.
+  22:08 — **Job-membership check + H200-aware A8/B8 waiter; 2xH200 job cancelled.** (a) The other session drives
+  the single H200 job 17267793 from hgx-1 (`srun --jobid=17267793` issued there), so on hgx-2 no command line
+  carries the job id and pattern matching cannot see its A6ctl training. Both the sentinel and the waiter now also
+  read `SLURM_JOB_ID` from `/proc/<pid>/environ`: any python of the job that is neither the placeholder
+  (`GPU_PLACEHOLDER` env / marker) nor the user's `train_hs.py` keep-alive counts as real work (verified: it lists
+  the A6ctl trainer + loader workers and the A6sep count-flip for 17267793, and only the B6 trainer for
+  17284681). (b) `evals_beans_waiter_a8b8.sh` (copy of the waiter; the running one could not be edited) waits,
+  after A8's "protected" line, until no such python of 17267793 is alive — so it will NOT start rollouts on top
+  of A6ctl (their WARN 22:07: training ~78 GB + rollout ~37 GB does not fit in 143 GB; it cost them six A6sep
+  rollouts at 21:29). (c) User 22:06: "kill the 2h200 job" -> `scancel 17284681` (B6 continuation 1000->3000
+  stopped; last saved B6 checkpoint 1250; A8/B8 unaffected). The cancel killed every plain shell adopted on hgx-2
+  (my sentinel + waiter): relaunched under 17267793 (pids 954961 / 955288). User 22:09 then clarified that the
+  2xH200 job itself should have stayed alive with only the 1 GB keep-alive (no placeholder, GPUs free for the
+  user) — too late for 17284681; standing rule from now: nothing of ours (no placeholder, no evals, no training)
+  runs on the user's 2xH200 job, whichever id it gets when resubmitted.
