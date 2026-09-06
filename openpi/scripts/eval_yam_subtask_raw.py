@@ -49,6 +49,12 @@ class Args:
     batch_size: int = BATCH_SIZE
     max_decode_steps: int = MAX_DECODE_STEPS
     config: str = "pi05_yam"
+    # Task prompt for configs whose DataConfig carries no default_prompt, e.g. the ones that take
+    # it from meta/episode_prompts.json (prompt_from_episode_meta). That injection lives in the
+    # LeRobot data pipeline, which this raw path deliberately skips, so the prompt has to be
+    # supplied here or TokenizeFASTSubtaskInputs raises "Prompt is required". None keeps the
+    # config's own InjectDefaultPrompt behaviour.
+    prompt: str | None = None
 
 
 def _read_video_frames(path: pathlib.Path, stride: int) -> tuple[list[np.ndarray], int]:
@@ -87,6 +93,17 @@ def main(args: Args) -> None:
     data_config = cfg.data.create(cfg.assets_dirs, cfg.model)
     norm_stats = _checkpoints.load_norm_stats(args.ckpt_dir / "assets", data_config.asset_id)
 
+    # Fail before the 60s checkpoint restore rather than inside the tokenizer.
+    if args.prompt is None and not any(
+        getattr(tf, "prompt", None) is not None
+        for tf in data_config.model_transforms.inputs
+        if type(tf).__name__ == "InjectDefaultPrompt"
+    ):
+        raise ValueError(
+            f"config {args.config!r} has no default_prompt (it takes the prompt from the dataset), "
+            "so the raw path cannot fill it in. Pass --prompt '<the task instruction>'."
+        )
+
     # Raw demo -> arrays (same construction as examples/yam/convert_yam_data_to_lerobot.py).
     demo = args.raw_demo
     state_raw = np.concatenate(
@@ -120,6 +137,8 @@ def main(args: Args) -> None:
             "observation/right_wrist_image": right[t // args.stride],
             "observation/state": state_raw[t],
         }
+        if args.prompt is not None:
+            item["prompt"] = np.asarray(args.prompt)
         for tf in input_transforms:
             item = tf(item)
         item = normalize(item)
