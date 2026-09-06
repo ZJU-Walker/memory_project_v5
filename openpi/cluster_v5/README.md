@@ -1259,3 +1259,33 @@ build no fallback.
   target from green blinks minutes earlier) needs EITHER a second 53 GB conversion — images live in the parquet,
   there is no separate videos dir — OR ~15 lines letting the non-memory path take sentences from the authenticated
   sidecar. Not done: it touches a loader the peer session's runs load, and nobody has asked for it.
+
+* 2026-09-06 15:45 — **the baseline trains on all 89 episodes; the user decided that is fine.** Raised because the
+  memory runs do not: A9/B9 log `v5 generic manifest: 89 episodes, split=train active=77, splits={'development': 6,
+  'final_test': 6, 'train': 77}`, i.e. they hold out the six development episodes (**25, 29, 59, 64, 72, 73** =
+  `0905beans_1/demo27`, `_1/demo31`, `_2/demo1`, `_3/demo1`, `_3/demo9`, `_3/demo10`) and six final_test ones. The
+  split filter lives inside the `use_memory` branch of `create_torch_dataset`, so a non-memory config never sees it
+  and takes every episode. Proposed fix was a gated `DataConfig.train_episode_indices` plus `episodes=` on
+  `LeRobotDataset` (the library already accepts it), which would have cost ~20 min at step 1500. User 15:42: "i
+  think it is ok for training on all the demos." **Not implemented — `data_loader.py` and `config.py` are untouched,
+  the run continues as launched.** Caveat to carry into any comparison: the baseline has trained on the six episodes
+  B9 is judged on, so it holds an advantage there that is not architectural. This is conservative for the bank's
+  claim — a memoryless model failing episodes it memorized is a stronger result than beating a clean control — but
+  it does mean a GOOD baseline score on those six cannot separate memorization from competence. The six final_test
+  episodes do not rescue it; the baseline saw those too.
+
+* 2026-09-06 15:40 — **the baseline needed a fix before it could be scored at all** (commit 7113e5a).
+  `v5_heldout_video.py` is memory-only: it calls `model._v32_prepare_memory_prefix`, `model.memory_semantic`,
+  `memory_stride_frames`, `memory_v5_sentence_len`, none of which exist on a non-memory config. The non-memory
+  evaluator is **`scripts/eval_yam_subtask_raw.py`**, which reads a RAW demo folder directly (no LeRobot conversion)
+  and runs `Pi0.sample_subtask_and_actions` per frame, producing a subtask-overlay mp4 plus predicted-vs-teleop
+  joint plots. It died on this config with `ValueError: Prompt is required`: it deliberately skips the LeRobot
+  pipeline, so `InjectPromptFromEpisode` never runs, and `pi05_yam_beans0905_base` has `InjectDefaultPrompt.prompt =
+  None` (where `pi05_yam` has `'find the bin with banana'`). Added an optional **`--prompt`** plus a startup guard
+  that names the flag *before* the 60 s checkpoint restore. Verified the whole input path on `0905beans_all/demo1001`
+  with no GPU: without a prompt it raises, with one the chain yields `Task: scoop the beans into the tray as many
+  times as the green light blinked, State: 182 0 0 255 0 161 255 60 -1 0 253 53 174 255;\n` at **66 of 272 tokens**,
+  all three camera views, state padded to 32. Scoring command:
+  `.venv/bin/python scripts/eval_yam_subtask_raw.py --config pi05_yam_beans0905_base --ckpt-dir <ckpt> --raw-demo
+  /iris/u/kewalk/memory_project/data/0905beans_all/<demo> --prompt 'scoop the beans into the tray as many times as
+  the green light blinked'`. Checkpoints do carry their own `assets/yam/bean_scoop_0905_v5`, so norm stats resolve.
