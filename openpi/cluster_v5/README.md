@@ -1211,3 +1211,10 @@ build no fallback.
   equals the first-scoop bank state, so only vision (beans already in the tray) can finish the increment; after one
   real dump the pile is small → stays at k=1; after two it is unmistakable → 2→3 works. Options logged: increment
   at the tray ("dump, return for k+1" labels), serving-side rejection of "k dig" after "k dump", or wait for 3000.
+  15:12 — **Placeholder back on the free GPU of job 17286852 (user 15:10 "only for free gpu there").** New
+  `placeholder_train_trossen_pin.sh <job> <gres> <gpu uuid>`: the trossen training pinned by UUID (GRES=2 +
+  CUDA_VISIBLE_DEVICES; a `--gres=gpu:1` step would land on GPU 0 anyway but the pin makes it explicit), busy guard
+  on the pinned GPU only, exp name suffixed with the job id, checkpoints on /scr, deleted on exit. Runs on GPU 0
+  (UUID 3cc86c11) while GPU 1 (UUID b3d023a5) keeps the keep_1750 robot server; no sentinel for this job (it is
+  per job and would kill the placeholder because of the server). Log `v5/tools/logs/placeholder_train_17286852.log`.
+  Correction: job 17286852 is on iris-hgx-2 (10.79.12.149), the launcher's "hgx-1" was the launch shell's host.
