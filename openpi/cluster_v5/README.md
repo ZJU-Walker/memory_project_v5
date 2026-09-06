@@ -1201,3 +1201,13 @@ build no fallback.
   `pi05_yam_mem_v5_beansB10` = the A9/B9 recipe with `simulated_delay=15` (500 ms at 30 Hz; B10 loads A10 ckpt-299,
   experiment name via `OPENPI_V5_BEANS_A10_EXP`, default `v5_beansA10_20260907_r1`). Not launched. The client will
   need `--max-async-delay-steps 15 --initial-delay-steps 15 --delay-buffer-size 20` against a delay-15 checkpoint.
+  14:35 — **Robot test moved to B9 ckpt-1750 (user 14:23 "launch the newest one").** The continuation keeps only
+  multiples of 1000 plus the latest (1500 was deleted at 14:20 when 1750 was saved), so 1750 was copied to
+  `keep_1750` first (27 GB, 9 min on NFS), then the ckpt-1000 server was stopped and `serve_v5_job_v2.sh` relaunched
+  on GPU 1 of job 17286852 from `keep_1750` (10 flow steps; log `server_v5_b9_1750_20260906.log`). Real-robot
+  observation on ckpt 1000 (user 14:08): the 1→2 scoop transition needs two scoops, 2→3 is fine. Labels are
+  balanced (62 vs 28 transitions, no repeated scoop sentence); the rollouts show the increment is a two-step move
+  through an inconsistent committed note "k of x: dig" (old k, new verb — k is decoded before the verb), which
+  equals the first-scoop bank state, so only vision (beans already in the tray) can finish the increment; after one
+  real dump the pile is small → stays at k=1; after two it is unmistakable → 2→3 works. Options logged: increment
+  at the tray ("dump, return for k+1" labels), serving-side rejection of "k dig" after "k dump", or wait for 3000.
