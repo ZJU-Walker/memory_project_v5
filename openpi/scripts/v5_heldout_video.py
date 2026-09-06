@@ -141,8 +141,7 @@ def make_decode_fn(model, max_decode_steps: int):
 def make_write_fn(model):
     @nnx.jit
     def write(model, tokens, mask, sem_state, commit):
-        encoded = model.v5_encode_sentence(tokens, mask)
-        keys, values = model.v5_sentence_intent(encoded)
+        keys, values = model.v5_sentence_kv(tokens, mask)  # A8-aware (== encode+intent without the flags)
         new_state, aux = model.v5_semantic_write(sem_state, keys, values, commit)
         return new_state, aux["commit_applied"][:, 0], keys[:, 0]
 

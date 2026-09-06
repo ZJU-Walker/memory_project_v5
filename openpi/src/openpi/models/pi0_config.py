@@ -358,6 +358,21 @@ class Pi0Config(_model.BaseModelConfig):
     # projections. 0 disables it.
     memory_v5_sentence_separation_weight: float = 0.0
     memory_v5_separation_margin: float = 0.3
+    # 2026-09-05 20:40 (A8, README §8): SLOT KEYS + WHITENED VALUES, computed from the task's closed sentence list.
+    # Bank-level replay measured that sentences differing only in a count are written at cosine 0.996-0.999, so an
+    # old note's count is a ~0.002 residual that the next overlapping write swamps (count readout from the bank
+    # 8/12 at margin 0.002). `memory_v5_slot_keys`: the write KEY comes from the sentence with its variable
+    # tokens masked out (template = reference rows of the same length that differ in <= memory_v5_slot_max_diff
+    # positions), so notes of one kind share a slot (newest wins, as the blink count needs) while different kinds
+    # get separate slots, and the slot keys are whitened over the set of templates (near-orthogonal).
+    # `memory_v5_whiten_values`: the write VALUE is whitened over the reference vocabulary (PCA-whitening within
+    # the span of the reference values, identity on the complement), so the count is a large component of what a
+    # read returns. Both maps are recomputed from the current parameters under stop-gradient (like the reference
+    # standardization), so they follow the encoder's drift and add no parameters.
+    memory_v5_slot_keys: bool = False
+    memory_v5_whiten_values: bool = False
+    memory_v5_slot_max_diff: int = 2
+    memory_v5_whiten_eps: float = 1e-2
 
     pytorch_compile_mode: str | None = "max-autotune"
 
@@ -580,6 +595,10 @@ class Pi0Config(_model.BaseModelConfig):
                         raise ValueError("memory_v5_read_queries must be >= 1.")
                     if self.memory_v5_sentence_separation_weight < 0:
                         raise ValueError("memory_v5_sentence_separation_weight must be >= 0.")
+                    if (self.memory_v5_slot_keys or self.memory_v5_whiten_values) and not self.memory_v5_reference_tokens:
+                        raise ValueError("memory_v5_slot_keys / memory_v5_whiten_values need memory_v5_reference_tokens.")
+                    if self.memory_v5_slot_max_diff < 1 or not 0.0 < self.memory_v5_whiten_eps < 1.0:
+                        raise ValueError("memory_v5_slot_max_diff must be >= 1 and memory_v5_whiten_eps in (0, 1).")
                     if not 0.0 <= self.memory_v5_separation_margin < 1.0:
                         raise ValueError("memory_v5_separation_margin must lie in [0, 1).")
                     if self.memory_v5_sentence_separation_weight > 0 and not self.memory_v5_reference_tokens:

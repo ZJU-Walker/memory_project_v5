@@ -203,8 +203,7 @@ class MemoryPolicy(_policy.Policy):
 
             @nnx.jit
             def _v5_write(model, tokens, mask, state, commit):
-                encoded = model.v5_encode_sentence(tokens, mask)
-                keys, values = model.v5_sentence_intent(encoded)
+                keys, values = model.v5_sentence_kv(tokens, mask)  # A8-aware (== encode+intent without the flags)
                 new_state, aux = model.v5_semantic_write(state, keys, values, commit)
                 return new_state, aux["commit_applied"][:, 0]
 

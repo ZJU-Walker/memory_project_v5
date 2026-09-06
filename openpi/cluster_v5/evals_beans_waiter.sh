@@ -14,7 +14,7 @@ ckroot=/iris/u/kewalk/memory_project_v5/v5/checkpoints
 log=$diag/queue_beans_hgx1.log
 echo "evals waiter armed on $(hostname) job $JOB ($RUNNER) stages=$STAGES $(date '+%m/%d %H:%M')" >> $log
 for stage in $STAGES; do
-  cfg=pi05_yam_mem_v5_beans$stage; exp=v5_beans${stage}_$( case "$stage" in A4|B4|A5|B5|B5d1|A6|B6|A7|B7|A6d1|B6d1|A6sd|B6sd|A6sep|B6sep) echo 20260905;; *) echo 20260904;; esac )_r1
+  cfg=pi05_yam_mem_v5_beans$stage; exp=v5_beans${stage}_$( case "$stage" in A4|B4|A5|B5|B5d1|A6|B6|A7|B7|A6d1|B6d1|A6sd|B6sd|A6sep|B6sep|A8|B8) echo 20260905;; *) echo 20260904;; esac )_r1
   v="SIDECAR_$stage"; sc="${!v:-$default_sidecar}"; if [ -n "$sc" ]; then export SIDECAR="$sc"; else unset SIDECAR; fi
   # 2026-09-05 16:45: wait for the queue runner's "protected" line (written after `cp -r` returns), not for the
   # folder: polling keep_499/params started evals on half-copied checkpoints twice today.

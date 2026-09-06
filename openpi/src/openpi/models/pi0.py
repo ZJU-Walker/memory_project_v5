@@ -412,6 +412,44 @@ class MemoryQueryConditioner(nnx.Module):
         return queries.astype(jnp.float32) + self.output_proj(pooled).astype(jnp.float32) * any_valid
 
 
+
+def _v5_slot_templates(rows: tuple[tuple[int, ...], ...], max_diff: int) -> tuple[tuple[bool, ...], ...]:
+    """A8 slot keys: for every reference sentence, which token positions are KEPT for the key. Rows of the same
+    length that differ in at most `max_diff` positions are siblings; siblings form components (transitively), and
+    every position that varies inside a component is dropped for ALL rows of that component, so e.g. "scoop 1/2/3:
+    dig and carry" and "scoop 1/2: dump and return" share one template even where a particular pair never occurs.
+    Rows with no sibling keep every token."""
+    n = len(rows)
+    adj: list[set[int]] = [set() for _ in range(n)]
+    diffs: dict[tuple[int, int], list[int]] = {}
+    for i in range(n):
+        for j in range(i + 1, n):
+            if len(rows[i]) != len(rows[j]):
+                continue
+            diff = [p for p in range(len(rows[i])) if rows[i][p] != rows[j][p]]
+            if 1 <= len(diff) <= max_diff:
+                adj[i].add(j); adj[j].add(i); diffs[(i, j)] = diff
+    seen = [False] * n
+    keep: list[tuple[bool, ...]] = [()] * n
+    for start in range(n):
+        if seen[start]:
+            continue
+        comp, stack = [], [start]
+        seen[start] = True
+        while stack:
+            k = stack.pop(); comp.append(k)
+            for m in adj[k]:
+                if not seen[m]:
+                    seen[m] = True; stack.append(m)
+        variable: set[int] = set()
+        for (a, b), d in diffs.items():
+            if a in comp and b in comp:
+                variable.update(d)
+        for k in comp:
+            keep[k] = tuple(p not in variable for p in range(len(rows[k])))
+    return tuple(keep)
+
+
 class Pi0(_model.BaseModel):
     def __init__(self, config: pi0_config.Pi0Config, rngs: nnx.Rngs):
         super().__init__(config.action_dim, config.action_horizon, config.max_token_len)
@@ -626,6 +664,10 @@ class Pi0(_model.BaseModel):
                         getattr(config, "memory_v5_sentence_separation_weight", 0.0)
                     )
                     self.memory_v5_separation_margin = float(getattr(config, "memory_v5_separation_margin", 0.3))
+                    self.memory_v5_slot_keys = bool(getattr(config, "memory_v5_slot_keys", False))
+                    self.memory_v5_whiten_values = bool(getattr(config, "memory_v5_whiten_values", False))
+                    self.memory_v5_slot_max_diff = int(getattr(config, "memory_v5_slot_max_diff", 2))
+                    self.memory_v5_whiten_eps = float(getattr(config, "memory_v5_whiten_eps", 1e-2))
                     self.memory_v5_prefill_history = bool(config.memory_v5_prefill_history)
                     self.memory_v5_prefill_max = int(config.memory_v5_prefill_max)
                     self.memory_v5_write_conf = config.memory_v5_write_conf
@@ -639,6 +681,8 @@ class Pi0(_model.BaseModel):
                     self.memory_v5_reference_tokens = tuple(
                         tuple(int(t) for t in row) for row in config.memory_v5_reference_tokens
                     )
+                    # A8 slot templates: per reference row, which positions are NOT variable (kept for the key).
+                    self.memory_v5_slot_keep = _v5_slot_templates(self.memory_v5_reference_tokens, self.memory_v5_slot_max_diff)
                     if config.memory_v5_pooling == "standardized_attention":
                         self.memory_sem_sentence_pool = MemoryQueryCompressor(
                             num_queries=config.memory_v5_pool_queries,
@@ -1088,6 +1132,79 @@ class Pi0(_model.BaseModel):
         tokens = [list(row) + [0] * (length - len(row)) for row in rows]
         mask = [[True] * len(row) + [False] * (length - len(row)) for row in rows]
         return jnp.asarray(tokens, dtype=jnp.int32), jnp.asarray(mask, dtype=bool)
+
+    def v5_reference_template_rows(self, length: int) -> tuple[at.Int[at.Array, "r s"], at.Bool[at.Array, "r s"]]:
+        """The reference rows with their variable (slot) positions masked out (A8 slot keys)."""
+        rows = self.memory_v5_reference_tokens
+        keep = self.memory_v5_slot_keep
+        tokens = [list(row) + [0] * (length - len(row)) for row in rows]
+        mask = [[bool(k) for k in kp] + [False] * (length - len(row)) for row, kp in zip(rows, keep, strict=True)]
+        return jnp.asarray(tokens, dtype=jnp.int32), jnp.asarray(mask, dtype=bool)
+
+    def _v5_whiten_map(self, ref: at.Float[at.Array, "r d"]) -> tuple[at.Array, at.Array, at.Array]:
+        """PCA-whitening map fitted on the reference vectors (stop-gradient): (mu, U [d, r], scale [r]).
+        Apply as x -> (x - mu) + U ((scale - 1) * U^T (x - mu)): whitened inside the span of the reference
+        set, identity on its complement. Degenerate directions (duplicate rows) get scale 1."""
+        ref = jax.lax.stop_gradient(ref.astype(jnp.float32))
+        r = ref.shape[0]
+        mu = jnp.mean(ref, axis=0)
+        x = ref - mu[None]
+        gram = x @ x.T / r  # [r, r]
+        lam, e = jnp.linalg.eigh(gram)  # ascending
+        lam_max = jnp.maximum(jnp.max(lam), 1e-12)
+        valid = lam > 1e-6 * lam_max
+        safe_lam = jnp.where(valid, lam, 1.0)
+        u = (x.T @ e) / jnp.sqrt(r * safe_lam)[None, :]  # [d, r] unit principal directions
+        u = jnp.where(valid[None, :], u, 0.0)
+        eps_abs = self.memory_v5_whiten_eps * jnp.sum(jnp.where(valid, lam, 0.0)) / jnp.maximum(jnp.sum(valid), 1.0)
+        scale = jnp.where(valid, jnp.sqrt(lam_max) / jnp.sqrt(safe_lam + eps_abs), 1.0)
+        return mu, u, scale
+
+    @staticmethod
+    def _v5_apply_whiten(x: at.Array, mu: at.Array, u: at.Array, scale: at.Array) -> at.Array:
+        centered = x.astype(jnp.float32) - mu[None]
+        proj = centered @ u  # [b, r]
+        return centered + (proj * (scale - 1.0)[None]) @ u.T
+
+    def v5_sentence_kv(
+        self, tokens: at.Int[at.Array, "b s"], token_mask: at.Bool[at.Array, "b s"]
+    ) -> tuple[at.Float[at.Array, "b 1 dk"], at.Float[at.Array, "b 1 dv"]]:
+        """Write key/value of a sentence. Without the A8 flags this is exactly
+        v5_sentence_intent(v5_encode_sentence(...)). With `memory_v5_slot_keys` the key is built from the
+        sentence's TEMPLATE (variable tokens masked; a sentence outside the reference list keeps its full
+        tokens) and whitened over the reference templates; with `memory_v5_whiten_values` the value is whitened
+        over the reference vocabulary. Unit-norm FP32 outputs shaped for delta_write_kv_multi."""
+        encoded = self.v5_encode_sentence(tokens, token_mask)
+        value_raw = self.memory_sem_value_proj(encoded.astype(jnp.float32)).astype(jnp.float32)
+        slot = bool(getattr(self, "memory_v5_slot_keys", False))
+        whiten = bool(getattr(self, "memory_v5_whiten_values", False))
+        if not slot and not whiten:
+            return self.v5_sentence_intent(encoded)
+        length = tokens.shape[1]
+        if whiten:
+            ref_tokens, ref_mask = self.v5_reference_token_rows(length)
+            ref_values = self.memory_sem_value_proj(self.v5_encode_sentence(ref_tokens, ref_mask).astype(jnp.float32))
+            mu, u, scale = self._v5_whiten_map(ref_values)
+            value = _memory.l2_normalize(self._v5_apply_whiten(value_raw, mu, u, scale))
+        else:
+            value = _memory.l2_normalize(value_raw)
+        if slot:
+            ref_tokens, ref_mask = self.v5_reference_token_rows(length)
+            tpl_tokens, tpl_mask = self.v5_reference_template_rows(length)
+            # Exact match of the input row against every reference row (tokens equal where either is valid).
+            either = token_mask[:, None, :] | ref_mask[None, :, :]
+            same = (tokens[:, None, :] == ref_tokens[None, :, :]) | ~either
+            match = jnp.all(same, axis=-1) & jnp.all(token_mask[:, None, :] == ref_mask[None, :, :], axis=-1)  # [b, r]
+            any_match = jnp.any(match, axis=-1)
+            keep = jnp.einsum("br,rs->bs", match.astype(jnp.float32), tpl_mask.astype(jnp.float32)) > 0.5
+            key_mask = jnp.where(any_match[:, None], keep & token_mask, token_mask)
+            key_raw = self.memory_sem_key_proj(self.v5_encode_sentence(tokens, key_mask).astype(jnp.float32))
+            ref_key_raw = self.memory_sem_key_proj(self.v5_encode_sentence(tpl_tokens, tpl_mask).astype(jnp.float32))
+            mu_k, u_k, scale_k = self._v5_whiten_map(ref_key_raw)
+            key = _memory.l2_normalize(self._v5_apply_whiten(key_raw.astype(jnp.float32), mu_k, u_k, scale_k))
+        else:
+            key = _memory.l2_normalize(self.memory_sem_key_proj(encoded.astype(jnp.float32)).astype(jnp.float32))
+        return key[:, None, :], value[:, None, :]
 
     def v5_encode_sentence(
         self, tokens: at.Int[at.Array, "b s"], token_mask: at.Bool[at.Array, "b s"]
@@ -4976,8 +5093,7 @@ class Pi0(_model.BaseModel):
                         has_span = jnp.any(write_span, axis=-1)
                     sentence_changed = jnp.any(cur_sentence != prev_sentence, axis=-1) & has_span
                     sem_write_requested = sentence_changed & sentence_confident & transition_valid
-                    sem_encoded = self.v5_encode_sentence(cur_sentence, write_span)
-                    sem_keys, sem_values = self.v5_sentence_intent(sem_encoded)
+                    sem_keys, sem_values = self.v5_sentence_kv(cur_sentence, write_span)  # A8-aware (== encode+intent without the flags)
                     sem_write_state, sem_aux = self.v5_semantic_write(
                         sem_state, sem_keys, sem_values, sem_write_requested
                     )
@@ -5366,8 +5482,7 @@ class Pi0(_model.BaseModel):
                     row_mask = prefill_mask[:, p, :sent_len]
                     row_valid = jnp.any(row_mask, axis=-1)
                     row_tokens = jnp.where(row_mask, prefill_tokens[:, p, :sent_len], 0)
-                    row_encoded = self.v5_encode_sentence(row_tokens, row_mask)
-                    row_keys, row_values = self.v5_sentence_intent(row_encoded)
+                    row_keys, row_values = self.v5_sentence_kv(row_tokens, row_mask)
                     written_state, row_aux = self.v5_semantic_write(sem_init_state, row_keys, row_values, row_valid)
                     gap = jnp.where(row_valid, jnp.maximum(prefill_gaps[:, p], 0), 0)
                     decayed_state, _ = self.memory_semantic.analytic_decay(written_state, gap)
