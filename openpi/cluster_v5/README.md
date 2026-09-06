@@ -1066,3 +1066,17 @@ build no fallback.
   rollouts were stopped before finishing. Stale monitors of this session (B6/B5d1, A6sd/B6sd, B6 continuation)
   stopped. Still running: B8 on the 4xH100 (keep_299 ~00:55), A8 count-flip -> probe chain -> oracle videos -> B8
   evals on GPU 1 of job 17286852, the hgx-1 sentinel for 17249058.
+  23:35 — **0905 dataset READY for future v5 training (data prep complete).** LeRobot dataset
+  `v5/data/lerobot/yam/bean_scoop_0905_v5`: **89 episodes / 71089 frames** (matches the raw manifest exactly), 53 GB,
+  fps 30, robot yam, the SAME feature set as the 0902 dataset (image + left_wrist_image + right_wrist_image + state +
+  actions, 14-dim), 16 distinct task strings and none outside `V5_BEANS_SENTENCES_V3`, `meta/episode_sources.json`
+  carrying strict provenance per episode (raw_dir, stream lengths, `label_file: subtask_labels_v6sub.json`, label
+  sha256) and `meta/episode_prompts.json` with the single constant beans prompt. v5 artefacts:
+  `cluster_v5/beans/beans_episode_manifest_0905_v1.json` (sha **3412223a9ab03ba0**…, splits: 2 dev + 2 final_test per
+  class, train 23/30/24 for x=1/2/3) and `cluster_v5/beans/beans_v5_subtask_labels_0905_v6sub.json` (sha
+  **a2b1a659d6b26f5b**…, 16 sentences). A future config only needs these two paths + shas, the repo id
+  `yam/bean_scoop_0905_v5` and norm stats; NO config entry was added (user 23:24: this session is data preparation
+  only). Tooling change: `beans_build_v5_manifest_sidecar.py --labels-manifest` now takes SEVERAL manifests and keys
+  entries `<collection>/<demo>` as well as bare `<demo>` — the 0905 set spans three folders that each contain a
+  `demo1`, which the single-key lookup could not disambiguate. Backward compatible and verified: rebuilding the 0902
+  sidecar reproduces it byte-identically (sha c322f81ebc9e86a6…, the value pinned in `V5_BEANS_SIDECAR_V6_SHA256`).

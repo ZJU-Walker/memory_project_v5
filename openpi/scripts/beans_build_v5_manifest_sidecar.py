@@ -40,7 +40,10 @@ def _rank(seed: int, stable_id: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--lerobot-dir", type=pathlib.Path, required=True, help="converted dataset root (has meta/)")
-    parser.add_argument("--labels-manifest", type=pathlib.Path, required=True, help="subtask_labels_manifest.json")
+    parser.add_argument("--labels-manifest", type=pathlib.Path, required=True, nargs="+",
+                        help="subtask_labels_manifest.json; repeat for a dataset built from several raw "
+                             "collections (2026-09-05: the 0905 beans set spans 3 folders that each "
+                             "contain a demo1, so entries are keyed <collection>/<demo> as well)")
     parser.add_argument("--out-dir", type=pathlib.Path, required=True)
     parser.add_argument("--seed", type=int, default=902)
     parser.add_argument("--final-test-per-class", type=int, default=2)
@@ -67,7 +70,19 @@ def main() -> None:
             record = json.loads(line)
             lengths[int(record["episode_index"])] = int(record["length"])
             episode_tasks[int(record["episode_index"])] = set(record.get("tasks", []))
-    labels_manifest = json.loads(args.labels_manifest.read_text())
+    # Key every entry as "<collection>/<demo>" (the raw folder holding the manifest) and, when unambiguous,
+    # also by the bare demo name so single-collection callers are unaffected.
+    labels_manifest: dict[str, dict] = {}
+    _bare_seen: set[str] = set()
+    for _mpath in args.labels_manifest:
+        _collection = _mpath.resolve().parent.name
+        for _demo, _entry in json.loads(_mpath.read_text()).items():
+            labels_manifest[f"{_collection}/{_demo}"] = _entry
+            if _demo in _bare_seen:
+                labels_manifest.pop(_demo, None)  # ambiguous across collections: qualified key only
+            else:
+                labels_manifest[_demo] = _entry
+                _bare_seen.add(_demo)
     sources_path = meta / "episode_sources.json"
     if sources_path.exists():
         sources = json.loads(sources_path.read_text())
@@ -104,9 +119,11 @@ def main() -> None:
         stable_id = str(source["stable_id"])
         raw_dir = pathlib.Path(source["raw_dir"])
         demo_name = raw_dir.name
-        if demo_name not in labels_manifest:
-            raise ValueError(f"{stable_id}: no entry in {args.labels_manifest}")
-        entry = labels_manifest[demo_name]
+        qualified = f"{raw_dir.parent.name}/{demo_name}"
+        key = qualified if qualified in labels_manifest else demo_name
+        if key not in labels_manifest:
+            raise ValueError(f"{stable_id}: no entry ({qualified!r} or {demo_name!r}) in {args.labels_manifest}")
+        entry = labels_manifest[key]
         num_frames = lengths[episode_index]
         if int(entry["num_frames"]) != num_frames:
             raise ValueError(f"{stable_id}: labels manifest has {entry['num_frames']} frames, dataset {num_frames}")
