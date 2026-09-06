@@ -1080,3 +1080,10 @@ build no fallback.
   entries `<collection>/<demo>` as well as bare `<demo>` — the 0905 set spans three folders that each contain a
   `demo1`, which the single-key lookup could not disambiguate. Backward compatible and verified: rebuilding the 0902
   sidecar reproduces it byte-identically (sha c322f81ebc9e86a6…, the value pinned in `V5_BEANS_SIDECAR_V6_SHA256`).
+  23:42 — **B8 continuation 300 → 5000 armed** (user 23:38). `queue_beans16_hgx1.sh` on hgx-1 waits for queue15's
+  "beans-B8 ckpt-299 protected" line, then `run_train_h200.sh ... --num-train-steps 5000 --keep-period 1000`
+  (auto-resume from 299, batch 8 on the 4 H100s, ~26 h → ~03:00 on 09/07; job 17249058 ends ~22:50 that day).
+  Disk: 614 GB free on the NFS home at 23:40 with 1.4 TB already in v5/checkpoints, ~27 GB per kept checkpoint —
+  keeping every 250 would leave ~500 GB, so only multiples of 1000 are kept (1000/2000/3000/4000 + the final 4999);
+  the judged keep_299 copy is untouched. Evaluations of the continuation checkpoints are NOT armed (no GPU
+  assigned for them; the keep_299 B8 evals still run on GPU 1 of job 17286852).
