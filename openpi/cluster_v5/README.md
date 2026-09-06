@@ -972,3 +972,35 @@ build no fallback.
   > 8 GB (rc=3, nothing written), independent of any pattern. Residual race: a probe that starts in the 20 s
   between two polls while a placeholder is up still OOMs — runners must keep killing the marker first (ours do).
   `gpu_sentinel_hgx1.sh` / `gpu_sentinel_hgx2.sh` are superseded and no longer run.
+  22:00 — **A6sep: the MECHANISM target is hit, the ROLLOUTS regress, and the run was under-budgeted (my setup
+  error).** Geometry probe on A6sep keep_299 vs A6 keep_499:
+
+  | | A6 | A6sep |
+  |---|---|---|
+  | count readout from the bank | 8/12 | **10/12** |
+  | readout margin | 0.002 | **0.2005** |
+  | max key cosine (vocabulary) | 0.998 | 0.453 |
+  | max value cosine | 0.999 | 0.392 |
+  | encoding max cosine | 0.978 | 0.823 |
+
+  Training telemetry: separation penalty 0.068 -> 0.043 -> 0.0070 (A6 ends at 0.45), key mean |cos| 0.191 (A6 0.495).
+  So the term does exactly what it was designed to do and the agreed success criterion (margin up by >= an order of
+  magnitude) is met with room to spare. Per tray step, all six x=3 readouts are now correct (margins 0.16-0.37,
+  retention 0.33-0.68); the two misses are both x=2 at the FIRST tray arrival where retention has fallen to 0.09 --
+  and "scoop 2 times" is still the least separated go variant (key +0.32 to "1 time", +0.25 to "3 times", while
+  1-vs-3 is -0.11). NEW: with interference removed, DECAY finally matters (retention 0.68 at age 67 steps -> 0.03 at
+  126), so separation + slower decay is the natural combination -- and this retrospectively explains why the decay
+  experiment alone did nothing.
+  BUT the self-write rollouts are the worst so far: tray **4/12**, go count "1 time" in ALL SIX episodes, demo11
+  0/119 decision steps. Failure mode: malformed sentences with the DIGIT MISSING (`scoop : dump and return`,
+  `scoop ::: dump and return`) and the light phase skipped entirely in 4/6 episodes. The separation term has no path
+  to the token decoder (it touches only the sentence pooling and memory_sem_{key,value}_proj), so this looks like an
+  undertrained decoder, not a geometry effect. Cause: **the run was not matched to its baseline** -- the user's 19:51
+  allocation put A6 tests on the SINGLE H200, I kept batch 2, and A6sep therefore saw ~600 sequences against A6's
+  2000 (batch 4 x 500). Its curve was behind at every checkpoint (decision 0.439/0.837 at steps 100/200 vs A6
+  0.510/0.882). Control launched 22:02 to settle it: **`v5_beansA6ctl_20260905_r1`** = the beansA6 config with NO
+  separation loss at exactly batch 2 x 300 updates on the same GPU. If it also drops digits and says "1 time", the
+  regression is budget and the separation loss is clean; if it looks like normal A6, the loss is harmful at w=1.0.
+  Ops: the first A6sep eval attempt OOM'd on all 6 episodes because a trossen placeholder had restarted on job
+  17267793 at 21:25 (~120 GB) after the training ended; killed + checkpoint swept, evals re-run. When a training
+  finishes on an eval job, kill the restored placeholder BEFORE launching the evals.
