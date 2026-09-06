@@ -1087,3 +1087,32 @@ build no fallback.
   keeping every 250 would leave ~500 GB, so only multiples of 1000 are kept (1000/2000/3000/4000 + the final 4999);
   the judged keep_299 copy is untouched. Evaluations of the continuation checkpoints are NOT armed (no GPU
   assigned for them; the keep_299 B8 evals still run on GPU 1 of job 17286852).
+
+  **2026-09-06 00:47 — user decision: A9/B9 = target-carry labels ("scoop k of x") on the 0905 collection only;
+  B8 continuation cancelled.** Reasoning (00:24–00:43, from the A8 probes): the count is perfectly readable in
+  the A8 bank (count recovery 12/12 at margin 0.43; count-flip at the first go step 1.00 / follows-flip 1.00 /
+  blank 0.76) yet the tray decision ignores it (tray-flip development: says "done" at 9/9 tray steps whatever the
+  history, follows a flipped history 0/9, margin 0.11; A6 0.33, B6 0.22). The blink→go step works because it is a
+  single-note COPY (the go sentence's number is the newest light note's number); the tray step needs a two-note
+  COMPARISON (go note x vs newest scoop note k) and the training set offers cheaper routes (tray fill / scene
+  memorisation fit the 60 demos to 0.97), so the comparison is never learned. The user's own 13:40 relabel idea
+  (prepared then, unused) makes the tray step a single-note copy/compare too: every scoop sentence carries x.
+  Trade-off stated to the user: nothing in the task then requires reading a note older than the newest one.
+  A8 self-write recap (6 dev episodes): blink counts all right, but the copy shortcut of a stage A shows —
+  "yellow go" sticky through the scoop (demo12/21/51), "scoop 1" repeated instead of incrementing (demo14/17),
+  "done" after every scoop. A7 closed (see 23:25). B8 300 finished on its own (used only for its keep_299 evals).
+  Built: `scripts/beans_relabel_target_carry.py` on the three 0905 raw folders (89 demos, exactly 20 sentences),
+  `beans_build_v5_manifest_sidecar.py --reuse-manifest` → `cluster_v5/beans/beans_v5_subtask_labels_0905_v7tgt.json`
+  (sha a2f704b9…, pinned to the 0905 v1 manifest 3412223a…, same dev/final_test split as v6sub: dev =
+  0905beans_1/demo27, demo31, 0905beans_2/demo1, 0905beans_3/demo1, demo9, demo10). config.py: `V5_BEANS_SENTENCES_V4`
+  + `V5_BEANS_REFERENCE_SENTENCE_TOKENS_V4` (PaliGemma ids, V3 reproduced bit-exactly, max 13 tokens),
+  `V5_BEANS_EVIDENCE/DECISION_SENTENCES_V4`, the 0905 pins, data entry `v5_beans_0905_tgt_data` (repo
+  yam/bean_scoop_0905_v5, assets pi05_yam_bean_scoop_0905_v5), configs `beansA9` (= A8 recipe) and `beansB9`
+  (loader A9/…/299). Slot templates over the new vocabulary: wait, light (k, on/off masked), go (count masked),
+  scoop (k, x, dig/dump, carry/return masked → ONE scoop slot, newest wins), done. Ops: 0905 norm stats
+  (`compute_norm_stats.py --config-name pi05_yam_mem_v5_beansA9 --max-frames 3000`, CPU on hgx-1, started 00:53;
+  copied to the data assets dir when done), `queue_beans17_hgx1.sh` (waits for B8's exit, an idle job and the
+  stats; A9 → keep_299 → B9 → keep_299, batch 8 on the 4 H100s), `evals_beans_waiter_v2.sh` (A9/B9 dated
+  20260906, MANIFEST passthrough) with `run_beans_evals_job_v2.sh` (MANIFEST env) on GPU 1 of job 17286852,
+  no placeholder. Judgement for A9: tray-flip probe on the 0905 development split must follow the flipped
+  history (A8: 0/9), then B9 self-write rollouts.

@@ -1163,6 +1163,66 @@ V5_BEANS_REFERENCE_SENTENCE_TOKENS_V3: tuple[tuple[int, ...], ...] = (
     (7262, 235269, 2507, 1706, 573, 65522, 578, 2203, 108),
 )
 V5_BEANS_SIDECAR_V6_SHA256 = "c322f81ebc9e86a6d6c31db63a8ac6e500029c499deee6af0f710136d333e406"
+# v4 "target-carry" sentences (README §8 2026-09-06 00:47; user: "when doing scoop we do 1 of x scoop, 2 of x
+# scoop ..."): every scoop sentence carries the target x, so the tray decision (done vs "scoop k+1 of x") is a
+# single-note copy/compare of the NEWEST note instead of a two-note comparison (go note + scoop note) that A6..A8
+# never learned (tray-flip probe on A8: follows a flipped history 0/9, always "done"; count-flip 1.00 for the
+# go count, which IS a single-note copy). 20 sentences, max 13 tokens (scripts/beans_relabel_target_carry.py on
+# the 0905 raw folders -> beans_build_v5_manifest_sidecar.py --reuse-manifest, the 0905 v1 manifest). Token ids
+# generated with the PaliGemma tokenizer exactly as FASTSubtaskTokenizer does (the V3 rows reproduce bit-exactly).
+V5_BEANS_SENTENCES_V4: tuple[str, ...] = (
+    "wait for the light: no green blink yet",
+    "light on: 1 green blink so far",
+    "light off: 1 green blink so far",
+    "light on: 2 green blinks so far",
+    "light off: 2 green blinks so far",
+    "light on: 3 green blinks so far",
+    "light off: 3 green blinks so far",
+    "yellow go: pick up the scoop, scoop 1 time",
+    "yellow go: pick up the scoop, scoop 2 times",
+    "yellow go: pick up the scoop, scoop 3 times",
+    "scoop 1 of 1: dig and carry",
+    "scoop 1 of 2: dig and carry",
+    "scoop 1 of 2: dump and return",
+    "scoop 2 of 2: dig and carry",
+    "scoop 1 of 3: dig and carry",
+    "scoop 1 of 3: dump and return",
+    "scoop 2 of 3: dig and carry",
+    "scoop 2 of 3: dump and return",
+    "scoop 3 of 3: dig and carry",
+    "done, put down the scoop and return",
+)
+V5_BEANS_REFERENCE_SENTENCE_TOKENS_V4: tuple[tuple[int, ...], ...] = (
+    (9532, 604, 573, 2611, 235292, 793, 4433, 45741, 3599, 108),  # wait for the light: no green blink yet
+    (2462, 611, 235292, 235248, 235274, 4433, 45741, 712, 2166, 108),  # light on: 1 green blink so far
+    (2462, 1401, 235292, 235248, 235274, 4433, 45741, 712, 2166, 108),  # light off: 1 green blink so far
+    (2462, 611, 235292, 235248, 235284, 4433, 212105, 712, 2166, 108),  # light on: 2 green blinks so far
+    (2462, 1401, 235292, 235248, 235284, 4433, 212105, 712, 2166, 108),  # light off: 2 green blinks so far
+    (2462, 611, 235292, 235248, 235304, 4433, 212105, 712, 2166, 108),  # light on: 3 green blinks so far
+    (2462, 1401, 235292, 235248, 235304, 4433, 212105, 712, 2166, 108),  # light off: 3 green blinks so far
+    (22006, 871, 235292, 4788, 908, 573, 65522, 235269, 65522, 235248, 235274, 1069, 108),  # yellow go: pick up the scoop, scoop 1 time
+    (22006, 871, 235292, 4788, 908, 573, 65522, 235269, 65522, 235248, 235284, 3023, 108),  # yellow go: pick up the scoop, scoop 2 times
+    (22006, 871, 235292, 4788, 908, 573, 65522, 235269, 65522, 235248, 235304, 3023, 108),  # yellow go: pick up the scoop, scoop 3 times
+    (17390, 715, 235248, 235274, 576, 235248, 235274, 235292, 3441, 578, 6383, 108),  # scoop 1 of 1: dig and carry
+    (17390, 715, 235248, 235274, 576, 235248, 235284, 235292, 3441, 578, 6383, 108),  # scoop 1 of 2: dig and carry
+    (17390, 715, 235248, 235274, 576, 235248, 235284, 235292, 21430, 578, 2203, 108),  # scoop 1 of 2: dump and return
+    (17390, 715, 235248, 235284, 576, 235248, 235284, 235292, 3441, 578, 6383, 108),  # scoop 2 of 2: dig and carry
+    (17390, 715, 235248, 235274, 576, 235248, 235304, 235292, 3441, 578, 6383, 108),  # scoop 1 of 3: dig and carry
+    (17390, 715, 235248, 235274, 576, 235248, 235304, 235292, 21430, 578, 2203, 108),  # scoop 1 of 3: dump and return
+    (17390, 715, 235248, 235284, 576, 235248, 235304, 235292, 3441, 578, 6383, 108),  # scoop 2 of 3: dig and carry
+    (17390, 715, 235248, 235284, 576, 235248, 235304, 235292, 21430, 578, 2203, 108),  # scoop 2 of 3: dump and return
+    (17390, 715, 235248, 235304, 576, 235248, 235304, 235292, 3441, 578, 6383, 108),  # scoop 3 of 3: dig and carry
+    (7262, 235269, 2507, 1706, 573, 65522, 578, 2203, 108),  # done, put down the scoop and return
+)
+V5_BEANS_EVIDENCE_SENTENCES_V4: tuple[str, ...] = V5_BEANS_SENTENCES_V4[1:7]  # light on/off k
+V5_BEANS_DECISION_SENTENCES_V4: tuple[str, ...] = V5_BEANS_SENTENCES_V4[7:10] + (
+    "scoop 2 of 2: dig and carry", "scoop 2 of 3: dig and carry", "scoop 3 of 3: dig and carry",
+    "done, put down the scoop and return",
+)
+# 0905 collection (89 episodes, 3 raw folders; other session 2026-09-05 23:35): manifest v1 (splits 2 dev + 2 final_test
+# per class, train 23/30/24 for x=1/2/3) and the v7 target-carry sidecar pinned to it.
+V5_BEANS_0905_MANIFEST_SHA256 = "3412223a9ab03ba0e63e544adae5efd94de0a551762c622661ba9f8983ae8776"
+V5_BEANS_0905_SIDECAR_V7_SHA256 = "a2f704b948629709117aa5ee0ff55038ef0ff867fb5d9b6a46f31993c6b5826d"
 
 _CONFIGS = [
     #
@@ -2800,7 +2860,7 @@ _CONFIGS = [
             # Failure rule (user, 2026-09-02 13:02): if stageA misses the Stage-2a bar, stop.
             # ---------------------------------------------------------------------------
             *(
-                lambda v5_model, v5_data, v5_freeze_semantic_only, v5_freeze_dual, v5_loader, v5_beans_data, v5_beans_light_data, v5_beans_tray_data, v5_beans_vis_data, v5_beans_sub_data: (
+                lambda v5_model, v5_data, v5_freeze_semantic_only, v5_freeze_dual, v5_loader, v5_beans_data, v5_beans_light_data, v5_beans_tray_data, v5_beans_vis_data, v5_beans_sub_data, v5_beans_0905_tgt_data: (
                     # ---- r2 (2026-09-02 18:31): standardized + trainable attention pooling ----
                     # r1 (stageA, "mean" pooling) FAILED the Stage-2a bar: the mean-pooled encoder
                     # is side-invariant (README §8). stageA2 differs from stageA ONLY in the
@@ -4192,6 +4252,108 @@ _CONFIGS = [
                         num_workers=12,
                         fsdp_devices=1,
                     ),
+                    # Bean-scoop A9 = the A8 recipe (slot keys + whitened values, oracle writes, delay 0, 300 updates) on the
+                    # v4 TARGET-CARRY sentences ("scoop k of x") and the 0905 collection only (user 2026-09-06 00:47).
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_beansA9",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model,
+                            memory_v5_oracle_writes=True,
+                            memory_v5_slot_keys=True,
+                            memory_v5_whiten_values=True,
+                            memory_v4_visual_injection=False,
+                            memory_v5_pooling="standardized_attention",
+                            memory_v5_pool_queries=4,
+                            memory_v5_reference_tokens=V5_BEANS_REFERENCE_SENTENCE_TOKENS_V4,
+                            memory_v5_write_delay_steps=0,
+                            memory_v5_prefill_history=True,
+                            memory_v5_prefill_max=16,
+                            memory_v5_query_standardize=True,
+                            memory_v5_query_prev_sentence=True,
+                        ),
+                        data=v5_beans_0905_tgt_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=100, peak_lr=5e-5, decay_steps=10_000, decay_lr=5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=weight_loaders.AuditedPartialCheckpointWeightLoader(
+                            str(
+                                _project_paths.project_path(
+                                    _project_paths.V5_CHECKPOINTS_DIR
+                                    / "pi05_yam_mem_v5_stageB6a/v5_stageB6a_20260903_r1/keep_499/params"
+                                )
+                            ),
+                            matched_allowlist=(r".+",),
+                            fresh_init_allowlist=(),
+                            source_cast_dtype="float32",
+                        ),
+                        v4_graft_sources=(),
+                        num_train_steps=300,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
+                    # Bean-scoop B9 = beansA9 weights (ckpt-299), own writes, retry, delay 0; v4 sentences, 0905 data.
+                    TrainConfig(
+                        name="pi05_yam_mem_v5_beansB9",
+                        v4_protocol=True,
+                        model=dataclasses.replace(
+                            v5_model,
+                            memory_v5_oracle_writes=False,
+                            memory_v5_slot_keys=True,
+                            memory_v5_whiten_values=True,
+                            memory_v4_visual_injection=False,
+                            memory_v5_pooling="standardized_attention",
+                            memory_v5_pool_queries=4,
+                            memory_v5_reference_tokens=V5_BEANS_REFERENCE_SENTENCE_TOKENS_V4,
+                            memory_v5_write_delay_steps=0,
+                            memory_v5_prefill_history=True,
+                            memory_v5_prefill_max=16,
+                            memory_v5_query_standardize=True,
+                            memory_v5_query_prev_sentence=True,
+                            memory_v5_prev_is_committed=True,  # retry-until-committed writes (2026-09-05)
+                        ),
+                        data=v5_beans_0905_tgt_data,
+                        assets_base_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT)),
+                        checkpoint_base_dir=str(_project_paths.project_path(_project_paths.V5_CHECKPOINTS_DIR)),
+                        freeze_filter=v5_freeze_semantic_only,
+                        batch_size=2,
+                        gradient_accumulation_steps=1,
+                        lr_schedule=_optimizer.CosineDecaySchedule(
+                            warmup_steps=100, peak_lr=2.5e-5, decay_steps=10_000, decay_lr=2.5e-5
+                        ),
+                        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+                        memory_grad_clip=5.0,
+                        ema_decay=None,
+                        probe_lr=1e-2,
+                        weight_loader=weight_loaders.AuditedPartialCheckpointWeightLoader(
+                            str(
+                                _project_paths.project_path(
+                                    _project_paths.V5_CHECKPOINTS_DIR
+                                    / "pi05_yam_mem_v5_beansA9/v5_beansA9_20260906_r1/299/params"
+                                )
+                            ),
+                            matched_allowlist=(r".+",),
+                            fresh_init_allowlist=(),
+                            source_cast_dtype="float32",
+                        ),
+                        v4_graft_sources=(),
+                        num_train_steps=300,
+                        save_interval=250,
+                        keep_period=250,
+                        num_workers=12,
+                        fsdp_devices=1,
+                    ),
                     TrainConfig(
                         name="pi05_yam_mem_v5_stageA",
                         v4_protocol=True,
@@ -4571,6 +4733,51 @@ _CONFIGS = [
                     ),
                     assets=AssetsConfig(
                         assets_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT / "pi05_yam_bean_scoop_0902_v5"))
+                    ),
+                ),
+                # 0905 collection + v4 target-carry sentences (2026-09-06 00:47): A9/B9. Same loader settings as v5_beans_sub_data.
+                v5_beans_0905_tgt_data=dataclasses.replace(
+                    v4_data,
+                    repo_id="yam/bean_scoop_0905_v5",
+                    base_config=dataclasses.replace(
+                        v4_data.base_config,
+                        prompt_from_episode_meta=True,
+                        subtask_from_task=True,
+                        subtask_lookahead=0,
+                        memory_stride_frames=5,
+                        memory_slice_prob=0.5,
+                        memory_min_slice_steps=14,
+                        memory_sequence_buckets=(14, 27, 40),
+                        evidence_subtasks=V5_BEANS_EVIDENCE_SENTENCES_V4,
+                        memory_required_subtasks=V5_BEANS_DECISION_SENTENCES_V4,
+                        memory_critical_prob=0.5,
+                        memory_critical_start_pad=75,
+                        memory_subtask_vocab=V5_BEANS_SENTENCES_V4,
+                        heldout_episodes=(),
+                        memory_waiting_max_speed=None,
+                        memory_v35_enabled=False,
+                        memory_e_tail_guard_frames=0,
+                        memory_occlusion_subtasks=(),
+                        memory_execute_subtasks=(),
+                        memory_sparse_skip_o_prob=0.0,
+                        memory_episode_manifest_path=str(
+                            _project_paths.project_path("openpi/cluster_v5/beans/beans_episode_manifest_0905_v1.json")
+                        ),
+                        memory_episode_manifest_sha256=V5_BEANS_0905_MANIFEST_SHA256,
+                        memory_manifest_split="train",
+                        memory_manifest_split_seed=902,
+                        memory_v35_frozen_population=False,
+                        memory_v4_fact_labels_path=None,
+                        memory_v4_fact_labels_sha256=None,
+                        memory_v5_subtask_labels_path=str(
+                            _project_paths.project_path("openpi/cluster_v5/beans/beans_v5_subtask_labels_0905_v7tgt.json")
+                        ),
+                        memory_v5_subtask_labels_sha256=V5_BEANS_0905_SIDECAR_V7_SHA256,
+                        memory_v5_generic_task=True,
+                        lerobot_dataset_root=str(_project_paths.project_path("v5/data/lerobot/yam/bean_scoop_0905_v5")),
+                    ),
+                    assets=AssetsConfig(
+                        assets_dir=str(_project_paths.project_path(_project_paths.V5_ASSETS_ROOT / "pi05_yam_bean_scoop_0905_v5"))
                     ),
                 ),
             ),
