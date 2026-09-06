@@ -31,21 +31,42 @@ import numpy as np
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import v5_count_flip_eval as cf  # noqa: E402
 
-SCHEMA_VERSION = "v5_tray_flip_eval/1"
+SCHEMA_VERSION = "v5_tray_flip_eval/2"  # 2: v4 "scoop k of x" sentences (x carried + flipped in scoop rows, variable-length candidates)
 SCOOP, DONE, LIGHT, WAIT, GO = 17390, 7262, 2462, 9532, 22006
 DIG_TOKEN, DUMP_TOKEN = 3441, 21430
 DONE_ROW = (7262, 235269, 2507, 1706, 573, 65522, 578, 2203, 108)
 
 
-def dump_row(k: int) -> tuple[int, ...]:
+OF_TOKEN = 576  # "of" in the v4 target-carry sentences "scoop k of x: ..." (2026-09-06)
+
+
+def dump_row(k: int, x: int = -1) -> tuple[int, ...]:
+    if x > 0:  # v4 target-carry layout: "scoop k of x: dump and return" (12 tokens)
+        return (SCOOP, 715, cf.SPACE_TOKEN, cf.DIGIT_TOKENS[k], OF_TOKEN, cf.SPACE_TOKEN, cf.DIGIT_TOKENS[x], 235292, DUMP_TOKEN, 578, 2203, 108)
     return (SCOOP, 715, cf.SPACE_TOKEN, cf.DIGIT_TOKENS[k], 235292, DUMP_TOKEN, 578, 2203, 108)
+
+
+def row_x(row: np.ndarray, mask: np.ndarray) -> int:
+    """Target x carried in a v4 scoop row ("scoop k of x: ..."), -1 for the v6 layout."""
+    if row[0] == SCOOP and mask[6] and row[4] == OF_TOKEN:
+        return cf.DIGIT_TO_COUNT.get(int(row[6]), -1)
+    return -1
+
+
+def shift_scoop_x(row: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Flip condition for v4 scoop rows: cycle the carried target x (index 6), keep k."""
+    out = row.copy()
+    if out[0] == SCOOP and mask[6] and out[4] == OF_TOKEN and int(out[6]) in cf.DIGIT_TO_COUNT:
+        out[6] = cf.DIGIT_TOKENS[cf.CYCLE[cf.DIGIT_TO_COUNT[int(out[6])]]]
+    return out
 
 
 def row_kind(row: np.ndarray, mask: np.ndarray) -> str:
     if not mask.any():
         return "none"
-    if row[0] == SCOOP and mask[5]:
-        return "dig" if row[5] == DIG_TOKEN else ("dump" if row[5] == DUMP_TOKEN else "scoop?")
+    if row[0] == SCOOP:
+        toks = set(int(v) for v in row[mask])
+        return "dig" if DIG_TOKEN in toks else ("dump" if DUMP_TOKEN in toks else "scoop?")
     if row[0] == DONE:
         return "done"
     if row[0] == GO:
@@ -164,6 +185,7 @@ def main(argv=None) -> None:
                 for t in range(1, steps):
                     if kinds[t] in ("dump", "done") and kinds[t - 1] == "dig":
                         k = row_k(causal[b, t - 1])
+                        carried_x = row_x(causal[b, t - 1], text_mask[b, t - 1])
                         # x: the latest go sentence before t (in-window), else the last go row of the prefill.
                         x, age = -1, -1
                         for tp in range(t - 1, -1, -1):
@@ -176,12 +198,14 @@ def main(argv=None) -> None:
                                     x = go_count(prefill_tokens[b, p], prefill_mask[b, p])
                                     age = int(np.sum(np.maximum(prefill_gaps[b, p:], 0))) + t
                                     break
+                        if x < 0 and carried_x > 0:
+                            x, age = carried_x, t - (t - 1)
                         if x < 0 or k < 0:
                             continue
                         span = int(text_mask[b, t].sum())
-                        if span != len(DONE_ROW) or not text_mask[b, t, : len(DONE_ROW)].all():
+                        if span == 0 or not text_mask[b, t, :span].all():
                             continue
-                        tray.setdefault(b, []).append((t, k, x, kinds[t], age))
+                        tray.setdefault(b, []).append((t, k, x, kinds[t], age, carried_x > 0))
             if not tray:
                 print(f"alpha={alpha} batch {index + 1}/{len(batches)}: no tray steps", flush=True)
                 continue
@@ -190,15 +214,21 @@ def main(argv=None) -> None:
                 out = tokens.copy()
                 flat_t = out.reshape(-1, out.shape[-1]); flat_m = mask.reshape(-1, mask.shape[-1])
                 for i in range(flat_t.shape[0]):
-                    if row_kind(flat_t[i], flat_m[i]) in ("go", "light"):
+                    kind = row_kind(flat_t[i], flat_m[i])
+                    if kind in ("go", "light"):
                         flat_t[i] = cf.shift_counts(flat_t[i], flat_m[i])
+                    elif kind in ("dig", "dump"):
+                        flat_t[i] = shift_scoop_x(flat_t[i], flat_m[i])
                 return flat_t.reshape(tokens.shape)
 
             flip_causal = causal.copy()
             for b in range(batch):
                 for t in range(steps):
-                    if row_kind(causal[b, t], text_mask[b, t]) in ("go", "light"):
+                    kind = row_kind(causal[b, t], text_mask[b, t])
+                    if kind in ("go", "light"):
                         flip_causal[b, t] = cf.shift_counts(causal[b, t], text_mask[b, t])
+                    elif kind in ("dig", "dump"):
+                        flip_causal[b, t] = shift_scoop_x(causal[b, t], text_mask[b, t])
             flip_fields = {
                 "memory_v5_prefill_tokens": jax.numpy.asarray(shift_history_rows(prefill_tokens, prefill_mask)),
                 "memory_v5_pending_tokens": jax.numpy.asarray(shift_history_rows(pending_tokens, pending_mask)),
@@ -208,13 +238,22 @@ def main(argv=None) -> None:
                 "memory_v5_pending_mask": jax.numpy.asarray(np.zeros_like(pending_mask)),
             }
 
-            def with_candidate(base: np.ndarray, candidate: str) -> np.ndarray:
-                v = base.copy()
+            def with_candidate(base: np.ndarray, candidate: str, flipped: bool):
+                """Replace the tray step's sentence by the candidate; the candidates may differ in length (v4 dump row
+                12 tokens vs done 9), so the row is rebuilt as candidate + the original action tail and both masks
+                follow. In the flip condition the dump candidate carries the flipped x (consistent with the history)."""
+                v = base.copy(); cm = causal_mask.copy(); fm = fast_mask.copy()
                 for b, items in tray.items():
-                    for t, k, x, label, age in items:
-                        row = DONE_ROW if candidate == "done" else dump_row(k)
-                        v[b, t, : len(row)] = np.asarray(row, dtype=v.dtype)
-                return v
+                    for t, k, x, label, age, carried in items:
+                        xx = (cf.CYCLE[x] if flipped else x) if carried else -1
+                        row = np.asarray(DONE_ROW if candidate == "done" else dump_row(k, xx), dtype=v.dtype)
+                        span = int(text_mask[b, t].sum()); L = v.shape[-1]
+                        tail_t = base[b, t, span:]; tail_c = causal_mask[b, t, span:]; tail_f = fast_mask[b, t, span:]
+                        nt = np.concatenate([row, tail_t])[:L]; nc = np.concatenate([np.ones(len(row), bool), tail_c])[:L]
+                        nf = np.concatenate([np.zeros(len(row), bool), tail_f])[:L]
+                        v[b, t] = 0; cm[b, t] = False; fm[b, t] = False
+                        v[b, t, : len(nt)] = nt; cm[b, t, : len(nc)] = nc; fm[b, t, : len(nf)] = nf
+                return v, cm, fm
 
             conditions = {
                 "normal": (observation, causal),
@@ -226,9 +265,11 @@ def main(argv=None) -> None:
             active = None
             for cond, (obs, base_causal) in conditions.items():
                 for candidate in ("dump", "done"):
+                    ct, cc, cfm = with_candidate(base_causal, candidate, cond == "flip")
                     losses = sequence_loss(
                         step_rng,
-                        obs.replace(tokenized_causal=jax.numpy.asarray(with_candidate(base_causal, candidate))),
+                        obs.replace(tokenized_causal=jax.numpy.asarray(ct), tokenized_causal_mask=jax.numpy.asarray(cc),
+                                    causal_fast_mask=jax.numpy.asarray(cfm)),
                         actions,
                         train=False,
                     )
@@ -236,7 +277,7 @@ def main(argv=None) -> None:
                     if active is None:
                         active = np.asarray(jax.device_get(losses["v4_decision_active_steps"])).T > 0.5
             for b, items in tray.items():
-                for t, k, x, label, age in items:
+                for t, k, x, label, age, carried in items:
                     if not active[b, t]:
                         continue
                     rec = {

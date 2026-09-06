@@ -81,7 +81,9 @@ def main(argv=None) -> None:
     index_of = {s: i for i, s in enumerate(vocab)}
     go_idx = [i for i, s in enumerate(vocab) if s.startswith("yellow go")]
     off_idx = [i for i, s in enumerate(vocab) if s.startswith("light off")]
-    def pair(a, b): return float(kc[index_of[a], index_of[b]]), float(vc[index_of[a], index_of[b]])
+    def pair(a, b):  # diagnostic only; sentences absent from this vocabulary (e.g. the v4 "scoop k of x" set) print as nan
+        if a not in index_of or b not in index_of: return float("nan"), float("nan")
+        return float(kc[index_of[a], index_of[b]]), float(vc[index_of[a], index_of[b]])
     print("key/value cosines: go1-go2 %.3f/%.3f  go2-go3 %.3f/%.3f  go2-dig1 %.3f/%.3f  off1-off2 %.3f/%.3f  on1-off1 %.3f/%.3f  dig1-dig2 %.3f/%.3f  dig1-dump1 %.3f/%.3f" % (
         *pair("yellow go: pick up the scoop, scoop 1 time", "yellow go: pick up the scoop, scoop 2 times"),
         *pair("yellow go: pick up the scoop, scoop 2 times", "yellow go: pick up the scoop, scoop 3 times"),
