@@ -1309,6 +1309,13 @@ build no fallback.
   14:29 — plain ssh to hgx-2 now lands in THIS job), 17315909 (2×H200, pending), 17286852 (2×H200: GPU 0 the user's
   Qwen run, GPU 1 ours). Placeholder on GPU 1 killed; ckpt-2000 server (normal mode) launched there on port 8001
   (log `server_v5_b9_2000_20260907.log`).
+  16:16 — **User 16:12/16:14: nothing on the 2×H200 job 17286852 and the 1×H200 job 17315828 except their
+  keep-alives.** Mine: the ckpt-2000 server on 17286852 GPU 1 stopped 16:12. Relayed to v5task2 (confirmed: nothing
+  of theirs there) and to the bean_memer session (owner of the MemER Qwen3-VL training on 17286852 GPU 0 and of
+  the three MemER servers on 17315828). On the user's direct instruction I stopped the 17315828 servers by PID
+  (two serve_memer_highlevel.py, one serve_memer_lowlevel.py + launcher shells); the job keeps its 1 GB
+  train_hs.py. The GPU-0 MemER training is the user's own run (checkpoints every 1000 steps) — left for the
+  bean_memer session / the user's explicit "kill it".
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
