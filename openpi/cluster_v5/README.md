@@ -1262,6 +1262,19 @@ build no fallback.
   randomised cue timing. Pending diagnostics: tick-rate probe (`run_b9_stride_probe_job.sh`, STRIDE=8) and the
   robot recordings (`eval/memory_v5_led_closedloop_<stamp>.mp4` + `.led.json`) for the "starts at 2" runs.
   Serving now: B9 ckpt 2000 on port 8001 (user 21:09), baseline on 8000.
+  22:10 — **Low-level skills worse than the plain pi05 (user 21:55).** Two candidate causes logged: (1) action-expert
+  training budget/diversity — the baseline ran 15.5k updates × 16 random frames fresh from pi05_base, B9's action
+  expert came from stageB6a (old collection) and saw 2.3k updates × 8 windows of 40 consecutive steps (flow loss
+  0.0098 vs 0.0085); (2) the memory reads injected at layer 8 move the (insulated) features the action expert
+  conditions on, and the bank state on the robot differs from training. Both clients run at 20 Hz, so not the rate.
+  New server flag `--zero-read` (read content zeroed before the injection; writes/decoding continue, the count is
+  meaningless). User 22:02: both servers on GPU 1 of 17286852 stopped (mine on 8001, the data-prep session's
+  baseline on 8000 — told it), zero-read ckpt-2000 server up on 8001 (`server_v5_b9_2000_zeroread_20260906.log`,
+  229 ms). Fix proposed for A10/B10: initialise from the 0905 baseline checkpoint and graft B9's memory modules
+  (`v4_graft_sources`); freeze the LLM blocks in stage B if the reads are the cause. 22:10 — **job 17249058 (4×H100)
+  handed to the user for their own training:** hgx-1 sentinel stopped (it would relaunch the placeholder) and the
+  placeholder step killed; only the 1 GB keep-alive remains. No sentinel/placeholder on any job now: 17249058 and
+  17267793 are the user's, 17286852 GPU 0 is the user's Qwen run, GPU 1 holds our server on request.
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
