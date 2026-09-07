@@ -173,6 +173,11 @@ def main() -> None:
                         help="v5 sentence sidecar (default: the bins sidecar)")
     parser.add_argument("--max-decode-steps", type=int, default=24)
     parser.add_argument("--fps", type=float, default=30.0)
+    parser.add_argument("--stride", type=int, default=0,
+                        help="override the memory stride in FRAMES (0 = the config's memory_stride_frames, 5 for the beans "
+                        "models = 167 ms ticks at 30 Hz). 8 emulates the robot client at --hz 20 with a replan every 5 "
+                        "controls (250 ms ticks): the LED cue then spans 1.6x fewer memory steps than in training "
+                        "(2026-09-06 21:00, real-robot report: ckpt 2750 sometimes opens with 'light on: 2 green blinks').")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -181,6 +186,11 @@ def main() -> None:
     model = cfg.model.load(_model.restore_params(args.params, restore_type=np.ndarray))
     model.eval()
     data_config = cfg.data.create(cfg.assets_dirs, cfg.model)
+    if args.stride > 0 and args.stride != data_config.memory_stride_frames:
+        # Every stride read happens inside create_torch_dataset (window offsets, MemorySequenceSubtasks, the
+        # episode/sampling tables), so a post-create replace reaches the whole pipeline.
+        print(f"memory stride override: {data_config.memory_stride_frames} -> {args.stride} frames", flush=True)
+        data_config = dataclasses.replace(data_config, memory_stride_frames=args.stride)
     dataset = data_loader_lib.create_torch_dataset(data_config, cfg.model.action_horizon, cfg.model)
     tds = data_loader_lib.TransformedDataset(
         dataset,
@@ -379,7 +389,8 @@ def main() -> None:
         "final_bank": bank,
         "records": [dataclasses.asdict(r) for r in records],
     }
-    tag = f"ep{args.episode_index:02d}_{args.write_mode}" + ("" if args.intervention == "none" else f"_{args.intervention}")
+    tag = f"ep{args.episode_index:02d}_{args.write_mode}" + ("" if args.intervention == "none" else f"_{args.intervention}") \
+        + ("" if args.stride <= 0 else f"_stride{args.stride}")
     (args.output_dir / f"{tag}.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(f"decision steps {summary['decision_side_correct']}/{summary['decision_steps']} correct "
           f"({'true side' if target_side else 'exact sentence'}); "
