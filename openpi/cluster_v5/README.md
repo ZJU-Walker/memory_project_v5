@@ -1345,3 +1345,32 @@ build no fallback.
   **Output path caveat:** the script writes to `openpi/scripts/eval_results/` next to itself. Those files were
   visible on iris-hgx-2 immediately but took ~1 min to appear on iris-ws-18 through NFS attribute caching; an
   empty `ls` right after a run is not a failure.
+
+* 2026-09-06 17:33 — **the baseline recognises episodes, it does not count. 6/6.** Scored ckpt-5000 on all six dev
+  demos with `--max-decode-steps 16`. Exact-match: demo1031 (x=1) **94.6%**, demo1027 (x=2) **88.5%**,
+  demo2001 (x=3) **81.5%**, demo3001 (x=3) **86.2%**, demo3009 (x=2) **86.0%**, demo3010 (x=1) **88.9%**.
+  It is NOT guessing the majority class: it emits "scoop 1 time"/"1 of 1", "2 times"/"1 of 2, 2 of 2" and
+  "3 times"/"1 of 3, 2 of 3, 3 of 3" correctly per episode. **But on eval frame 0, before a single blink has
+  happened, every episode's prediction already names that episode's FINAL count** — x=1 -> "light off: 1 green blink
+  so far", x=2 -> "2 green blinks", x=3 -> "3 green blinks", 6/6. No information in that frame can support this.
+  The model identifies the recording (all 89 are in its training set) and recalls the answer. **Consequence: this
+  checkpoint cannot serve as the floor for any counting claim; the 77-episode-split baseline is required for that.**
+  Mechanically the split is clean: the scoop INDEX is genuinely visible (each dump leaves beans in the tray) while
+  the TARGET is not (blinks leave no trace), which is why 4 of 6 errors on demo1027 sit in the blink phase.
+
+* 2026-09-06 17:40 — **baseline policy server up for a real-robot test** (user 17:34 "on this gpu stop v5 serving and
+  start this pi05 serving 5k ckpt i will test on the real robot, and if need client make the client as well").
+  Stopped the B9 keep_1750 server (pid 2051705) on GPU 1 of 17286852 with the peer session's agreement, and brought
+  up **`scripts/serve_yam_subtask.py`** (non-memory sibling of serve_yam_memory.py) on the same port 8000, via new
+  **`cluster_v5/serve_base_job.sh`** + `start_base_server_now.sh`. ckpt-5000, config `pi05_yam_beans0905_base`,
+  pinned to `GPU-b3d023a5-...`, PREALLOCATE=false, MEM_FRACTION=0.6. Serving at **10.79.12.149:8000**, ~18 GB.
+  **Added `--warmup` (default true) + `--warmup-prompt` to serve_yam_subtask.py**: it had none, and the warmup
+  measured **49.3 s** of XLA compile, which the robot would otherwise have paid on its FIRST request with the arms
+  waiting. **`--max-decode-steps` is passed as 16**; the script default of 10 truncates the 13-token v7tgt rows.
+  **No new client needed**: `examples/yam/client_subtask.py` already speaks this contract and sends `prompt` in the
+  observation (both this config and B9 have `default_prompt=None`, so the client must supply it). Its default PROMPT
+  is still the bins string, deliberately unchanged so nobody's bins test is silently repointed. Dry run against the
+  live server passed: 5/5 random observations, action shape (14,), subtask `'yellow go: pick up the scoop, scoop 3
+  times'` — note the sentence is complete, which is the decode budget working. Robot command:
+  `python examples/yam/client_subtask.py --host 10.79.12.149 --port 8000 --prompt 'scoop the beans into the tray as
+  many times as the green light blinked'`. Commit 2739901.
