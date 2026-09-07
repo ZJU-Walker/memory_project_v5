@@ -1303,6 +1303,13 @@ build no fallback.
   π0.5), RoboMemArena (2605.10921), MemoryBench; CoRL 2026 workshop "Memory for Robot Foundation Models". Abstract-level
   reading only.
 
+  **2026-09-07** 09:46 — the GPU-1 placeholder of job 17286852 finished its 30k steps (rc 0) and was relaunched.
+  15:05 — **B9 ckpt-2000 served again (user 15:03 "on the available H200").** New job map: 17315830 (4×H100, hgx-1,
+  the user's), 17315828 (1×H200, hgx-2; the bean_memer session's `serve_memer_lowlevel.py` on port 8000 since
+  14:29 — plain ssh to hgx-2 now lands in THIS job), 17315909 (2×H200, pending), 17286852 (2×H200: GPU 0 the user's
+  Qwen run, GPU 1 ours). Placeholder on GPU 1 killed; ckpt-2000 server (normal mode) launched there on port 8001
+  (log `server_v5_b9_2000_20260907.log`).
+
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
   and fast action token"). Config **`pi05_yam_beans0905_base`** (added next to `pi05_yam_0816`, which is the same
