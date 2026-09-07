@@ -14,6 +14,7 @@ Edit the constants below (or override on the CLI), then:
 """
 
 import dataclasses
+import json
 import pathlib
 import subprocess
 import time
@@ -55,6 +56,11 @@ class Args:
     # supplied here or TokenizeFASTSubtaskInputs raises "Prompt is required". None keeps the
     # config's own InjectDefaultPrompt behaviour.
     prompt: str | None = None
+    # Optional per-frame ground truth, so the video can show target vs prediction the way the v5
+    # memory videos do. Accepts the per-demo label file written next to the raw data
+    # (e.g. <raw_demo>/subtask_labels_v7tgt.json), a list of {"task"|"sentence", "start", "end"}
+    # segments with inclusive bounds. Pass "auto" to take <raw_demo>/subtask_labels_v7tgt.json.
+    gt_labels: str | None = None
 
 
 def _read_video_frames(path: pathlib.Path, stride: int) -> tuple[list[np.ndarray], int]:
@@ -118,6 +124,25 @@ def main(args: Args) -> None:
     total = min(len(state_raw), len(actions_raw), n_top, n_left, n_right)
     eval_ts = list(range(0, total, args.stride))
     print(f"{demo}: {total} frames -> evaluating {len(eval_ts)}", flush=True)
+
+    gt_table: np.ndarray | None = None
+    if args.gt_labels is not None:
+        gt_path = demo / "subtask_labels_v7tgt.json" if args.gt_labels == "auto" else pathlib.Path(args.gt_labels)
+        if not gt_path.is_file():
+            raise FileNotFoundError(f"ground-truth labels not found: {gt_path}")
+        segments = json.loads(gt_path.read_text())
+        gt_table = np.full((total,), "", dtype=object)
+        for segment in segments:
+            sentence = segment.get("task", segment.get("sentence"))
+            if not isinstance(sentence, str) or not sentence.strip():
+                raise ValueError(f"{gt_path}: segment without a sentence: {segment!r}")
+            start, end = int(segment["start"]), int(segment["end"])
+            gt_table[start : min(end, total - 1) + 1] = sentence
+        uncovered = int((gt_table == "").sum())
+        if uncovered:
+            print(f"warning: {uncovered}/{total} frames have no ground-truth label", flush=True)
+        print(f"ground truth: {gt_path.name}, {len(segments)} segments, "
+              f"{len(set(gt_table[gt_table != ''].tolist()))} distinct sentences", flush=True)
 
     # The exact inference-time input pipeline from the config (repack is dataset-only, skipped).
     input_transforms = list(data_config.data_transforms.inputs)  # YamInputs, DeltaActions (no-op here)
@@ -185,7 +210,22 @@ def main(args: Args) -> None:
         if bi == 0:
             print(f"first batch done in {time.perf_counter() - t_start:.1f}s (incl. compile)", flush=True)
 
+    gts = [str(gt_table[t]) for t in eval_ts] if gt_table is not None else None
+
     print(f"\npred timeline: {_runs(preds)}")
+    if gts is not None:
+        print(f"gt   timeline: {_runs(gts)}")
+        exact = [p == g for p, g in zip(preds, gts, strict=True)]
+        print(f"\nexact-match subtask: {sum(exact)}/{len(exact)} evaluated frames "
+              f"({100.0 * sum(exact) / max(1, len(exact)):.1f}%)")
+        wrong = {}
+        for pred, gt, ok in zip(preds, gts, exact, strict=True):
+            if not ok:
+                wrong[(gt, pred)] = wrong.get((gt, pred), 0) + 1
+        if wrong:
+            print("most common confusions (gt -> pred, count):")
+            for (gt, pred), count in sorted(wrong.items(), key=lambda kv: -kv[1])[:8]:
+                print(f"  {count:5d}  {gt!r} -> {pred!r}")
 
     out_dir = pathlib.Path(__file__).parent / "eval_results"
     out_dir.mkdir(exist_ok=True)
@@ -201,9 +241,18 @@ def main(args: Args) -> None:
          "-c:v", "libx264", "-pix_fmt", "yuv420p", str(mp4)],
         stdin=subprocess.PIPE,
     )
-    for frame, pred in zip(top_frames, preds, strict=True):
+    for index, (frame, pred) in enumerate(zip(top_frames, preds, strict=True)):
         img = frame.repeat(UPSCALE, axis=0).repeat(UPSCALE, axis=1).copy()
-        cv2.putText(img, f"pred: {pred}", (12, 42), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (60, 235, 60), 2, cv2.LINE_AA)
+        if gts is None:
+            cv2.putText(img, f"pred: {pred}", (12, 42), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (60, 235, 60), 2, cv2.LINE_AA)
+        else:
+            gt = gts[index]
+            # green when the sentence is exactly right, red when not (frames are RGB here).
+            colour = (60, 235, 60) if pred == gt else (235, 70, 70)
+            cv2.putText(img, f"gt:   {gt}", (12, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.72, (245, 245, 245), 2, cv2.LINE_AA)
+            cv2.putText(img, f"pred: {pred}", (12, 74), cv2.FONT_HERSHEY_SIMPLEX, 0.72, colour, 2, cv2.LINE_AA)
+            cv2.putText(img, f"f{eval_ts[index]}", (12, size - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                        (200, 200, 200), 1, cv2.LINE_AA)
         ffmpeg.stdin.write(img.tobytes())
     ffmpeg.stdin.close()
     ffmpeg.wait()

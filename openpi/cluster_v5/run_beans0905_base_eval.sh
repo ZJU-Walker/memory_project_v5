@@ -15,6 +15,9 @@ STEP="${STEP:-30000}"
 EXP="${EXP:-pi05_beans0905_base_v7rtc_20260906_r1}"
 CONFIG=pi05_yam_beans0905_base
 GRES="${GRES:-1}"; GPU="${GPU:-0}"
+# stride 15 matches the cadence of the v5 memory videos; --gt-labels auto reads each demo's own
+# subtask_labels_v7tgt.json, verified frame-for-frame identical to the SHA-pinned sidecar.
+STRIDE="${STRIDE:-15}"; BATCH="${BATCH:-8}"
 root=/iris/u/kewalk/memory_project_v5
 raw=/iris/u/kewalk/memory_project/data/0905beans_all
 prompt='scoop the beans into the tray as many times as the green light blinked'
@@ -42,8 +45,9 @@ for demo in $DEMOS; do
   srun --jobid="$JOB" --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gpu:"$GRES" \
     env CUDA_VISIBLE_DEVICES="$GPU" .venv/bin/python scripts/eval_yam_subtask_raw.py \
       --config "$CONFIG" --ckpt-dir "$ck" --raw-demo "$raw/$demo" --prompt "$prompt" \
+      --gt-labels auto --stride "$STRIDE" --batch-size "$BATCH" \
       ${EXTRA_ARGS:-} > "$out/${demo}_run.log" 2>&1
   echo "$demo exit=$? $(date +%H:%M)" >> "$out/status.log"
-  grep -h "^pred timeline:" "$out/${demo}_run.log" >> "$out/timelines.txt" 2>/dev/null
+  grep -hE "^(pred|gt) +timeline:|^exact-match subtask:" "$out/${demo}_run.log" >> "$out/timelines.txt" 2>/dev/null
 done
 echo "base eval done $(date '+%m/%d %H:%M'); artifacts in scripts/eval_results/" >> "$out/status.log"
