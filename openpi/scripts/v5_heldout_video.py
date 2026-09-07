@@ -158,10 +158,13 @@ def main() -> None:
     parser.add_argument("--write-mode", choices=("self", "oracle"), default="self")
     parser.add_argument(
         "--intervention",
-        choices=("none", "flip_sides", "blank"),
+        choices=("none", "flip_sides", "blank", "freeze"),
         default="none",
         help="flip_sides: swap the side words (left<->right) in every sentence WRITTEN to the bank; "
-        "blank: never commit (the semantic bank stays empty). Decode targets/overlays are unchanged.",
+        "blank: never commit (the semantic bank stays empty). Decode targets/overlays are unchanged. "
+        "freeze: feed the FIRST step's observation (images, state; LED off, arm still) at every step, so the only "
+        "thing that advances is the memory — a counter that still reports blinks runs on a timing prior, not on "
+        "the LED (2026-09-06 20:30, real-robot report: ckpt 2750 counts blinks with the LED dark).",
     )
     parser.add_argument("--output-dir", type=pathlib.Path, required=True)
     parser.add_argument("--manifest", type=pathlib.Path, default=None,
@@ -226,6 +229,7 @@ def main() -> None:
     bank: list[str] = []
     bank_keys: list[np.ndarray] = []
     records: list[StepRecord] = []
+    frozen = None  # --intervention freeze: the first step's (observation, state_token_mask)
     step_index = 0
     window_start = 0
     while window_start < length:
@@ -269,6 +273,10 @@ def main() -> None:
                 tokenized_prompt_mask=jnp.asarray(seq_obs.tokenized_prompt_mask[:, t]),
             )
             state_token_mask = jnp.asarray(seq_obs.token_state_mask[:, t])
+            if args.intervention == "freeze":
+                if frozen is None:
+                    frozen = (observation, state_token_mask)
+                observation, state_token_mask = frozen
             # A6: the last decoded sentence (the delay's pending sentence) conditions the read queries.
             # The read queries condition on the previous sentence exactly as the training scan does:
             # delay 1 -> the pending (one-step-delayed) sentence; delay 0 -> the previous sentence
