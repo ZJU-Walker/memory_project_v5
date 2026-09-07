@@ -1229,6 +1229,17 @@ build no fallback.
   the baseline training was stopped by the user at 19:49 (step 15500; ckpts 5000/10000/15000). Its offline check:
   on all six dev episodes (which it trained on) it names the final blink count on frame 0 — episode recognition,
   not counting — so a 77-episode-split baseline is still needed for the counting claim.
+  20:40 — **Real-robot report on ckpt 2750 (user 20:27): it counts blinks with the LED dark.** Hypothesis 1, a timing
+  prior (the demos' cue is nearly fixed: first blink at frame 28 ± 8, ON 8 ± 1, period 25 ± 4 — a clock is available
+  through the bank's 1 %/step decay): TESTED and NOT supported. `v5_heldout_video.py --intervention freeze` (new:
+  the first frame — LED dark, arm still — fed at every step, only the memory advances; runner
+  `run_b9_freeze_probe_job.sh`) on keep_2750: ep25 (x=2) stays "wait for the light: no green blink yet" for all
+  153 steps, ep59 (x=3) for all 193 steps, one write each (`probe_freeze_v5_beansB9_20260906_r1_keep_2750/`). So
+  the phantom blinks come from something SEEN in the live scene (idle/other-colour LEDs, reflections, exposure
+  flicker, or an over-sensitive 2750). Next: the normal dev videos for keep_2750 (real frames) to see whether 2750
+  miscounts on training-like footage at all (`videos_v5_beansB9_20260906_r1_keep_2750/`). Serving: the user asked
+  for 2000 (2500 no longer exists): the 2750 server on port 8001 was replaced by ckpt 2000 (log
+  `server_v5_b9_2000_20260906.log`; bench 256 ms median while the eval shares the card).
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
