@@ -1218,6 +1218,17 @@ build no fallback.
   (UUID 3cc86c11) while GPU 1 (UUID b3d023a5) keeps the keep_1750 robot server; no sentinel for this job (it is
   per job and would kill the placeholder because of the server). Log `v5/tools/logs/placeholder_train_17286852.log`.
   Correction: job 17286852 is on iris-hgx-2 (10.79.12.149), the launcher's "hgx-1" was the launch shell's host.
+  20:21 — **B9 ckpt-2750 served for the robot (user 20:16).** GPU 0 of job 17286852 has held the user's own Qwen
+  training since 16:45 (our placeholder there was cancelled at 16:19, not by us); the data-prep session's non-memory
+  baseline server sits on GPU 1 port 8000 (17 GB), so the B9 server went up ALONGSIDE it on the same card, PORT 8001
+  (serve_v5_job_v2.sh from `.../v5_beansB9_20260906_r1/2750`, ~67 GB warm; log `server_v5_b9_2750_20260906.log`).
+  Rule: one robot client at a time (both servers share the SMs). Bench: median ~240 ms, model 229 ms. 2750 will
+  be deleted by the trainer when 2999 is saved (~21:25): params + assets copied to `keep_2750` (9.7 GB, no
+  train_state) for restarts. Earlier today: B9 keep_1750 was served 14:33–17:37 on port 8000 and stopped by the
+  data-prep session at the user's instruction to serve the baseline (ckpt 5000, later 10000) for a robot comparison;
+  the baseline training was stopped by the user at 19:49 (step 15500; ckpts 5000/10000/15000). Its offline check:
+  on all six dev episodes (which it trained on) it names the final blink count on frame 0 — episode recognition,
+  not counting — so a 77-episode-split baseline is still needed for the counting claim.
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
