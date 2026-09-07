@@ -1275,6 +1275,17 @@ build no fallback.
   handed to the user for their own training:** hgx-1 sentinel stopped (it would relaunch the placeholder) and the
   placeholder step killed; only the 1 GB keep-alive remains. No sentinel/placeholder on any job now: 17249058 and
   17267793 are the user's, 17286852 GPU 0 is the user's Qwen run, GPU 1 holds our server on request.
+  22:25 — **Zero-read skill ablation: the reads are NOT the cause.** With `--zero-read` the decoder said "done" and
+  the arm never moved (user 22:12), so a second flag `--force-subtask "<sentence>"` (teacher-forced causal
+  tokens, decode skipped; `serve_v5_job_v3.sh` passes the sentence quoted — SERVE_EXTRA word-splits it) was served
+  with "yellow go: pick up the scoop, scoop 2 times": 145 ms per request (the sentence decode is ~90 ms of the
+  usual 230). User 22:22: "zero read doesn't make it better, it is even worse" → the action expert depends on
+  the injected features it trained with; the skill gap vs the plain pi05 is the action expert's own training
+  (old-collection init + 2.3k updates × 8 correlated windows vs 15.5k × 16 random frames). Plan for A10/B10:
+  initialise from the baseline `pi05_beans0905_base_v7rtc_20260906_r1/15000` (0905-trained VLM + action expert,
+  same 20 sentences, RTC delay 15) and graft B9-2000's memory modules via `v4_graft_sources`; A10 300 oracle
+  updates, B10 ≤ 1000 own-writes, pick by dev rollouts. Server stopped 22:24; the user asked for a busy
+  placeholder on GPU 1 instead (`placeholder_train_trossen_pin.sh 17286852 2 <uuid b3d023a5>`, no sentinel).
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
