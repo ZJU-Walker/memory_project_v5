@@ -1286,6 +1286,22 @@ build no fallback.
   same 20 sentences, RTC delay 15) and graft B9-2000's memory modules via `v4_graft_sources`; A10 300 oracle
   updates, B10 ≤ 1000 own-writes, pick by dev rollouts. Server stopped 22:24; the user asked for a busy
   placeholder on GPU 1 instead (`placeholder_train_trossen_pin.sh 17286852 2 <uuid b3d023a5>`, no sentinel).
+  22:50 — **Related-work scan (user 22:40: has anyone written subtasks into a TTT memory?).** Nothing found that
+  combines all four of ours (the policy's OWN decoded subtask sentence as the memory content, written into a
+  Titans-style fast-weight bank inside the policy at test time, read injected mid-network, trained end-to-end with
+  own writes). Nearest: Notes-to-Self (arXiv 2602.21013, ICRA 2026) — the VLA writes language notes (plan,
+  progress, object positions) to a text scratchpad fed back as text; Explicit Language Memory for LH planning
+  (2608.04765) and LoHo-Manip (2604.21924) — a SEPARATE high-level VLM keeps a textual progress memory
+  ("done/remaining", past-tense milestones) and the low-level VLA executes; BATON (2608.16889) — an LLM agent
+  stores lessons as sentences over a frozen VLA; WeaveLA (2606.17463) — event-triggered LATENT memory of each
+  completed subtask routed into the action path of the next one, on π0.5, RoboMME repetition slice SwingXtimes
+  0 → 47.8 % (our counting problem, latent not language, not TTT); RoboTTT (2607.15275) and AURA (2606.02775) —
+  fast-weight / bounded recurrent memories with latent content (AURA writes only on action-relevant surprise, cf.
+  our changed-and-confident rule); μVLA (2606.12497) memory tokens + TBPTT; EventVLA (2606.20092) keyframe
+  evidence; ChainVLA (2608.02326) recurrent working state + sparse event memory; HyMeS (2608.09410) memory in
+  code. Benchmarks with counting-repeated-actions tasks: RoboMME (2603.04639, ICML 2026; 14 memory variants on
+  π0.5), RoboMemArena (2605.10921), MemoryBench; CoRL 2026 workshop "Memory for Robot Foundation Models". Abstract-level
+  reading only.
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
