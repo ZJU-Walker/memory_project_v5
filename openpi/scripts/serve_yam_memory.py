@@ -59,6 +59,11 @@ class Args:
     # Flow-matching denoising steps of the action expert (training-time default 10). 2026-09-06: the B9 server
     # measured 240 ms per request on an H200 (the RTC client tolerates ~200 ms); 6 steps trims ~40 ms.
     num_steps: int = 10
+    force_subtask: str = ""
+    """Diagnostic: skip the sentence decode and condition the action expert on this FIXED sentence at every step
+    (e.g. "yellow go: pick up the scoop, scoop 2 times" to exercise the pick-up skill; "scoop 1 of 2: dig and carry"
+    for the dig). Must be one of the trained sentences. 2026-09-06 22:12, user: with --zero-read alone the
+    decoder said "done" and the arm never moved."""
     zero_read: bool = False
     """Diagnostic: zero the semantic-bank READ content before the layer-8 injection (writes and the decoded
     sentence still happen, the count will not work). Isolates whether the memory reads degrade the low-level
@@ -183,6 +188,7 @@ class MemoryPolicy(_policy.Policy):
         max_decode_steps: int,
         num_steps: int = 10,
         zero_read: bool = False,
+        force_subtask: str = "",
         action_horizon: int,
         action_dim: int,
         raw_action_dim: int,
@@ -195,6 +201,16 @@ class MemoryPolicy(_policy.Policy):
         self._max_decode_steps = max_decode_steps
         self._num_steps = int(num_steps)
         self._zero_read = bool(zero_read)
+        self._forced = None
+        if force_subtask.strip():
+            ids = decode_tokenizer.encode(force_subtask.strip() + "\n")
+            length = int(model.causal_token_len)
+            if not 0 < len(ids) <= length:
+                raise ValueError(f"--force-subtask {force_subtask!r}: {len(ids)} tokens, limit {length}")
+            tokens = np.zeros((1, length), dtype=np.int32); tokens[0, : len(ids)] = ids
+            mask = np.zeros((1, length), dtype=bool); mask[0, : len(ids)] = True
+            self._forced = (jnp.asarray(tokens), jnp.asarray(mask))
+            logging.info("forced subtask at every step: %r (%d tokens)", force_subtask.strip(), len(ids))
         self._action_horizon = action_horizon
         self._action_dim = action_dim
         self._raw_action_dim = raw_action_dim
@@ -340,6 +356,8 @@ class MemoryPolicy(_policy.Policy):
                 max_decode_steps=self._max_decode_steps,
                 num_steps=self._num_steps,
                 zero_read=self._zero_read,
+                forced_subtask_tokens=None if self._forced is None else self._forced[0],
+                forced_subtask_mask=None if self._forced is None else self._forced[1],
                 action_prefix=action_prefix,
                 **v5_kwargs,
             )
@@ -349,7 +367,9 @@ class MemoryPolicy(_policy.Policy):
             mask = np.asarray(aux["token_mask"])[0]
             v5_info = None
             if self._v5 is not None:
-                v5_info = self._v5.step(tokens, mask, np.asarray(aux["token_prob"])[0])
+                # a forced sentence carries no per-token probabilities (teacher-forced): treat it as confident
+                probs = np.asarray(aux["token_prob"])[0] if "token_prob" in aux else np.ones(mask.shape, dtype=np.float32)
+                v5_info = self._v5.step(tokens, mask, probs)
                 writes = v5_info["writes"]
             else:
                 self._writes += 1
@@ -428,6 +448,7 @@ def create_policy(args: Args) -> MemoryPolicy:
         max_decode_steps=max_decode_steps,
         num_steps=args.num_steps,
         zero_read=args.zero_read,
+        force_subtask=args.force_subtask,
         action_horizon=train_config.model.action_horizon,
         action_dim=train_config.model.action_dim,
         raw_action_dim=int(np.asarray(norm_stats["actions"].mean).shape[-1]),
