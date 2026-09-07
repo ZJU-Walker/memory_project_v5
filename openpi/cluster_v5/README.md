@@ -1419,3 +1419,17 @@ build no fallback.
   DUTY 0.92) per the user's 09-05 standing request that 17267793 read 80-90% on both memory and utilisation.
   **The ckpt-10000 policy server on GPU 1 of 17286852 is untouched and still serving** at 10.79.12.149:8000 for the
   robot test; stopping the training does not affect it.
+
+* 2026-09-06 20:48 — **job 17267793 is the user's from now on: NO placeholder, NO sentinel, keep the 1 GB
+  `train_hs.py` keep-alive** ("Job 17267793 i will use so dont run placeholder but keep 1gb placeholder script alive
+  so i still have the gpu"). This supersedes their 09-05 "make memory and util all look 80-90%" request for that job.
+  The tuned placeholder I restored at 19:49 was stopped by the bean_memer session (srun clients 2002797/2002811 on
+  iris-hgx-1 — note the srun CLIENTS live on hgx-1 even when the step runs on hgx-2). Verified gone; keep-alive
+  pids 141714/141766 alive. **`cluster_v5/restore_placeholder_17267793.sh` is now dead; do not run it.**
+  Useful diagnostic from that session: an ssh into iris-hgx-2 is adopted into job 17286852's cgroup, so `nvidia-smi`
+  there **hides 17267793's GPU entirely**. Map processes to jobs with `SLURM_JOB_ID` from `/proc/<pid>/environ`
+  instead of trusting an ssh nvidia-smi view.
+  **Record correction:** that session reported the 16:06:35 `exit=137` as the user's run dying at step 3440 having
+  "saved nothing". That was run 1 (`pi05_beans0905_base_20260906_r1`, v6sub labels), killed deliberately BY THIS
+  SESSION to relaunch on the v7tgt labels + RTC the user asked for; saving nothing was the intent. Run 2
+  (`..._v7rtc_...`) then ran 16:06-19:49 to step 15500 and left checkpoints 5000/10000/15000. Nothing was lost.
