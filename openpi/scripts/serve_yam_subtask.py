@@ -37,7 +37,17 @@ class Args:
     dir: str
     config: str = "pi05_yam"
     port: int = 8000
+    # Greedy decode budget for the subtask sentence. 10 is a v3-era default and TRUNCATES longer
+    # label sets: the v7 target-carry beans sentences reach 13 PaliGemma tokens, so 10 emits
+    # "scoop 1 of 2: dig and" instead of "... dig and carry". Raise it to fit the vocabulary.
     max_decode_steps: int = 10
+    # Compile the fused decode+denoise path before accepting connections. Without it the robot's
+    # FIRST request pays ~40 s of XLA compilation while the arms wait.
+    warmup: bool = True
+    # Prompt used for the warmup request only. Must be non-empty for configs whose DataConfig has
+    # no default_prompt (TokenizeFASTSubtaskInputs raises "Prompt is required"); the real prompt
+    # always comes from the client's observation.
+    warmup_prompt: str = "warmup"
 
 
 class SubtaskPolicy(_policy.Policy):
@@ -116,8 +126,32 @@ def create_policy(args: Args) -> SubtaskPolicy:
     )
 
 
+def _warmup(policy: SubtaskPolicy, args: Args) -> None:
+    """One synthetic request, so XLA compiles here instead of on the robot's first step."""
+    train_config = _config.get_config(args.config)
+    dim = train_config.model.action_dim
+    rng = np.random.default_rng(0)
+    obs = {
+        "observation/state": rng.random(min(dim, 14)).astype(np.float32),
+        "observation/image": np.zeros((224, 224, 3), dtype=np.uint8),
+        "observation/left_wrist_image": np.zeros((224, 224, 3), dtype=np.uint8),
+        "observation/right_wrist_image": np.zeros((224, 224, 3), dtype=np.uint8),
+        "prompt": args.warmup_prompt,
+    }
+    started = time.monotonic()
+    result = policy.infer(obs)
+    logging.info(
+        "warmup: compiled + ran in %.1f s (subtask %r, actions %s)",
+        time.monotonic() - started,
+        result.get("subtask"),
+        np.asarray(result["actions"]).shape,
+    )
+
+
 def main(args: Args) -> None:
     policy = create_policy(args)
+    if args.warmup:
+        _warmup(policy, args)
 
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
