@@ -1463,3 +1463,14 @@ build no fallback.
   said "i think it is ok for training on all the demos"; `LeRobotDataset.__init__` already accepts
   `episodes: list[int] | None`. Not resurrected: it is the user's call, and 17267793 is now theirs, so there is no
   card for it.
+
+* 2026-09-06 22:02 — **baseline policy server stopped** (user, via the v5 fork session: "stop the 2000 ckpt serve
+  and also stop the baseline pi05 serve") to free GPU 1 of 17286852 for a memory-read ablation (B9 ckpt-2000 with
+  `--zero-read` on port 8001). Verified: no `serve_yam_subtask` process remains, port 8000 free, and nothing else of
+  ours touched — all three baseline checkpoints intact at 46 GB each, and 17267793's keep-alive still alive with no
+  placeholder. **End-of-day state of the non-memory baseline line:** config `pi05_yam_beans0905_base` (pi05 +
+  knowledge insulation, RTC 15, v7tgt sentences, no memory), experiment `pi05_beans0905_base_v7rtc_20260906_r1`,
+  checkpoints 5000/10000/15000, CE 1.92/1.63/1.42. Scoring via
+  `cluster_v5/run_beans0905_base_eval.sh` (six dev demos, GT overlay, MAXDEC 16); serving via
+  `cluster_v5/serve_base_job.sh`. Open item: the split-respecting pi05 baseline is designed but unbuilt, pending a
+  user decision and a free card; bean_memer's MemER run is the alternative floor.
