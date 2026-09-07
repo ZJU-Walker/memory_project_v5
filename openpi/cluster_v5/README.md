@@ -1433,3 +1433,21 @@ build no fallback.
   "saved nothing". That was run 1 (`pi05_beans0905_base_20260906_r1`, v6sub labels), killed deliberately BY THIS
   SESSION to relaunch on the v7tgt labels + RTC the user asked for; saving nothing was the intent. Run 2
   (`..._v7rtc_...`) then ran 16:06-19:49 to step 15500 and left checkpoints 5000/10000/15000. Nothing was lost.
+
+* 2026-09-06 20:55 — **the contamination is now confirmed at the code level, four independent ways.** The
+  bean_memer session read it statically; I traced it. `heldout_episodes` (data_loader.py:1737) and
+  `sampling_allowed` (1668/1673) are read ONLY inside `_sequence_sampling_info` (1705), whose single call site is
+  line 2310 under **`if shuffle and use_memory:`**. `use_memory` is False for a non-memory config, so **no episode
+  filtering of any kind reaches it** — not the manifest split, not `heldout_episodes`. Corroborated by
+  `create_torch_dataset(pi05_yam_beans0905_base)` returning **71089 frames = all 89 episodes**, and behaviourally by
+  the 6/6 frame-0 blink-count result. The same `use_memory` gate at :253 is why the sidecar was unreachable and the
+  config fell back to the 16 v6sub strings until the SubtaskFromV5Sidecar change (6b9761b).
+  **A valid floor now exists elsewhere:** bean_memer's MemER baseline exports only `split == "train"` from the v5
+  manifest, both manifest and sidecar sha-pinned, so it trains on the 77 and holds out the same 12 dev/final_test
+  episodes. Running on 17286852 GPU 0 (the `train_qwen.py` process under `memory_project_baselines/memer`),
+  ~step 350/5000, ckpt every 1000, ~55 h. **Do not touch that card.**
+  **A split-respecting pi05 baseline remains unbuilt and needs a decision.** The change is the gated
+  `DataConfig.train_episode_indices` + `episodes=` on `LeRobotDataset` designed at 15:40 and withdrawn when the user
+  said "i think it is ok for training on all the demos"; `LeRobotDataset.__init__` already accepts
+  `episodes: list[int] | None`. Not resurrected: it is the user's call, and 17267793 is now theirs, so there is no
+  card for it.
