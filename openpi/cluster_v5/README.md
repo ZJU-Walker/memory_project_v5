@@ -1320,3 +1320,28 @@ build no fallback.
   logs zero truncation lines. Startup confirms the swap:
   `v5 sentences (no memory): 89 episodes, 20 distinct sentences, 71089 frames from beans_v5_subtask_labels_0905_v7tgt.json`.
   Commit 6b9761b.
+
+* 2026-09-06 17:24 — **first offline check of the baseline, ckpt-5000, and a scoring gotcha that cost the first
+  number** (user 17:13 "for 3k can we do a quick offline check? like v5 we render the video, show gt subtask and
+  predicted subtask"). There is no 3k checkpoint (save_interval 5000), so this is ckpt-5000, 46 GB, on demo1027 =
+  ep25 = `0905beans_1/demo27`, one of the six B9 dev episodes. Stride 15 -> 52 decodes, 47.5 s total.
+  **GOTCHA: `MAX_DECODE_STEPS = 10` in `eval_yam_subtask_raw.py` silently truncates the v7tgt sentences**, which run
+  to 13 PaliGemma tokens. The first pass scored **18/52 (34.6%)**, but 28 of the 34 misses were truncations, not
+  wrong content: `'scoop 1 of 2: dig and'` for `'scoop 1 of 2: dig and carry'`, `'yellow go: pick up the scoop,
+  scoop'` for `'... scoop 2 times'`. Only ~5 were real errors. Re-ran with `--max-decode-steps 16` (via
+  `MAXDEC` on `cluster_v5/run_base_eval_ckpt5000.sh`). **Anyone scoring a v7tgt model with this script must raise
+  the decode limit; 10 is a v3-era default and is below the label vocabulary.**
+  **GPU placement, three corrections in one hour.** (1) My training holds ~132 of 143 GB on 17267793, so no eval can
+  share it. (2) The 73 GB on GPU 0 of 17286852 is NOT the trossen placeholder: that ended at 16:19
+  (`placeholder training ended rc=137`); since ~16:45 it is **the user's own `train_qwen.py`** (pid 2125569,
+  `memory_project_baselines/memer`) and must never be touched. Verified directly before switching. (3) Ran instead on
+  GPU 1 (`GPU-b3d023a5-...`), the keep_1750 server card, which the user cleared at 17:16 while not testing the robot,
+  with `XLA_PYTHON_CLIENT_PREALLOCATE=false` and `XLA_PYTHON_CLIENT_MEM_FRACTION=0.4` so the server keeps its ~67 GB.
+  Both fit in 143.7 GB. Command on disk as `cluster_v5/run_base_eval_ckpt5000.sh`, commit 0b227a3.
+  **Scoring tooling:** `eval_yam_subtask_raw.py --gt-labels` (commit ad91f3b) now stacks target over prediction on
+  every frame, green on exact match and red otherwise, and prints both timelines, the exact-match rate and a
+  confusion list. `--gt-labels auto` reads the demo's own `subtask_labels_v7tgt.json`; all six dev demos were checked
+  frame-for-frame against the SHA-pinned sidecar and agree completely.
+  **Output path caveat:** the script writes to `openpi/scripts/eval_results/` next to itself. Those files were
+  visible on iris-hgx-2 immediately but took ~1 min to appear on iris-ws-18 through NFS attribute caching; an
+  empty `ls` right after a run is not a failure.

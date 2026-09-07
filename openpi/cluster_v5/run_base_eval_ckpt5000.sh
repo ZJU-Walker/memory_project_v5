@@ -5,6 +5,10 @@
 # so the server keeps its ~67 GB. GPU 0 of that job is the user's own train_qwen.py: never touch it.
 set -u
 DEMO="${DEMO:-demo1027}"
+# The script default is 10 greedy steps, but the v7tgt sentences run to 13 PaliGemma tokens,
+# so 10 truncates every long one ("scoop 1 of 2: dig and" instead of "... dig and carry") and
+# scores it as a miss. 16 leaves headroom above the longest sentence.
+MAXDEC="${MAXDEC:-16}"
 STEP="${STEP:-5000}"
 EXP=pi05_beans0905_base_v7rtc_20260906_r1
 root=/iris/u/kewalk/memory_project_v5
@@ -20,5 +24,5 @@ srun --jobid=17286852 --overlap --nodes=1 --ntasks=1 --cpus-per-task=8 --gres=gp
     --ckpt-dir "$root/v5/checkpoints/pi05_yam_beans0905_base/$EXP/$STEP" \
     --raw-demo /iris/u/kewalk/memory_project/data/0905beans_all/"$DEMO" \
     --prompt 'scoop the beans into the tray as many times as the green light blinked' \
-    --gt-labels auto --stride 15 --batch-size 8 > "$out/$DEMO.log" 2>&1
+    --gt-labels auto --stride 15 --batch-size 8 --max-decode-steps "$MAXDEC" > "$out/$DEMO.log" 2>&1
 echo "$DEMO exit=$? $(date '+%m/%d %H:%M')" >> "$out/status.log"
