@@ -1374,3 +1374,16 @@ build no fallback.
   times'` — note the sentence is complete, which is the decode budget working. Robot command:
   `python examples/yam/client_subtask.py --host 10.79.12.149 --port 8000 --prompt 'scoop the beans into the tray as
   many times as the green light blinked'`. Commit 2739901.
+
+* 2026-09-06 19:49 — **baseline training STOPPED at the user's request** ("ok you can stop training for the baseline
+  pi05"). Killed the srun step of job 17267793 (pids 1562074/1562075 on iris-hgx-1), `exit=137` at 19:49, last
+  logged **Step 15500: ce 1.4277 / flow 0.0085**. Only the 500 steps since ckpt-15000 are lost.
+  **Three complete checkpoints kept** under
+  `v5/checkpoints/pi05_yam_beans0905_base/pi05_beans0905_base_v7rtc_20260906_r1/`: **5000, 10000, 15000**
+  (46 GB each, each with its own `assets/yam/bean_scoop_0905_v5`).
+  Loss trajectory over the run: CE 13.40 (step 0) -> 2.63 (1k) -> 1.92 (5k) -> 1.63 (10k) -> 1.42 (15k);
+  flow 0.0891 -> 0.0165 -> 0.0119 -> 0.0094 -> 0.0091. No NaN, no OOM, zero truncation lines throughout.
+  The card was re-held with the tuned placeholder (`cluster_v5/restore_placeholder_17267793.sh`, MEM_FRAC 0.85,
+  DUTY 0.92) per the user's 09-05 standing request that 17267793 read 80-90% on both memory and utilisation.
+  **The ckpt-10000 policy server on GPU 1 of 17286852 is untouched and still serving** at 10.79.12.149:8000 for the
+  robot test; stopping the training does not affect it.
