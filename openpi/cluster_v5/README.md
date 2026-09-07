@@ -1250,6 +1250,18 @@ build no fallback.
   dark-LED run to diagnose. Server switched 2000 → keep_2750 on port 8001 (user 20:42); eval stopped 20:49
   (user); GPU 1 now holds only the two servers. Job rule (user 20:48 via the bean_memer session): job 17267793 is
   the user's — no placeholder, no sentinel, keep-alive stays.
+  21:26 — **B9 continuation finished (exit 0; final ckpt `2999`; sentence CE 0.25 at 2900).** Kept on disk: keep_299,
+  1000, 2000, 2999 (trainer) + keep_1750, keep_2750 (copies). The hgx-1 sentinel restored the 4-GPU placeholder on
+  job 17249058 at 21:25:49. Real-robot verdict from the user (21:12): 2750 is worse than 2000 and miscounts blinks
+  ("starts at 2, then 3" with one blink). Assessment = over-training of the own-writes stage: training CE keeps
+  falling (0.51 → 0.25) while held-out behaviour degrades (ep64 79/80 at 1000 → 39/80 at 2750, counter running
+  backwards); 77 episodes × ~280 passes by step 2750; the near-fixed blink rhythm invites memorisation; own-writes
+  training compounds a wrong first note; the robot's 20 Hz ticks are a shift an overfit model handles worst.
+  Recommendation: early-stop B9 (candidates 1000–2000, choose by robot/dev runs); do not serve 2999. Next
+  training (A10/B10, RTC 15): stage B ≤ 1000 updates, timing jitter in the wait phase, more episodes with
+  randomised cue timing. Pending diagnostics: tick-rate probe (`run_b9_stride_probe_job.sh`, STRIDE=8) and the
+  robot recordings (`eval/memory_v5_led_closedloop_<stamp>.mp4` + `.led.json`) for the "starts at 2" runs.
+  Serving now: B9 ckpt 2000 on port 8001 (user 21:09), baseline on 8000.
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
