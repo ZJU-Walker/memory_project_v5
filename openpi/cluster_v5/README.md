@@ -1240,6 +1240,16 @@ build no fallback.
   miscounts on training-like footage at all (`videos_v5_beansB9_20260906_r1_keep_2750/`). Serving: the user asked
   for 2000 (2500 no longer exists): the 2750 server on port 8001 was replaced by ckpt 2000 (log
   `server_v5_b9_2000_20260906.log`; bench 256 ms median while the eval shares the card).
+  20:50 — **keep_2750 dev videos (real frames; 4 of 6 done before the user stopped the eval to free the card):**
+  ep25 (x=2) 77/77, ep29 (x=1) 79/79, ep59 (x=3) 81/82 — light phase exact in all four (blinks written at lag 0,
+  "yellow go" right); ep64 (0905beans_3/demo1, x=3) 39/80: light phase and scoops 1–2 right, then the counter
+  RUNS BACKWARDS — "scoop 3 of 3: dig" (steps 137–140) → "scoop 2 of 3: dig" (141–153) → "2 of 3: dump" → "yellow
+  go" (168–194), never "done" (ckpt 1000: 79/80 on the same episode). So 2750 has not regressed on the LED on
+  demo footage, but its scoop bookkeeping is worse than 1000 on one x=3 episode. The phantom blinks the user sees
+  on the robot are not reproduced offline (freeze probe clean, demo footage clean): they need robot footage of a
+  dark-LED run to diagnose. Server switched 2000 → keep_2750 on port 8001 (user 20:42); eval stopped 20:49
+  (user); GPU 1 now holds only the two servers. Job rule (user 20:48 via the bean_memer session): job 17267793 is
+  the user's — no placeholder, no sentinel, keep-alive stays.
 
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
