@@ -59,6 +59,10 @@ class Args:
     # Flow-matching denoising steps of the action expert (training-time default 10). 2026-09-06: the B9 server
     # measured 240 ms per request on an H200 (the RTC client tolerates ~200 ms); 6 steps trims ~40 ms.
     num_steps: int = 10
+    zero_read: bool = False
+    """Diagnostic: zero the semantic-bank READ content before the layer-8 injection (writes and the decoded
+    sentence still happen, the count will not work). Isolates whether the memory reads degrade the low-level
+    skills (2026-09-06 21:55, user: pick-up/dig look worse than the plain pi05 baseline)."""
     # Run synthetic requests before serving so the JIT compile (minutes) happens here, not on the
     # robot's first request; the memory is reset afterwards (ported from v4).
     warmup: bool = True
@@ -178,6 +182,7 @@ class MemoryPolicy(_policy.Policy):
         stop_token: int,
         max_decode_steps: int,
         num_steps: int = 10,
+        zero_read: bool = False,
         action_horizon: int,
         action_dim: int,
         raw_action_dim: int,
@@ -189,12 +194,13 @@ class MemoryPolicy(_policy.Policy):
         self._stop_token = stop_token
         self._max_decode_steps = max_decode_steps
         self._num_steps = int(num_steps)
+        self._zero_read = bool(zero_read)
         self._action_horizon = action_horizon
         self._action_dim = action_dim
         self._raw_action_dim = raw_action_dim
         self._simulated_delay = simulated_delay
         self._sample = nnx_utils.module_jit(
-            model.sample_with_memory, static_argnames=("stop_token", "max_decode_steps", "write_mode")
+            model.sample_with_memory, static_argnames=("stop_token", "max_decode_steps", "write_mode", "zero_read")
         )
         self._init_state = lambda: model.memory.init_state(1)
         self._lock = threading.Lock()
@@ -333,6 +339,7 @@ class MemoryPolicy(_policy.Policy):
                 stop_token=self._stop_token,
                 max_decode_steps=self._max_decode_steps,
                 num_steps=self._num_steps,
+                zero_read=self._zero_read,
                 action_prefix=action_prefix,
                 **v5_kwargs,
             )
@@ -420,6 +427,7 @@ def create_policy(args: Args) -> MemoryPolicy:
         stop_token=stop_token,
         max_decode_steps=max_decode_steps,
         num_steps=args.num_steps,
+        zero_read=args.zero_read,
         action_horizon=train_config.model.action_horizon,
         action_dim=train_config.model.action_dim,
         raw_action_dim=int(np.asarray(norm_stats["actions"].mean).shape[-1]),
