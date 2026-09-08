@@ -1317,6 +1317,15 @@ build no fallback.
   train_hs.py. The GPU-0 MemER training is the user's own run (checkpoints every 1000 steps) — left for the
   bean_memer session / the user's explicit "kill it".
 
+  **2026-09-08** 12:15 — **User 12:11: stop the training on the 4×H100 job 17315830, nobody trains there, keep-alive
+  only.** Stopped by PID: the pi07_yam_beans_history run `beans_5s_4gpu_v0` (openpi-beta; bash -lc wrapper, uv run,
+  train.py + 16 data workers + wandb; started 09-07 21:34, checkpoints 5000–18000 on disk) and its
+  `logs/chain_eval_20000.sh` waiter. All four H100s at 1 GB; keep-alive (3743780/3743790/3743806) untouched.
+  Relayed to v5task2 (delivered) and bean_memer (delivery unconfirmed); memory-project-91 not reachable. Gotcha
+  hit again: a `pgrep -f "spawn_main|wandb-core|..."` inside the ssh command matched the ssh shell itself (its
+  cmdline carries the pattern text) and the shell was adopted into job 17315830, so the `kill -9` loop killed my
+  own shell — the earlier PID kills had already landed; verified in a second call. Kill by explicit PIDs only.
+
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
   and fast action token"). Config **`pi05_yam_beans0905_base`** (added next to `pi05_yam_0816`, which is the same
