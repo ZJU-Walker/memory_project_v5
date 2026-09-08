@@ -220,6 +220,14 @@ build no fallback.
 
 ## 8. Status log
 
+* 2026-09-08 13:36 — **tuned placeholder on job 17329416** (user 13:34: "run sth on the job 17329416 to occupy the
+  gpu make util higher"). 1xH200 on iris-hgx-2, `GPU-dcaeae50-e4f3-ee9f-02ab-936c7c2b36ba`, which held only its 1 GB
+  `train_hs.py` keep-alive. Launched `cluster_v5/start_placeholder_17329416.sh` -> `gpu_placeholder_tuned.sh`
+  (MEM_FRAC 0.85, DUTY 0.92, HOLD_GB 32). Measured over five samples: **123303 / 143771 MiB (86%) and 81-88%
+  utilisation.** Marker `gpu_placeholder_marker_17329416`, log
+  `v5/tools/logs/placeholder_tuned_17329416.log`; kill with the usual pattern (note the srun CLIENTS live on the
+  launch host). **Not to be confused with job 17267793, which is the user's and must never get a placeholder.**
+
 * 2026-09-02 12:26 — H200 placeholder up (132.7 GB, 100 %).
 * 2026-09-02 13:06 — design frozen (D1–D9); scaffold committed (`9c37201`); code mapping started.
 * 2026-09-02 13:45 — implementation landed (§3): model, data, configs, launchers, tests; sidecar built; §2/§4 wording corrected (visual commits at evidence steps; only the inspect sentence is detailed, the waiting label already carries the side).
