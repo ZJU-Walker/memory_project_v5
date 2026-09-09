@@ -1334,6 +1334,13 @@ build no fallback.
   cmdline carries the pattern text) and the shell was adopted into job 17315830, so the `kill -9` loop killed my
   own shell — the earlier PID kills had already landed; verified in a second call. Kill by explicit PIDs only.
 
+  **2026-09-09** 01:15 — **User 01:11/01:13: job 17286852 (2×H200) is hands-off for every session — no placeholder,
+  kill nothing, only the 1 GB keep-alive; tests go to job 17329416 (1×H200, hgx-2, started 09-08 13:23, ~2.5 days).**
+  Relayed to all seven local sessions (v5task2, bean_memer, pi07shortterm_beans, pi07longmemory, pi07longterm,
+  task_1_new, ke-eb). Verified 17286852: both GPUs 1 GB, only train_hs.py (pid 956028). Job 17329416 currently runs
+  three `yam.serve` (memvla env) policy servers on ports 8000/8001/8002 belonging to other sessions — any B9 server
+  there must take a free port (8003+). Kerberos ticket renewed 01:13 (expired 09-08 23:13; ssh was refused).
+
 * 2026-09-06 15:15 — **NON-MEMORY pi05 BASELINE on the 0905 beans set** (user 15:00: "train a baseline ... only pi05
   no memory at all? but for pi05 we still need to do knowledge insulation and use our subtask to supervise the vlm
   and fast action token"). Config **`pi05_yam_beans0905_base`** (added next to `pi05_yam_0816`, which is the same
@@ -1603,3 +1610,9 @@ build no fallback.
   LEARNED query projection (the W_q every fast-weight LM trains; supervision here is per decoded token, dense) or
   the question posed in the note's own frame (restate the note: decision sentence `banana in bin 2`), which is
   parameter-free and measured 1.00. Design decision pending (user).
+* 2026-09-08 19:58 — **v6 line opened** (pointer only; nothing else in this worktree is touched by v6 work): branch `v6`,
+  worktree `/iris/u/kewalk/memory_project_v6`, from tag `v5-task1-data-20260908` (= 9febb98). Token-level causal
+  contextual keys + trained pointer read for the sentence bank; design/status in `memory_project_v6/openpi/cluster_v6/README.md`.
+  Known v5 issue found there: `cluster_v5/task1/task1_episode_manifest_v1.json` has the split RULE string as
+  `split_seed` (the loader does `int(split_seed)`); rebuild with `task1_build_v5_manifest_sidecar.py --split-seed 908`
+  before any v5 task1 training.
