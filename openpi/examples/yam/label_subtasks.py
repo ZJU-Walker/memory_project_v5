@@ -440,10 +440,20 @@ class LabelerState:
     beans_mode: bool = False
     label_file: str = LABEL_FILE
     excluded_demos: frozenset[str] = frozenset()
+    vocab_from_labels: bool = False  # --vocab-from-labels: review mode, a demo offers its own file's sentences
 
     def subtasks_for(self, side: str) -> list[str]:
         """Labels offered for a demo; in memory mode the sided phases follow ``side``."""
         return memory_subtasks(side) if self.memory_mode else self.subtasks
+
+    @staticmethod
+    def tasks_in_order(segments: list[dict]) -> list[str]:
+        """Distinct task strings of a label file in order of first appearance (review-mode hotkeys 1-9)."""
+        seen: list[str] = []
+        for seg in segments:
+            if seg["task"] not in seen:
+                seen.append(seg["task"])
+        return seen
 
     @staticmethod
     def side_of_segments(segments: list[dict]) -> str | None:
@@ -486,6 +496,8 @@ class LabelerState:
         if self.beans_mode:
             x = beans_x_of(demo, segments)
             subtasks, boundaries, side = beans_subtasks(x), beans_boundaries(x), f"x={x}"
+        elif self.vocab_from_labels:
+            subtasks, boundaries = self.tasks_in_order(segments)[:9], []
         else:
             subtasks = self.subtasks_for(side)
             boundaries = [p["boundary"] for p in MEMORY_PHASES] if self.memory_mode else []
@@ -567,6 +579,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             vocabulary = all_beans_subtasks()
         elif self.state.memory_mode:
             vocabulary = all_memory_subtasks()
+        elif self.state.vocab_from_labels:
+            # review mode: the file's own sentences are the vocabulary (boundaries move, sentences do not)
+            vocabulary = self.state.tasks_in_order(load_segments(demo, self.state.label_file))
         else:
             vocabulary = self.state.subtasks
         result = save_segments(
@@ -1039,6 +1054,12 @@ def main() -> int:
         default=[],
         help="demo directory names to hide from this review session",
     )
+    parser.add_argument(
+        "--vocab-from-labels",
+        action="store_true",
+        help="review mode for automatically generated labels: each demo offers the sentences already in its "
+             "--label-file (order of appearance, hotkeys 1-9); only boundaries are edited (task1, 2026-09-08)",
+    )
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--open-browser", action="store_true")
     args = parser.parse_args()
@@ -1068,6 +1089,7 @@ def main() -> int:
         beans_mode=args.beans_task,
         label_file=args.label_file,
         excluded_demos=excluded_demos,
+        vocab_from_labels=args.vocab_from_labels,
     )
     labeled = sum(1 for d in demos if (d / args.label_file).exists())
     print(f"{len(demos)} demos in {args.data_dir} ({labeled} already have {args.label_file})")

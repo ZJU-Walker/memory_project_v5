@@ -1545,3 +1545,61 @@ build no fallback.
   `cluster_v5/run_beans0905_base_eval.sh` (six dev demos, GT overlay, MAXDEC 16); serving via
   `cluster_v5/serve_base_job.sh`. Open item: the split-respecting pi05 baseline is designed but unbuilt, pending a
   user decision and a free card; bean_memer's MemER run is the alternative floor.
+
+* 2026-09-08 18:00 — **New task "task1" (find-the-object bins) inspected, labelled and converted (session task_1_new).**
+  Raw `data/0908_task1_new` (absolute: `/iris/u/kewalk/memory_project/data/0908_task1_new`): a human puts four objects
+  (user's names: **banana, spoon, box, tape**) into three lidded bins left→right, one bin gets two, each lid closed right
+  after its bin; ~3 s later the robot opens the asked bin (left arm = bin 1, right arm = bins 2/3). 57 recorded, **52
+  kept**: demo57 (user: not a good demo) and demo34/36/47/50 (bin-1 content never/barely visible from the top camera —
+  head) moved to `data/0908_task1_new_excluded/` on the user's instruction. Assignment table audited by eye for every
+  demo: `data/0908_task1_inspection/0908_task1_inspection_v1.{json,csv}` (+ montages). User decisions: prompt visible
+  from frame 0 (`find the {object}`), one-word names, no more collection, small held-out set (real-robot rollouts are
+  the real test).
+  **Labels** (`scripts/task1_build_subtask_labels.py`, per raw demo): `watching: no object placed yet` → `{obj} in
+  bin {k}` at each placement (first frame the object is inside its bin) → `all bins closed, {target} is in bin {k}`
+  (target-carry, cf. "scoop k of x") from the third lid → `open bin {k}` from the first joint motion. Base file
+  `subtask_labels_task1_base.json` is prompt independent (`all bins closed`); per revealed target
+  `subtask_labels_task1_{target}.json`. Detector: lid state (top camera, wrist cameras as witness when the head
+  blocks the top), placements as content change vs the resting content with pairwise object identification; 41/52
+  automatic, 17 placements in 11 demos hand-read (`data/0908_task1_inspection/task1_label_overrides.json`). 28
+  sentences. Review view: `label_subtasks.py --vocab-from-labels` (new flag) on iris-ws-18:8767.
+  **Episode view** (`scripts/task1_build_episode_manifest.py`): `data/0908_task1_episodes/<demo>_<target>/` = hard
+  links of the raw streams + that target's labels as `subtask_labels.json` → a two-object demo is two converter
+  episodes (identical video, different prompt/closing sentence). Converter manifest
+  `data/0908_task1_episode_manifest_v1.json` (copy in `cluster_v5/task1/…converter.json`): **71 episodes / 46,553
+  frames**, split per raw demo (both prompts together), class = opened bin: development = demo10 (bin 2), demo19
+  (bin 3), demo54 (bin 1) = 6 episodes, no final_test (user 17:38), train 49 demos = 65 episodes.
+  **LeRobot** `v5/data/lerobot/yam/task1_find_0908_v5` (37 GB, 28 tasks, `meta/episode_prompts.json` 4 prompts,
+  strict provenance), converted on iris-hgx-1 in 20 min (`cluster_v5/task1/convert_task1_hgx1.sh`).
+  **v5 artefacts** (`scripts/task1_build_v5_manifest_sidecar.py`): `cluster_v5/task1/task1_episode_manifest_v1.json`
+  sha256 `19e4367bdc3ac0a84e76d82df73ba7bdc86cadd3cee1080d505b8ee1b0c8e81d`, sidecar
+  `task1_v5_subtask_labels_v1.json` sha256 `1fb0629b96876ea2c1e4a8af0094abdcfee71521627b774ed47300c56d91a7c5`
+  (self-hash and manifest pin verified with the loader's canonicalisation). No training config, no norm stats yet.
+  **Before training:** with one-word names the A8 slot-key rule (rows differing in ≤ `memory_v5_slot_max_diff`=2
+  tokens share a slot) merges all twelve `{obj} in bin {k}` sentences into ONE slot, so each placement would
+  overwrite the previous object's bin — the bank needs a per-object slot grouping (or max_diff checked against the
+  tokenizer) for this task. Also note 8 placement segments are < 10 frames (two objects put in with one hand
+  motion; demo52 box = 1 frame): at stride 5 one of the two notes may never be sampled in those episodes, the
+  closing target-carry sentence still supplies the target's bin.
+
+* 2026-09-08 19:05 — **Token-level contextual keys: bank-level verdict (user: "make sure point 1 makes it general and
+  solves the issue").** `scripts/v5_token_key_probe.py` (launcher `cluster_v5/task1/run_token_key_probe.sh`, report
+  `v5/diagnostics/token_key_probe_B9_2000/`): with the B9-2000 encoder, every note is written token by token into a
+  plain delta-rule bank — key = the CAUSAL layer-8 state preceding the token, standardized over the vocabulary's
+  token states; value = the token's input embedding (optionally standardized, `_vstd`) — and read back at the
+  decision points of all three tasks (71 task1, 89 beans, 70 old-bin episodes), no decoder, no training.
+  **A8 rule on task1, exact:** `_v5_slot_templates(max_diff=2)` gives 4 slots for 28 sentences — all twelve `{obj} in
+  bin {k}` in ONE slot, all twelve closing sentences in one — i.e. each placement would overwrite the previous.
+  **Storage (same-context reads) = solved and general:** task1 bin of each object after the 4 placements 1.00 (n=284;
+  pooled pre-A8 keys 0.47), beans blink count before go 1.00 (pooled 0.38), tray k / x 1.00 / 1.00, old-bin banana
+  side after close-and-reset 1.00 (pooled 0.51); identical at the real bank size (random 512-d key / 2048-d value
+  projection) and under the real decay 0.01. Causal keys are query-consistent (1.000 across digits; bidirectional
+  0.883 and 0.89 under decay); raw (unstandardized) states are chance (0.37 / 0.30 / 0.51). Value standardization
+  lifts the margins 10x (task1 0.012 → 0.118, beans 0.019 → 0.232, old bin 0.066 → 0.71) and removes the late
+  interference (task1 episode-end 0.81 → 1.00, beans 0.70 → 1.00).
+  **Read from a DIFFERENT context is NOT free:** asking from the closing sentence's context ("all bins closed,
+  banana is in bin ?") reads the stored digit at 0.23-0.27 (chance 0.33); beans go-context 0.70; old bin 1.00 but
+  margin 0.003. The bank stores under the writing context; a question posed in another frame needs either a
+  LEARNED query projection (the W_q every fast-weight LM trains; supervision here is per decoded token, dense) or
+  the question posed in the note's own frame (restate the note: decision sentence `banana in bin 2`), which is
+  parameter-free and measured 1.00. Design decision pending (user).

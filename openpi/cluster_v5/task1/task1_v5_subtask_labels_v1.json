@@ -1,0 +1,3093 @@
+{
+  "content_sha256": "546c9664bb5cb4d2ca8844f53f881ea18152d286b2ba651cc3111af14776d244",
+  "dataset_version": "0908_task1",
+  "episodes": {
+    "0908_task1/demo10_spoon": {
+      "group": "demo10",
+      "num_frames": 716,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 152,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 182,
+          "sentence": "tape in bin 2",
+          "start": 153
+        },
+        {
+          "end": 261,
+          "sentence": "spoon in bin 2",
+          "start": 183
+        },
+        {
+          "end": 308,
+          "sentence": "banana in bin 3",
+          "start": 262
+        },
+        {
+          "end": 427,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 309
+        },
+        {
+          "end": 715,
+          "sentence": "open bin 2",
+          "start": 428
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo10_tape": {
+      "group": "demo10",
+      "num_frames": 716,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 152,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 182,
+          "sentence": "tape in bin 2",
+          "start": 153
+        },
+        {
+          "end": 261,
+          "sentence": "spoon in bin 2",
+          "start": 183
+        },
+        {
+          "end": 308,
+          "sentence": "banana in bin 3",
+          "start": 262
+        },
+        {
+          "end": 427,
+          "sentence": "all bins closed, tape is in bin 2",
+          "start": 309
+        },
+        {
+          "end": 715,
+          "sentence": "open bin 2",
+          "start": 428
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo11_spoon": {
+      "group": "demo11",
+      "num_frames": 725,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 91,
+          "sentence": "tape in bin 1",
+          "start": 44
+        },
+        {
+          "end": 175,
+          "sentence": "banana in bin 1",
+          "start": 92
+        },
+        {
+          "end": 258,
+          "sentence": "box in bin 2",
+          "start": 176
+        },
+        {
+          "end": 308,
+          "sentence": "spoon in bin 3",
+          "start": 259
+        },
+        {
+          "end": 425,
+          "sentence": "all bins closed, spoon is in bin 3",
+          "start": 309
+        },
+        {
+          "end": 724,
+          "sentence": "open bin 3",
+          "start": 426
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo12_banana": {
+      "group": "demo12",
+      "num_frames": 793,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 65,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 199,
+          "sentence": "tape in bin 1",
+          "start": 66
+        },
+        {
+          "end": 288,
+          "sentence": "banana in bin 2",
+          "start": 200
+        },
+        {
+          "end": 321,
+          "sentence": "spoon in bin 3",
+          "start": 289
+        },
+        {
+          "end": 378,
+          "sentence": "box in bin 3",
+          "start": 322
+        },
+        {
+          "end": 502,
+          "sentence": "all bins closed, banana is in bin 2",
+          "start": 379
+        },
+        {
+          "end": 792,
+          "sentence": "open bin 2",
+          "start": 503
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo13_tape": {
+      "group": "demo13",
+      "num_frames": 744,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 38,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 133,
+          "sentence": "tape in bin 1",
+          "start": 39
+        },
+        {
+          "end": 219,
+          "sentence": "spoon in bin 2",
+          "start": 134
+        },
+        {
+          "end": 270,
+          "sentence": "banana in bin 3",
+          "start": 220
+        },
+        {
+          "end": 325,
+          "sentence": "box in bin 3",
+          "start": 271
+        },
+        {
+          "end": 439,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 326
+        },
+        {
+          "end": 743,
+          "sentence": "open bin 1",
+          "start": 440
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo14_banana": {
+      "group": "demo14",
+      "num_frames": 685,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 65,
+          "sentence": "tape in bin 1",
+          "start": 33
+        },
+        {
+          "end": 165,
+          "sentence": "banana in bin 1",
+          "start": 66
+        },
+        {
+          "end": 239,
+          "sentence": "spoon in bin 2",
+          "start": 166
+        },
+        {
+          "end": 289,
+          "sentence": "box in bin 3",
+          "start": 240
+        },
+        {
+          "end": 414,
+          "sentence": "all bins closed, banana is in bin 1",
+          "start": 290
+        },
+        {
+          "end": 684,
+          "sentence": "open bin 1",
+          "start": 415
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo14_tape": {
+      "group": "demo14",
+      "num_frames": 685,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 65,
+          "sentence": "tape in bin 1",
+          "start": 33
+        },
+        {
+          "end": 165,
+          "sentence": "banana in bin 1",
+          "start": 66
+        },
+        {
+          "end": 239,
+          "sentence": "spoon in bin 2",
+          "start": 166
+        },
+        {
+          "end": 289,
+          "sentence": "box in bin 3",
+          "start": 240
+        },
+        {
+          "end": 414,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 290
+        },
+        {
+          "end": 684,
+          "sentence": "open bin 1",
+          "start": 415
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo15_banana": {
+      "group": "demo15",
+      "num_frames": 675,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 34,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 131,
+          "sentence": "tape in bin 1",
+          "start": 35
+        },
+        {
+          "end": 170,
+          "sentence": "spoon in bin 2",
+          "start": 132
+        },
+        {
+          "end": 243,
+          "sentence": "banana in bin 2",
+          "start": 171
+        },
+        {
+          "end": 290,
+          "sentence": "box in bin 3",
+          "start": 244
+        },
+        {
+          "end": 402,
+          "sentence": "all bins closed, banana is in bin 2",
+          "start": 291
+        },
+        {
+          "end": 674,
+          "sentence": "open bin 2",
+          "start": 403
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo15_spoon": {
+      "group": "demo15",
+      "num_frames": 675,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 34,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 131,
+          "sentence": "tape in bin 1",
+          "start": 35
+        },
+        {
+          "end": 170,
+          "sentence": "spoon in bin 2",
+          "start": 132
+        },
+        {
+          "end": 243,
+          "sentence": "banana in bin 2",
+          "start": 171
+        },
+        {
+          "end": 290,
+          "sentence": "box in bin 3",
+          "start": 244
+        },
+        {
+          "end": 402,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 291
+        },
+        {
+          "end": 674,
+          "sentence": "open bin 2",
+          "start": 403
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo16_banana": {
+      "group": "demo16",
+      "num_frames": 704,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 52,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 173,
+          "sentence": "tape in bin 1",
+          "start": 53
+        },
+        {
+          "end": 275,
+          "sentence": "spoon in bin 2",
+          "start": 174
+        },
+        {
+          "end": 311,
+          "sentence": "box in bin 3",
+          "start": 276
+        },
+        {
+          "end": 350,
+          "sentence": "banana in bin 3",
+          "start": 312
+        },
+        {
+          "end": 474,
+          "sentence": "all bins closed, banana is in bin 3",
+          "start": 351
+        },
+        {
+          "end": 703,
+          "sentence": "open bin 3",
+          "start": 475
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo16_box": {
+      "group": "demo16",
+      "num_frames": 704,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 52,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 173,
+          "sentence": "tape in bin 1",
+          "start": 53
+        },
+        {
+          "end": 275,
+          "sentence": "spoon in bin 2",
+          "start": 174
+        },
+        {
+          "end": 311,
+          "sentence": "box in bin 3",
+          "start": 276
+        },
+        {
+          "end": 350,
+          "sentence": "banana in bin 3",
+          "start": 312
+        },
+        {
+          "end": 474,
+          "sentence": "all bins closed, box is in bin 3",
+          "start": 351
+        },
+        {
+          "end": 703,
+          "sentence": "open bin 3",
+          "start": 475
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo17_spoon": {
+      "group": "demo17",
+      "num_frames": 677,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 87,
+          "sentence": "spoon in bin 1",
+          "start": 38
+        },
+        {
+          "end": 161,
+          "sentence": "tape in bin 1",
+          "start": 88
+        },
+        {
+          "end": 243,
+          "sentence": "box in bin 2",
+          "start": 162
+        },
+        {
+          "end": 278,
+          "sentence": "banana in bin 3",
+          "start": 244
+        },
+        {
+          "end": 386,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 279
+        },
+        {
+          "end": 676,
+          "sentence": "open bin 1",
+          "start": 387
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo17_tape": {
+      "group": "demo17",
+      "num_frames": 677,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 87,
+          "sentence": "spoon in bin 1",
+          "start": 38
+        },
+        {
+          "end": 161,
+          "sentence": "tape in bin 1",
+          "start": 88
+        },
+        {
+          "end": 243,
+          "sentence": "box in bin 2",
+          "start": 162
+        },
+        {
+          "end": 278,
+          "sentence": "banana in bin 3",
+          "start": 244
+        },
+        {
+          "end": 386,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 279
+        },
+        {
+          "end": 676,
+          "sentence": "open bin 1",
+          "start": 387
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo18_spoon": {
+      "group": "demo18",
+      "num_frames": 730,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 92,
+          "sentence": "tape in bin 1",
+          "start": 33
+        },
+        {
+          "end": 196,
+          "sentence": "banana in bin 1",
+          "start": 93
+        },
+        {
+          "end": 276,
+          "sentence": "spoon in bin 2",
+          "start": 197
+        },
+        {
+          "end": 311,
+          "sentence": "box in bin 3",
+          "start": 277
+        },
+        {
+          "end": 464,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 312
+        },
+        {
+          "end": 729,
+          "sentence": "open bin 2",
+          "start": 465
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo19_banana": {
+      "group": "demo19",
+      "num_frames": 698,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 48,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 156,
+          "sentence": "tape in bin 1",
+          "start": 49
+        },
+        {
+          "end": 243,
+          "sentence": "spoon in bin 2",
+          "start": 157
+        },
+        {
+          "end": 274,
+          "sentence": "banana in bin 3",
+          "start": 244
+        },
+        {
+          "end": 317,
+          "sentence": "box in bin 3",
+          "start": 275
+        },
+        {
+          "end": 418,
+          "sentence": "all bins closed, banana is in bin 3",
+          "start": 318
+        },
+        {
+          "end": 697,
+          "sentence": "open bin 3",
+          "start": 419
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo19_box": {
+      "group": "demo19",
+      "num_frames": 698,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 48,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 156,
+          "sentence": "tape in bin 1",
+          "start": 49
+        },
+        {
+          "end": 243,
+          "sentence": "spoon in bin 2",
+          "start": 157
+        },
+        {
+          "end": 274,
+          "sentence": "banana in bin 3",
+          "start": 244
+        },
+        {
+          "end": 317,
+          "sentence": "box in bin 3",
+          "start": 275
+        },
+        {
+          "end": 418,
+          "sentence": "all bins closed, box is in bin 3",
+          "start": 318
+        },
+        {
+          "end": 697,
+          "sentence": "open bin 3",
+          "start": 419
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo1_banana": {
+      "group": "demo1",
+      "num_frames": 722,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 51,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 120,
+          "sentence": "box in bin 1",
+          "start": 52
+        },
+        {
+          "end": 144,
+          "sentence": "tape in bin 2",
+          "start": 121
+        },
+        {
+          "end": 260,
+          "sentence": "spoon in bin 2",
+          "start": 145
+        },
+        {
+          "end": 297,
+          "sentence": "banana in bin 3",
+          "start": 261
+        },
+        {
+          "end": 410,
+          "sentence": "all bins closed, banana is in bin 3",
+          "start": 298
+        },
+        {
+          "end": 721,
+          "sentence": "open bin 3",
+          "start": 411
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo20_banana": {
+      "group": "demo20",
+      "num_frames": 652,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 87,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 158,
+          "sentence": "banana in bin 1",
+          "start": 88
+        },
+        {
+          "end": 194,
+          "sentence": "tape in bin 2",
+          "start": 159
+        },
+        {
+          "end": 279,
+          "sentence": "spoon in bin 2",
+          "start": 195
+        },
+        {
+          "end": 311,
+          "sentence": "box in bin 3",
+          "start": 280
+        },
+        {
+          "end": 405,
+          "sentence": "all bins closed, banana is in bin 1",
+          "start": 312
+        },
+        {
+          "end": 651,
+          "sentence": "open bin 1",
+          "start": 406
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo21_tape": {
+      "group": "demo21",
+      "num_frames": 634,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 39,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 45,
+          "sentence": "spoon in bin 1",
+          "start": 40
+        },
+        {
+          "end": 163,
+          "sentence": "banana in bin 1",
+          "start": 46
+        },
+        {
+          "end": 254,
+          "sentence": "box in bin 2",
+          "start": 164
+        },
+        {
+          "end": 293,
+          "sentence": "tape in bin 3",
+          "start": 255
+        },
+        {
+          "end": 390,
+          "sentence": "all bins closed, tape is in bin 3",
+          "start": 294
+        },
+        {
+          "end": 633,
+          "sentence": "open bin 3",
+          "start": 391
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo22_banana": {
+      "group": "demo22",
+      "num_frames": 653,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 39,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 132,
+          "sentence": "tape in bin 1",
+          "start": 40
+        },
+        {
+          "end": 169,
+          "sentence": "spoon in bin 2",
+          "start": 133
+        },
+        {
+          "end": 247,
+          "sentence": "banana in bin 2",
+          "start": 170
+        },
+        {
+          "end": 309,
+          "sentence": "box in bin 3",
+          "start": 248
+        },
+        {
+          "end": 398,
+          "sentence": "all bins closed, banana is in bin 2",
+          "start": 310
+        },
+        {
+          "end": 652,
+          "sentence": "open bin 2",
+          "start": 399
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo22_spoon": {
+      "group": "demo22",
+      "num_frames": 653,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 39,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 132,
+          "sentence": "tape in bin 1",
+          "start": 40
+        },
+        {
+          "end": 169,
+          "sentence": "spoon in bin 2",
+          "start": 133
+        },
+        {
+          "end": 247,
+          "sentence": "banana in bin 2",
+          "start": 170
+        },
+        {
+          "end": 309,
+          "sentence": "box in bin 3",
+          "start": 248
+        },
+        {
+          "end": 398,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 310
+        },
+        {
+          "end": 652,
+          "sentence": "open bin 2",
+          "start": 399
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo23_box": {
+      "group": "demo23",
+      "num_frames": 617,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 31,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 116,
+          "sentence": "box in bin 1",
+          "start": 32
+        },
+        {
+          "end": 192,
+          "sentence": "tape in bin 2",
+          "start": 117
+        },
+        {
+          "end": 231,
+          "sentence": "spoon in bin 3",
+          "start": 193
+        },
+        {
+          "end": 275,
+          "sentence": "banana in bin 3",
+          "start": 232
+        },
+        {
+          "end": 370,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 276
+        },
+        {
+          "end": 616,
+          "sentence": "open bin 1",
+          "start": 371
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo24_box": {
+      "group": "demo24",
+      "num_frames": 658,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 36,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 40,
+          "sentence": "spoon in bin 1",
+          "start": 37
+        },
+        {
+          "end": 197,
+          "sentence": "box in bin 1",
+          "start": 41
+        },
+        {
+          "end": 267,
+          "sentence": "tape in bin 2",
+          "start": 198
+        },
+        {
+          "end": 310,
+          "sentence": "banana in bin 3",
+          "start": 268
+        },
+        {
+          "end": 403,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 311
+        },
+        {
+          "end": 657,
+          "sentence": "open bin 1",
+          "start": 404
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo24_spoon": {
+      "group": "demo24",
+      "num_frames": 658,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 36,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 40,
+          "sentence": "spoon in bin 1",
+          "start": 37
+        },
+        {
+          "end": 197,
+          "sentence": "box in bin 1",
+          "start": 41
+        },
+        {
+          "end": 267,
+          "sentence": "tape in bin 2",
+          "start": 198
+        },
+        {
+          "end": 310,
+          "sentence": "banana in bin 3",
+          "start": 268
+        },
+        {
+          "end": 403,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 311
+        },
+        {
+          "end": 657,
+          "sentence": "open bin 1",
+          "start": 404
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo25_box": {
+      "group": "demo25",
+      "num_frames": 635,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 46,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 124,
+          "sentence": "spoon in bin 1",
+          "start": 47
+        },
+        {
+          "end": 202,
+          "sentence": "box in bin 2",
+          "start": 125
+        },
+        {
+          "end": 225,
+          "sentence": "banana in bin 3",
+          "start": 203
+        },
+        {
+          "end": 278,
+          "sentence": "tape in bin 3",
+          "start": 226
+        },
+        {
+          "end": 376,
+          "sentence": "all bins closed, box is in bin 2",
+          "start": 279
+        },
+        {
+          "end": 634,
+          "sentence": "open bin 2",
+          "start": 377
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo26_banana": {
+      "group": "demo26",
+      "num_frames": 664,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 125,
+          "sentence": "spoon in bin 1",
+          "start": 44
+        },
+        {
+          "end": 168,
+          "sentence": "tape in bin 2",
+          "start": 126
+        },
+        {
+          "end": 255,
+          "sentence": "box in bin 2",
+          "start": 169
+        },
+        {
+          "end": 300,
+          "sentence": "banana in bin 3",
+          "start": 256
+        },
+        {
+          "end": 396,
+          "sentence": "all bins closed, banana is in bin 3",
+          "start": 301
+        },
+        {
+          "end": 663,
+          "sentence": "open bin 3",
+          "start": 397
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo27_banana": {
+      "group": "demo27",
+      "num_frames": 632,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 67,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 131,
+          "sentence": "box in bin 1",
+          "start": 68
+        },
+        {
+          "end": 222,
+          "sentence": "tape in bin 2",
+          "start": 132
+        },
+        {
+          "end": 254,
+          "sentence": "spoon in bin 3",
+          "start": 223
+        },
+        {
+          "end": 301,
+          "sentence": "banana in bin 3",
+          "start": 255
+        },
+        {
+          "end": 401,
+          "sentence": "all bins closed, banana is in bin 3",
+          "start": 302
+        },
+        {
+          "end": 631,
+          "sentence": "open bin 3",
+          "start": 402
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo27_spoon": {
+      "group": "demo27",
+      "num_frames": 632,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 67,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 131,
+          "sentence": "box in bin 1",
+          "start": 68
+        },
+        {
+          "end": 222,
+          "sentence": "tape in bin 2",
+          "start": 132
+        },
+        {
+          "end": 254,
+          "sentence": "spoon in bin 3",
+          "start": 223
+        },
+        {
+          "end": 301,
+          "sentence": "banana in bin 3",
+          "start": 255
+        },
+        {
+          "end": 401,
+          "sentence": "all bins closed, spoon is in bin 3",
+          "start": 302
+        },
+        {
+          "end": 631,
+          "sentence": "open bin 3",
+          "start": 402
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo28_box": {
+      "group": "demo28",
+      "num_frames": 633,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 141,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 187,
+          "sentence": "tape in bin 2",
+          "start": 142
+        },
+        {
+          "end": 264,
+          "sentence": "spoon in bin 2",
+          "start": 188
+        },
+        {
+          "end": 300,
+          "sentence": "banana in bin 3",
+          "start": 265
+        },
+        {
+          "end": 364,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 301
+        },
+        {
+          "end": 632,
+          "sentence": "open bin 1",
+          "start": 365
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo29_box": {
+      "group": "demo29",
+      "num_frames": 720,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 39,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 156,
+          "sentence": "banana in bin 1",
+          "start": 40
+        },
+        {
+          "end": 274,
+          "sentence": "tape in bin 2",
+          "start": 157
+        },
+        {
+          "end": 299,
+          "sentence": "spoon in bin 3",
+          "start": 275
+        },
+        {
+          "end": 343,
+          "sentence": "box in bin 3",
+          "start": 300
+        },
+        {
+          "end": 449,
+          "sentence": "all bins closed, box is in bin 3",
+          "start": 344
+        },
+        {
+          "end": 719,
+          "sentence": "open bin 3",
+          "start": 450
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo29_spoon": {
+      "group": "demo29",
+      "num_frames": 720,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 39,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 156,
+          "sentence": "banana in bin 1",
+          "start": 40
+        },
+        {
+          "end": 274,
+          "sentence": "tape in bin 2",
+          "start": 157
+        },
+        {
+          "end": 299,
+          "sentence": "spoon in bin 3",
+          "start": 275
+        },
+        {
+          "end": 343,
+          "sentence": "box in bin 3",
+          "start": 300
+        },
+        {
+          "end": 449,
+          "sentence": "all bins closed, spoon is in bin 3",
+          "start": 344
+        },
+        {
+          "end": 719,
+          "sentence": "open bin 3",
+          "start": 450
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo2_banana": {
+      "group": "demo2",
+      "num_frames": 733,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 77,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 162,
+          "sentence": "tape in bin 1",
+          "start": 78
+        },
+        {
+          "end": 247,
+          "sentence": "banana in bin 2",
+          "start": 163
+        },
+        {
+          "end": 280,
+          "sentence": "spoon in bin 3",
+          "start": 248
+        },
+        {
+          "end": 419,
+          "sentence": "all bins closed, banana is in bin 2",
+          "start": 281
+        },
+        {
+          "end": 732,
+          "sentence": "open bin 2",
+          "start": 420
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo30_spoon": {
+      "group": "demo30",
+      "num_frames": 620,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 29,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 38,
+          "sentence": "banana in bin 1",
+          "start": 30
+        },
+        {
+          "end": 151,
+          "sentence": "box in bin 1",
+          "start": 39
+        },
+        {
+          "end": 235,
+          "sentence": "spoon in bin 2",
+          "start": 152
+        },
+        {
+          "end": 272,
+          "sentence": "tape in bin 3",
+          "start": 236
+        },
+        {
+          "end": 377,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 273
+        },
+        {
+          "end": 619,
+          "sentence": "open bin 2",
+          "start": 378
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo31_box": {
+      "group": "demo31",
+      "num_frames": 549,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 38,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 45,
+          "sentence": "spoon in bin 1",
+          "start": 39
+        },
+        {
+          "end": 155,
+          "sentence": "box in bin 1",
+          "start": 46
+        },
+        {
+          "end": 223,
+          "sentence": "banana in bin 2",
+          "start": 156
+        },
+        {
+          "end": 262,
+          "sentence": "tape in bin 3",
+          "start": 224
+        },
+        {
+          "end": 345,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 263
+        },
+        {
+          "end": 548,
+          "sentence": "open bin 1",
+          "start": 346
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo31_spoon": {
+      "group": "demo31",
+      "num_frames": 549,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 38,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 45,
+          "sentence": "spoon in bin 1",
+          "start": 39
+        },
+        {
+          "end": 155,
+          "sentence": "box in bin 1",
+          "start": 46
+        },
+        {
+          "end": 223,
+          "sentence": "banana in bin 2",
+          "start": 156
+        },
+        {
+          "end": 262,
+          "sentence": "tape in bin 3",
+          "start": 224
+        },
+        {
+          "end": 345,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 263
+        },
+        {
+          "end": 548,
+          "sentence": "open bin 1",
+          "start": 346
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo32_spoon": {
+      "group": "demo32",
+      "num_frames": 622,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 127,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 202,
+          "sentence": "spoon in bin 2",
+          "start": 128
+        },
+        {
+          "end": 232,
+          "sentence": "banana in bin 3",
+          "start": 203
+        },
+        {
+          "end": 273,
+          "sentence": "tape in bin 3",
+          "start": 233
+        },
+        {
+          "end": 367,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 274
+        },
+        {
+          "end": 621,
+          "sentence": "open bin 2",
+          "start": 368
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo33_banana": {
+      "group": "demo33",
+      "num_frames": 573,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 29,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 58,
+          "sentence": "box in bin 1",
+          "start": 30
+        },
+        {
+          "end": 145,
+          "sentence": "spoon in bin 1",
+          "start": 59
+        },
+        {
+          "end": 213,
+          "sentence": "tape in bin 2",
+          "start": 146
+        },
+        {
+          "end": 246,
+          "sentence": "banana in bin 3",
+          "start": 214
+        },
+        {
+          "end": 340,
+          "sentence": "all bins closed, banana is in bin 3",
+          "start": 247
+        },
+        {
+          "end": 572,
+          "sentence": "open bin 3",
+          "start": 341
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo35_box": {
+      "group": "demo35",
+      "num_frames": 619,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 73,
+          "sentence": "spoon in bin 1",
+          "start": 44
+        },
+        {
+          "end": 190,
+          "sentence": "box in bin 1",
+          "start": 74
+        },
+        {
+          "end": 260,
+          "sentence": "banana in bin 2",
+          "start": 191
+        },
+        {
+          "end": 307,
+          "sentence": "tape in bin 3",
+          "start": 261
+        },
+        {
+          "end": 389,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 308
+        },
+        {
+          "end": 618,
+          "sentence": "open bin 1",
+          "start": 390
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo35_spoon": {
+      "group": "demo35",
+      "num_frames": 619,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 73,
+          "sentence": "spoon in bin 1",
+          "start": 44
+        },
+        {
+          "end": 190,
+          "sentence": "box in bin 1",
+          "start": 74
+        },
+        {
+          "end": 260,
+          "sentence": "banana in bin 2",
+          "start": 191
+        },
+        {
+          "end": 307,
+          "sentence": "tape in bin 3",
+          "start": 261
+        },
+        {
+          "end": 389,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 308
+        },
+        {
+          "end": 618,
+          "sentence": "open bin 1",
+          "start": 390
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo37_tape": {
+      "group": "demo37",
+      "num_frames": 570,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 70,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 108,
+          "sentence": "tape in bin 1",
+          "start": 71
+        },
+        {
+          "end": 134,
+          "sentence": "spoon in bin 2",
+          "start": 109
+        },
+        {
+          "end": 206,
+          "sentence": "box in bin 2",
+          "start": 135
+        },
+        {
+          "end": 235,
+          "sentence": "banana in bin 3",
+          "start": 207
+        },
+        {
+          "end": 330,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 236
+        },
+        {
+          "end": 569,
+          "sentence": "open bin 1",
+          "start": 331
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo38_tape": {
+      "group": "demo38",
+      "num_frames": 621,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 29,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 47,
+          "sentence": "spoon in bin 1",
+          "start": 30
+        },
+        {
+          "end": 163,
+          "sentence": "banana in bin 1",
+          "start": 48
+        },
+        {
+          "end": 251,
+          "sentence": "tape in bin 2",
+          "start": 164
+        },
+        {
+          "end": 281,
+          "sentence": "box in bin 3",
+          "start": 252
+        },
+        {
+          "end": 368,
+          "sentence": "all bins closed, tape is in bin 2",
+          "start": 282
+        },
+        {
+          "end": 620,
+          "sentence": "open bin 2",
+          "start": 369
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo39_spoon": {
+      "group": "demo39",
+      "num_frames": 618,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 31,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 124,
+          "sentence": "banana in bin 1",
+          "start": 32
+        },
+        {
+          "end": 206,
+          "sentence": "spoon in bin 2",
+          "start": 125
+        },
+        {
+          "end": 229,
+          "sentence": "box in bin 3",
+          "start": 207
+        },
+        {
+          "end": 273,
+          "sentence": "tape in bin 3",
+          "start": 230
+        },
+        {
+          "end": 385,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 274
+        },
+        {
+          "end": 617,
+          "sentence": "open bin 2",
+          "start": 386
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo3_tape": {
+      "group": "demo3",
+      "num_frames": 723,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 44,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 140,
+          "sentence": "tape in bin 1",
+          "start": 45
+        },
+        {
+          "end": 148,
+          "sentence": "banana in bin 2",
+          "start": 141
+        },
+        {
+          "end": 274,
+          "sentence": "box in bin 2",
+          "start": 149
+        },
+        {
+          "end": 319,
+          "sentence": "spoon in bin 3",
+          "start": 275
+        },
+        {
+          "end": 405,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 320
+        },
+        {
+          "end": 722,
+          "sentence": "open bin 1",
+          "start": 406
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo40_spoon": {
+      "group": "demo40",
+      "num_frames": 624,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 143,
+          "sentence": "banana in bin 1",
+          "start": 36
+        },
+        {
+          "end": 236,
+          "sentence": "spoon in bin 2",
+          "start": 144
+        },
+        {
+          "end": 277,
+          "sentence": "tape in bin 3",
+          "start": 237
+        },
+        {
+          "end": 312,
+          "sentence": "box in bin 3",
+          "start": 278
+        },
+        {
+          "end": 394,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 313
+        },
+        {
+          "end": 623,
+          "sentence": "open bin 2",
+          "start": 395
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo41_box": {
+      "group": "demo41",
+      "num_frames": 651,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 116,
+          "sentence": "box in bin 1",
+          "start": 36
+        },
+        {
+          "end": 144,
+          "sentence": "banana in bin 2",
+          "start": 117
+        },
+        {
+          "end": 236,
+          "sentence": "spoon in bin 2",
+          "start": 145
+        },
+        {
+          "end": 269,
+          "sentence": "tape in bin 3",
+          "start": 237
+        },
+        {
+          "end": 411,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 270
+        },
+        {
+          "end": 650,
+          "sentence": "open bin 1",
+          "start": 412
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo42_spoon": {
+      "group": "demo42",
+      "num_frames": 611,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 36,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 65,
+          "sentence": "box in bin 1",
+          "start": 37
+        },
+        {
+          "end": 153,
+          "sentence": "banana in bin 1",
+          "start": 66
+        },
+        {
+          "end": 231,
+          "sentence": "tape in bin 2",
+          "start": 154
+        },
+        {
+          "end": 272,
+          "sentence": "spoon in bin 3",
+          "start": 232
+        },
+        {
+          "end": 372,
+          "sentence": "all bins closed, spoon is in bin 3",
+          "start": 273
+        },
+        {
+          "end": 610,
+          "sentence": "open bin 3",
+          "start": 373
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo43_banana": {
+      "group": "demo43",
+      "num_frames": 624,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 70,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 151,
+          "sentence": "spoon in bin 1",
+          "start": 71
+        },
+        {
+          "end": 223,
+          "sentence": "banana in bin 2",
+          "start": 152
+        },
+        {
+          "end": 269,
+          "sentence": "tape in bin 3",
+          "start": 224
+        },
+        {
+          "end": 385,
+          "sentence": "all bins closed, banana is in bin 2",
+          "start": 270
+        },
+        {
+          "end": 623,
+          "sentence": "open bin 2",
+          "start": 386
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo44_spoon": {
+      "group": "demo44",
+      "num_frames": 605,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 40,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 46,
+          "sentence": "spoon in bin 1",
+          "start": 41
+        },
+        {
+          "end": 150,
+          "sentence": "tape in bin 1",
+          "start": 47
+        },
+        {
+          "end": 221,
+          "sentence": "box in bin 2",
+          "start": 151
+        },
+        {
+          "end": 257,
+          "sentence": "banana in bin 3",
+          "start": 222
+        },
+        {
+          "end": 383,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 258
+        },
+        {
+          "end": 604,
+          "sentence": "open bin 1",
+          "start": 384
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo44_tape": {
+      "group": "demo44",
+      "num_frames": 605,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 40,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 46,
+          "sentence": "spoon in bin 1",
+          "start": 41
+        },
+        {
+          "end": 150,
+          "sentence": "tape in bin 1",
+          "start": 47
+        },
+        {
+          "end": 221,
+          "sentence": "box in bin 2",
+          "start": 151
+        },
+        {
+          "end": 257,
+          "sentence": "banana in bin 3",
+          "start": 222
+        },
+        {
+          "end": 383,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 258
+        },
+        {
+          "end": 604,
+          "sentence": "open bin 1",
+          "start": 384
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo45_box": {
+      "group": "demo45",
+      "num_frames": 726,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 117,
+          "sentence": "box in bin 1",
+          "start": 44
+        },
+        {
+          "end": 184,
+          "sentence": "spoon in bin 2",
+          "start": 118
+        },
+        {
+          "end": 227,
+          "sentence": "tape in bin 3",
+          "start": 185
+        },
+        {
+          "end": 260,
+          "sentence": "banana in bin 3",
+          "start": 228
+        },
+        {
+          "end": 398,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 261
+        },
+        {
+          "end": 725,
+          "sentence": "open bin 1",
+          "start": 399
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo46_tape": {
+      "group": "demo46",
+      "num_frames": 543,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 64,
+          "sentence": "box in bin 1",
+          "start": 38
+        },
+        {
+          "end": 139,
+          "sentence": "banana in bin 1",
+          "start": 65
+        },
+        {
+          "end": 207,
+          "sentence": "spoon in bin 2",
+          "start": 140
+        },
+        {
+          "end": 244,
+          "sentence": "tape in bin 3",
+          "start": 208
+        },
+        {
+          "end": 339,
+          "sentence": "all bins closed, tape is in bin 3",
+          "start": 245
+        },
+        {
+          "end": 542,
+          "sentence": "open bin 3",
+          "start": 340
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo48_tape": {
+      "group": "demo48",
+      "num_frames": 586,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 57,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 120,
+          "sentence": "tape in bin 1",
+          "start": 58
+        },
+        {
+          "end": 205,
+          "sentence": "box in bin 2",
+          "start": 121
+        },
+        {
+          "end": 227,
+          "sentence": "banana in bin 3",
+          "start": 206
+        },
+        {
+          "end": 272,
+          "sentence": "spoon in bin 3",
+          "start": 228
+        },
+        {
+          "end": 352,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 273
+        },
+        {
+          "end": 585,
+          "sentence": "open bin 1",
+          "start": 353
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo49_box": {
+      "group": "demo49",
+      "num_frames": 576,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 32,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 130,
+          "sentence": "box in bin 1",
+          "start": 33
+        },
+        {
+          "end": 196,
+          "sentence": "banana in bin 2",
+          "start": 131
+        },
+        {
+          "end": 232,
+          "sentence": "tape in bin 3",
+          "start": 197
+        },
+        {
+          "end": 271,
+          "sentence": "spoon in bin 3",
+          "start": 233
+        },
+        {
+          "end": 342,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 272
+        },
+        {
+          "end": 575,
+          "sentence": "open bin 1",
+          "start": 343
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo4_banana": {
+      "group": "demo4",
+      "num_frames": 784,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 33,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 70,
+          "sentence": "banana in bin 1",
+          "start": 34
+        },
+        {
+          "end": 162,
+          "sentence": "box in bin 1",
+          "start": 71
+        },
+        {
+          "end": 248,
+          "sentence": "tape in bin 2",
+          "start": 163
+        },
+        {
+          "end": 282,
+          "sentence": "spoon in bin 3",
+          "start": 249
+        },
+        {
+          "end": 438,
+          "sentence": "all bins closed, banana is in bin 1",
+          "start": 283
+        },
+        {
+          "end": 783,
+          "sentence": "open bin 1",
+          "start": 439
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo4_box": {
+      "group": "demo4",
+      "num_frames": 784,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 33,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 70,
+          "sentence": "banana in bin 1",
+          "start": 34
+        },
+        {
+          "end": 162,
+          "sentence": "box in bin 1",
+          "start": 71
+        },
+        {
+          "end": 248,
+          "sentence": "tape in bin 2",
+          "start": 163
+        },
+        {
+          "end": 282,
+          "sentence": "spoon in bin 3",
+          "start": 249
+        },
+        {
+          "end": 438,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 283
+        },
+        {
+          "end": 783,
+          "sentence": "open bin 1",
+          "start": 439
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo51_banana": {
+      "group": "demo51",
+      "num_frames": 722,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 45,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 125,
+          "sentence": "box in bin 1",
+          "start": 46
+        },
+        {
+          "end": 153,
+          "sentence": "banana in bin 2",
+          "start": 126
+        },
+        {
+          "end": 246,
+          "sentence": "spoon in bin 2",
+          "start": 154
+        },
+        {
+          "end": 280,
+          "sentence": "tape in bin 3",
+          "start": 247
+        },
+        {
+          "end": 436,
+          "sentence": "all bins closed, banana is in bin 2",
+          "start": 281
+        },
+        {
+          "end": 721,
+          "sentence": "open bin 2",
+          "start": 437
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo51_spoon": {
+      "group": "demo51",
+      "num_frames": 722,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 45,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 125,
+          "sentence": "box in bin 1",
+          "start": 46
+        },
+        {
+          "end": 153,
+          "sentence": "banana in bin 2",
+          "start": 126
+        },
+        {
+          "end": 246,
+          "sentence": "spoon in bin 2",
+          "start": 154
+        },
+        {
+          "end": 280,
+          "sentence": "tape in bin 3",
+          "start": 247
+        },
+        {
+          "end": 436,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 281
+        },
+        {
+          "end": 721,
+          "sentence": "open bin 2",
+          "start": 437
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo52_box": {
+      "group": "demo52",
+      "num_frames": 553,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 77,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 78,
+          "sentence": "box in bin 1",
+          "start": 78
+        },
+        {
+          "end": 154,
+          "sentence": "tape in bin 1",
+          "start": 79
+        },
+        {
+          "end": 224,
+          "sentence": "banana in bin 2",
+          "start": 155
+        },
+        {
+          "end": 263,
+          "sentence": "spoon in bin 3",
+          "start": 225
+        },
+        {
+          "end": 323,
+          "sentence": "all bins closed, box is in bin 1",
+          "start": 264
+        },
+        {
+          "end": 552,
+          "sentence": "open bin 1",
+          "start": 324
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo52_tape": {
+      "group": "demo52",
+      "num_frames": 553,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 77,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 78,
+          "sentence": "box in bin 1",
+          "start": 78
+        },
+        {
+          "end": 154,
+          "sentence": "tape in bin 1",
+          "start": 79
+        },
+        {
+          "end": 224,
+          "sentence": "banana in bin 2",
+          "start": 155
+        },
+        {
+          "end": 263,
+          "sentence": "spoon in bin 3",
+          "start": 225
+        },
+        {
+          "end": 323,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 264
+        },
+        {
+          "end": 552,
+          "sentence": "open bin 1",
+          "start": 324
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo53_box": {
+      "group": "demo53",
+      "num_frames": 605,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 42,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 127,
+          "sentence": "spoon in bin 1",
+          "start": 43
+        },
+        {
+          "end": 191,
+          "sentence": "box in bin 2",
+          "start": 128
+        },
+        {
+          "end": 213,
+          "sentence": "tape in bin 3",
+          "start": 192
+        },
+        {
+          "end": 249,
+          "sentence": "banana in bin 3",
+          "start": 214
+        },
+        {
+          "end": 376,
+          "sentence": "all bins closed, box is in bin 2",
+          "start": 250
+        },
+        {
+          "end": 604,
+          "sentence": "open bin 2",
+          "start": 377
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo54_banana": {
+      "group": "demo54",
+      "num_frames": 580,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 30,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 39,
+          "sentence": "spoon in bin 1",
+          "start": 31
+        },
+        {
+          "end": 142,
+          "sentence": "banana in bin 1",
+          "start": 40
+        },
+        {
+          "end": 213,
+          "sentence": "box in bin 2",
+          "start": 143
+        },
+        {
+          "end": 251,
+          "sentence": "tape in bin 3",
+          "start": 214
+        },
+        {
+          "end": 347,
+          "sentence": "all bins closed, banana is in bin 1",
+          "start": 252
+        },
+        {
+          "end": 579,
+          "sentence": "open bin 1",
+          "start": 348
+        }
+      ],
+      "target": "banana"
+    },
+    "0908_task1/demo54_spoon": {
+      "group": "demo54",
+      "num_frames": 580,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 30,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 39,
+          "sentence": "spoon in bin 1",
+          "start": 31
+        },
+        {
+          "end": 142,
+          "sentence": "banana in bin 1",
+          "start": 40
+        },
+        {
+          "end": 213,
+          "sentence": "box in bin 2",
+          "start": 143
+        },
+        {
+          "end": 251,
+          "sentence": "tape in bin 3",
+          "start": 214
+        },
+        {
+          "end": 347,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 252
+        },
+        {
+          "end": 579,
+          "sentence": "open bin 1",
+          "start": 348
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo55_tape": {
+      "group": "demo55",
+      "num_frames": 622,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 65,
+          "sentence": "banana in bin 1",
+          "start": 36
+        },
+        {
+          "end": 177,
+          "sentence": "box in bin 1",
+          "start": 66
+        },
+        {
+          "end": 267,
+          "sentence": "tape in bin 2",
+          "start": 178
+        },
+        {
+          "end": 303,
+          "sentence": "spoon in bin 3",
+          "start": 268
+        },
+        {
+          "end": 395,
+          "sentence": "all bins closed, tape is in bin 2",
+          "start": 304
+        },
+        {
+          "end": 621,
+          "sentence": "open bin 2",
+          "start": 396
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo56_spoon": {
+      "group": "demo56",
+      "num_frames": 640,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 82,
+          "sentence": "banana in bin 1",
+          "start": 44
+        },
+        {
+          "end": 157,
+          "sentence": "box in bin 1",
+          "start": 83
+        },
+        {
+          "end": 228,
+          "sentence": "spoon in bin 2",
+          "start": 158
+        },
+        {
+          "end": 265,
+          "sentence": "tape in bin 3",
+          "start": 229
+        },
+        {
+          "end": 351,
+          "sentence": "all bins closed, spoon is in bin 2",
+          "start": 266
+        },
+        {
+          "end": 639,
+          "sentence": "open bin 2",
+          "start": 352
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo5_box": {
+      "group": "demo5",
+      "num_frames": 705,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 124,
+          "sentence": "banana in bin 1",
+          "start": 36
+        },
+        {
+          "end": 165,
+          "sentence": "tape in bin 2",
+          "start": 125
+        },
+        {
+          "end": 245,
+          "sentence": "box in bin 2",
+          "start": 166
+        },
+        {
+          "end": 281,
+          "sentence": "spoon in bin 3",
+          "start": 246
+        },
+        {
+          "end": 402,
+          "sentence": "all bins closed, box is in bin 2",
+          "start": 282
+        },
+        {
+          "end": 704,
+          "sentence": "open bin 2",
+          "start": 403
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo5_tape": {
+      "group": "demo5",
+      "num_frames": 705,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 124,
+          "sentence": "banana in bin 1",
+          "start": 36
+        },
+        {
+          "end": 165,
+          "sentence": "tape in bin 2",
+          "start": 125
+        },
+        {
+          "end": 245,
+          "sentence": "box in bin 2",
+          "start": 166
+        },
+        {
+          "end": 281,
+          "sentence": "spoon in bin 3",
+          "start": 246
+        },
+        {
+          "end": 402,
+          "sentence": "all bins closed, tape is in bin 2",
+          "start": 282
+        },
+        {
+          "end": 704,
+          "sentence": "open bin 2",
+          "start": 403
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo6_box": {
+      "group": "demo6",
+      "num_frames": 694,
+      "opened_bin": 3,
+      "segments": [
+        {
+          "end": 43,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 164,
+          "sentence": "banana in bin 1",
+          "start": 44
+        },
+        {
+          "end": 191,
+          "sentence": "spoon in bin 2",
+          "start": 165
+        },
+        {
+          "end": 279,
+          "sentence": "tape in bin 2",
+          "start": 192
+        },
+        {
+          "end": 312,
+          "sentence": "box in bin 3",
+          "start": 280
+        },
+        {
+          "end": 419,
+          "sentence": "all bins closed, box is in bin 3",
+          "start": 313
+        },
+        {
+          "end": 693,
+          "sentence": "open bin 3",
+          "start": 420
+        }
+      ],
+      "target": "box"
+    },
+    "0908_task1/demo7_tape": {
+      "group": "demo7",
+      "num_frames": 639,
+      "opened_bin": 2,
+      "segments": [
+        {
+          "end": 37,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 65,
+          "sentence": "spoon in bin 1",
+          "start": 38
+        },
+        {
+          "end": 173,
+          "sentence": "banana in bin 1",
+          "start": 66
+        },
+        {
+          "end": 247,
+          "sentence": "tape in bin 2",
+          "start": 174
+        },
+        {
+          "end": 277,
+          "sentence": "box in bin 3",
+          "start": 248
+        },
+        {
+          "end": 372,
+          "sentence": "all bins closed, tape is in bin 2",
+          "start": 278
+        },
+        {
+          "end": 638,
+          "sentence": "open bin 2",
+          "start": 373
+        }
+      ],
+      "target": "tape"
+    },
+    "0908_task1/demo8_spoon": {
+      "group": "demo8",
+      "num_frames": 667,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 35,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 124,
+          "sentence": "spoon in bin 1",
+          "start": 36
+        },
+        {
+          "end": 194,
+          "sentence": "banana in bin 2",
+          "start": 125
+        },
+        {
+          "end": 236,
+          "sentence": "tape in bin 3",
+          "start": 195
+        },
+        {
+          "end": 269,
+          "sentence": "box in bin 3",
+          "start": 237
+        },
+        {
+          "end": 385,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 270
+        },
+        {
+          "end": 666,
+          "sentence": "open bin 1",
+          "start": 386
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo9_spoon": {
+      "group": "demo9",
+      "num_frames": 623,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 31,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 62,
+          "sentence": "tape in bin 1",
+          "start": 32
+        },
+        {
+          "end": 156,
+          "sentence": "spoon in bin 1",
+          "start": 63
+        },
+        {
+          "end": 236,
+          "sentence": "banana in bin 2",
+          "start": 157
+        },
+        {
+          "end": 262,
+          "sentence": "box in bin 3",
+          "start": 237
+        },
+        {
+          "end": 353,
+          "sentence": "all bins closed, spoon is in bin 1",
+          "start": 263
+        },
+        {
+          "end": 622,
+          "sentence": "open bin 1",
+          "start": 354
+        }
+      ],
+      "target": "spoon"
+    },
+    "0908_task1/demo9_tape": {
+      "group": "demo9",
+      "num_frames": 623,
+      "opened_bin": 1,
+      "segments": [
+        {
+          "end": 31,
+          "sentence": "watching: no object placed yet",
+          "start": 0
+        },
+        {
+          "end": 62,
+          "sentence": "tape in bin 1",
+          "start": 32
+        },
+        {
+          "end": 156,
+          "sentence": "spoon in bin 1",
+          "start": 63
+        },
+        {
+          "end": 236,
+          "sentence": "banana in bin 2",
+          "start": 157
+        },
+        {
+          "end": 262,
+          "sentence": "box in bin 3",
+          "start": 237
+        },
+        {
+          "end": 353,
+          "sentence": "all bins closed, tape is in bin 1",
+          "start": 263
+        },
+        {
+          "end": 622,
+          "sentence": "open bin 1",
+          "start": 354
+        }
+      ],
+      "target": "tape"
+    }
+  },
+  "num_episodes": 71,
+  "schema_version": "openpi.v5.subtask-labels.v1",
+  "sentences": [
+    "all bins closed, banana is in bin 1",
+    "all bins closed, banana is in bin 2",
+    "all bins closed, banana is in bin 3",
+    "all bins closed, box is in bin 1",
+    "all bins closed, box is in bin 2",
+    "all bins closed, box is in bin 3",
+    "all bins closed, spoon is in bin 1",
+    "all bins closed, spoon is in bin 2",
+    "all bins closed, spoon is in bin 3",
+    "all bins closed, tape is in bin 1",
+    "all bins closed, tape is in bin 2",
+    "all bins closed, tape is in bin 3",
+    "banana in bin 1",
+    "banana in bin 2",
+    "banana in bin 3",
+    "box in bin 1",
+    "box in bin 2",
+    "box in bin 3",
+    "open bin 1",
+    "open bin 2",
+    "open bin 3",
+    "spoon in bin 1",
+    "spoon in bin 2",
+    "spoon in bin 3",
+    "tape in bin 1",
+    "tape in bin 2",
+    "tape in bin 3",
+    "watching: no object placed yet"
+  ],
+  "source_manifest": "cluster_v5/task1/task1_episode_manifest_v1.json",
+  "source_manifest_sha256": "19e4367bdc3ac0a84e76d82df73ba7bdc86cadd3cee1080d505b8ee1b0c8e81d"
+}
